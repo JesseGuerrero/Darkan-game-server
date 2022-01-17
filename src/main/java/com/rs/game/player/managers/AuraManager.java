@@ -366,6 +366,7 @@ public class AuraManager {
 	}
 
 	public void onIncomingHit(Hit hit) {
+        player.getPrayer().restorePrayer(hit.getDamage() * 0.2);
 		if (isActivated(Aura.PENANCE))
 			player.getPrayer().restorePrayer(hit.getDamage() * 0.2);
 	}
@@ -373,6 +374,7 @@ public class AuraManager {
 	public void onOutgoingHit(Hit hit) {
 		if (isActivated(Aura.INSPIRATION) && hit.getDamage() > 0)
 			useInspiration();
+        player.heal((int) (hit.getDamage() * 0.05));
 		if (isActivated(Aura.VAMPYRISM))
 			player.heal((int) (hit.getDamage() * 0.05));
 	}
