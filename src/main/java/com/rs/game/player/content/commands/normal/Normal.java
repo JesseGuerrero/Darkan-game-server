@@ -23,61 +23,18 @@ import com.rs.db.WorldDB;
 import com.rs.game.World;
 import com.rs.game.ge.Offer;
 import com.rs.game.npc.NPC;
-import com.rs.game.player.Player;
 import com.rs.game.player.content.commands.Command;
 import com.rs.game.player.content.commands.Commands;
-import com.rs.game.player.content.dialogue.Dialogue;
-import com.rs.game.region.ClipFlag;
-import com.rs.game.region.RenderFlag;
 import com.rs.lib.game.Rights;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.annotations.ServerStartupEvent;
-
-import java.util.Arrays;
 
 @PluginEventHandler
 public class Normal {
 
 	@ServerStartupEvent
 	public static void loadCommands() {
-
-        Commands.add(Rights.PLAYER, "coords,getpos,mypos,pos,loc", "Gets the coordinates for the tile.", (p, args) -> {
-            p.sendMessage("Coords: " + p.getX() + "," + p.getY() + "," + p.getPlane() + ", regionId: " + p.getRegionId() + ", chunkX: " + p.getChunkX() + ", chunkY: " + p.getChunkY());
-            p.sendMessage("JagCoords: " + p.getPlane() + ","+p.getRegionX()+","+p.getRegionY()+","+p.getXInScene(p.getSceneBaseChunkId())+","+p.getYInScene(p.getSceneBaseChunkId()));
-        });
-
-        Commands.add(Rights.PLAYER, "search,si,itemid [item name]", "Searches for items containing the words searched.", (p, args) -> {
-            p.getPackets().sendDevConsoleMessage("Searching for items containing: " + Arrays.toString(args));
-            for (int i = 0; i < Utils.getItemDefinitionsSize(); i++) {
-                boolean contains = true;
-                for (int idx = 0; idx < args.length; idx++) {
-                    if (!ItemDefinitions.getDefs(i).getName().toLowerCase().contains(args[idx].toLowerCase()) || ItemDefinitions.getDefs(i).isLended()) {
-                        contains = false;
-                        continue;
-                    }
-                }
-                if (contains)
-                    p.getPackets().sendDevConsoleMessage("Result found: " + i + " - " + ItemDefinitions.getDefs(i).getName() + " " + (ItemDefinitions.getDefs(i).isNoted() ? "(noted)" : "") + "" + (ItemDefinitions.getDefs(i).isLended() ? "(lent)" : ""));
-            }
-        });
-
-
-        Commands.add(Rights.PLAYER, "pestp", "Gives pest control points", (p, args) -> {
-            p.setPestPoints(p.getPestPoints() + 200);
-            p.sendMessage("Pestp points");
-        });
-
-        Commands.add(Rights.PLAYER, "tileflag", "Get the tile flags for the tile you're standing on.", (p, args) -> {
-            p.sendMessage("" + ClipFlag.getFlags(World.getClipFlags(p.getPlane(), p.getX(), p.getY())) + " - " + RenderFlag.getFlags(World.getRenderFlags(p.getPlane(), p.getX(), p.getY())));
-        });
-
-
-
-        Commands.add(Rights.PLAYER, "onlinep", "diaplays all players", (p, args) -> {
-            for(Player player : World.getPlayers())
-                p.sendMessage("On World" + player.getUsername());
-        });
 
 		Commands.add(Rights.PLAYER, "commandlist,commands", "Displays all the commands the player has permission to use.", (p, args) -> {
 			p.getPackets().setIFText(275, 1, "Commands List");
@@ -96,16 +53,6 @@ public class Normal {
 			p.getInterfaceManager().sendInterface(275);
 		});
 
-        Commands.add(Rights.PLAYER, "resett", "Displays all the commands the player has permission to use.", (p, args) -> {
-            p.getSlayer().removeTask();
-            p.updateSlayerTask();
-        });
-
-        Commands.add(Rights.PLAYER, "tokenator", "Gives the specified player dungeoneering tokens.", (p, args) -> {
-                p.getDungManager().addTokens(200000);
-                p.sendMessage("Successfully gave tokens..");
-        });
-
 		Commands.add(Rights.PLAYER, "drops [npcId numberKilled]", "Emulates a number of NPC kills and displays the collected loot.", (p, args) -> {
 			int npcId = Integer.valueOf(args[0]);
 			int npcAmount = Integer.valueOf(args[1].replace("k", "000"));
@@ -118,37 +65,6 @@ public class Normal {
 			NPC.displayDropsFor(p, npcId, npcAmount);
 		});
 
-        Commands.add(Rights.PLAYER, "addslayer", "More points", (p, args) -> {
-            p.addSlayerPoints(300);
-        });
-
-
-
-//		Commands.add(Rights.PLAYER, "cluesim [difficulty]", "Emulates opening a clue of specific difficulty", (p, args) -> {
-//			Item[] rewards = null;
-//			switch (args[0].toLowerCase()) {
-//				case "easy":				
-//					rewards = TreasureTrailsManager.generateRewards(p, 0);
-//					break;
-//				case "medium":
-//					rewards = TreasureTrailsManager.generateRewards(p, 1);
-//					break;
-//				case "hard":
-//					rewards = TreasureTrailsManager.generateRewards(p, 2);
-//					break;
-//				case "elite":
-//					rewards = TreasureTrailsManager.generateRewards(p, 3);
-//					break;
-//				default:
-//					rewards = TreasureTrailsManager.generateRewards(p, 0);
-//			}
-//
-//			p.getInterfaceManager().sendInterface(364);
-//			p.getPackets().sendInterSetItemsOptionsScript(364, 4, 141, 3, 4, "Examine");
-//			p.getPackets().setIFRightClickOps(364, 4, 0, rewards.length, 0);
-//			p.getPackets().sendItems(141, rewards);
-//		});
-		
 		Commands.add(Rights.PLAYER, "buyoffers", "Displays all buy offers currently active in the Grand Exchange.", (p, args) -> {
 			WorldDB.getGE().getAllOffersOfType(false, offers -> {
 				p.getPackets().sendRunScript(1207, offers.size());
@@ -205,11 +121,15 @@ public class Normal {
 			p.sendMessage("You have turned " + (p.isYellOff() ? "off" : "on") + " yell.");
 		});
 
-        Commands.add(Rights.PLAYER, "title", "Sets your title to display your XP rate.", (p, args) -> {
-			Dialogue switchTitle = new Dialogue();
-			switchTitle.addOption("Would you like to change your title to display your XP rate and mode?", "Yes.", "No.");
-			switchTitle.addSimple("Your title has been changed.", () -> p.applyAccountTitle());
-			p.startConversation(switchTitle);
+		Commands.add(Rights.PLAYER, "owner", "Gives you owner rank if you're the owner.", (p, args) -> {
+			if (Settings.isOwner(p.getUsername())) {
+				p.setRights(Rights.OWNER);
+				p.getAppearance().generateAppearanceData();
+			}
+		});
+
+		Commands.add(Rights.PLAYER, "ping", "Checks your ping if you have gotten it recently.", (p, args) -> {
+			p.sendMessage("Ping: " + p.getNSV().getI("ping", -1));
 		});
 
 		Commands.add(Rights.PLAYER, "dunginfo", "Shows dungeon seed", (p, args) -> {

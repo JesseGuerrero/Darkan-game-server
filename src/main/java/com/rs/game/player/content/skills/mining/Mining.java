@@ -23,10 +23,8 @@ import com.rs.game.npc.NPC;
 import com.rs.game.object.GameObject;
 import com.rs.game.player.Player;
 import com.rs.game.player.actions.Action;
-import com.rs.game.player.quests.Quest;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
-import com.rs.lib.game.WorldTile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.events.LoginEvent;
@@ -178,7 +176,10 @@ public class Mining extends Action {
 	public static ObjectClickHandler handleRedSandstone = new ObjectClickHandler(new Object[] { 2330 }) {
 		@Override
 		public void handle(ObjectClickEvent e) {
-            e.getPlayer().getActionManager().setAction(new Mining(RockType.RED_SANDSTONE, e.getObject()));
+			if (e.getPlayer().getDailyI("redSandstoneMined") < 50)
+				e.getPlayer().getActionManager().setAction(new Mining(RockType.RED_SANDSTONE, e.getObject()));
+			else
+				e.getPlayer().sendMessage("You've mined all you can from the rock.");
 		}
 	};
 

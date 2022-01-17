@@ -56,7 +56,6 @@ public class DropList {
 			}
 			drops.add(new DropEntry(table, curr, curr + rate));
 			curr += rate;
-
 			if (curr > 1.0000000000000009) {
 				overflowed = true;
 				overflow = curr - 1.0;
@@ -64,7 +63,7 @@ public class DropList {
 			}
 		}
 		double emptySlots = 1.0-curr;
-		this.nothingRate = emptySlots;
+		nothingRate = emptySlots;
 		drops.add(new DropEntry(null, curr, curr+emptySlots));
 	}
 
@@ -75,53 +74,41 @@ public class DropList {
 	public double getOverflow() {
 		return overflow;
 	}
-	
+
 	public String getNothingFracString() {
 		return Rational.toRational(nothingRate).toString();
 	}
-	
+
 	public double getNothingRate() {
 		return Utils.round(nothingRate, 10);
 	}
-	
+
 	public List<Item> genDrop() {
 		return genDrop(1.0);
 	}
-	
+
 	public List<Item> genDrop(double modifier) {
 		return genDrop(null, modifier);
 	}
-	
+
 	public List<DropEntry> getDrops() {
 		return drops;
 	}
-	
+
 	public List<Item> genDrop(Player killer, double modifier) {
 		List<Item> finals = new ArrayList<>();
-		
-		modifier *= Settings.getConfig().getDropModifier();
-		
-		double roll = Utils.clampD(Utils.randomD() * modifier, -100, MAX_ROLL);
-        double buffer = roll;
-        double roll2 = Utils.clampD(Utils.randomD() * 0.6, -100, MAX_ROLL);
-        double roll3 = Utils.clampD(Utils.randomD() * 0.5, -100, MAX_ROLL);
-		for (DropEntry drop : drops) {
-            DropTable table = drop.getTable();
-            if (table == null)
-                continue;
-            if(drop.getTable() != null && drop.getTable().getRate() < 0.01)
-                roll = roll2;
-            else if(drop.getTable() != null && drop.getTable().getRate() < 0.001)
-                roll = roll3;
-            else
-                roll = buffer;
 
-			if (!drop.isAlways() && roll < drop.getMin())
+		modifier *= Settings.getConfig().getDropModifier();
+
+		double roll = Utils.clampD(Utils.randomD() * modifier, -100, MAX_ROLL);
+		for (DropEntry drop : drops) {
+			if ((!drop.isAlways() && roll < drop.getMin()) || (!drop.isAlways() && roll >= drop.getMax()))
 				continue;
-			if (!drop.isAlways() && roll >= drop.getMax())
+			DropTable table = drop.getTable();
+			if (table == null)
 				continue;
 			if (table.getRollTable() != null) {
-				if (killer != null) {
+				if (killer != null)
 					switch(table.getRollTable().getNames()[0]) {
 					case "rdt_gem":
 						killer.incrementCount("Gem drop table drops");
@@ -139,7 +126,6 @@ public class DropList {
 							killer.sendMessage("<col=FACC2E>Your ring of wealth shines brightly!");
 						break;
 					}
-				}
 				finals.addAll(table.getRollTable().getDropList().genDrop(modifier));
 				continue;
 			}
@@ -147,24 +133,20 @@ public class DropList {
 				Drop d = table.getDrops()[Utils.random(table.getDrops().length)];
 				if (d.getRollTable() == null)
 					finals.add(d.toItem());
-				else {
+				else
 					for(int i = 0;i < d.getAmount();i++)
 						finals.addAll(d.getRollTable().getDropList().genDrop(modifier));
-				}
-			} else {
-				for (Drop d : table.getDrops()) {
+			} else
+				for (Drop d : table.getDrops())
 					if (d.getRollTable() == null)
 						finals.add(d.toItem());
-					else {
+					else
 						for(int i = 0;i < d.getAmount();i++)
 							finals.addAll(d.getRollTable().getDropList().genDrop(modifier));
-					}
-				}
-			}
 		}
 		return finals;
 	}
-	
+
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();

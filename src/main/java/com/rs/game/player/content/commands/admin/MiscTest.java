@@ -848,8 +848,8 @@ public class MiscTest {
 		Commands.add(Rights.ADMIN, "spec", "Restores special attack energy to full.", (p, args) -> {
 			p.getCombatDefinitions().resetSpecialAttack();
 		});
-		
-		Commands.add(Rights.PLAYER, "bank", "Opens the bank.", (p, args) -> {
+
+		Commands.add(Rights.ADMIN, "bank", "Opens the bank.", (p, args) -> {
 			p.getBank().open();
 		});
 
@@ -873,9 +873,8 @@ public class MiscTest {
 			p.getInterfaceManager().sendInterface(Integer.valueOf(args[0]));
 		});
 
-		Commands.add(Rights.DEVELOPER, "overlay [interfaceId (childId)]", "Opens an interface as a walkable overlay.", (p, args) -> {
-			int child = args.length > 1 ? Integer.parseInt(args[1]) : 28;
-			p.getInterfaceManager().setInterface(true, 746, child, Integer.valueOf(args[0]));
+		Commands.add(Rights.DEVELOPER, "overlay [interfaceId]", "Opens an interface as a walkable overlay.", (p, args) -> {
+			p.getInterfaceManager().setOverlay(428);
 		});
 
 		Commands.add(Rights.DEVELOPER, "winter [interfaceId componentId", "Sends an interface to the window specified component.", (p, args) -> {
@@ -1046,6 +1045,10 @@ public class MiscTest {
 
 		Commands.add(Rights.DEVELOPER, "hidec [interfaceId componentId hidden]", "show hide comp.", (p, args) -> {
 			p.getPackets().setIFHidden(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Boolean.valueOf(args[2]));
+		});
+		
+		Commands.add(Rights.DEVELOPER, "ifgraphic [interfaceId componentId graphicId]", "interface set graphic.", (p, args) -> {
+			p.getPackets().setIFGraphic(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2]));
 		});
 
 		Commands.add(Rights.ADMIN, "checkclient [player name]", "Verifies the user's client.", (p, args) -> {

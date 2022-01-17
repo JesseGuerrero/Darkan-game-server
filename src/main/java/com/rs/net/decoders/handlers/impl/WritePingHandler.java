@@ -14,20 +14,17 @@
 //  Copyright © 2021 Trenton Kress
 //  This file is part of project: Darkan
 //
-package com.rs.game.player.content.world.regions;
+package com.rs.net.decoders.handlers.impl;
 
-import com.rs.lib.game.WorldTile;
-import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ObjectClickEvent;
-import com.rs.plugin.handlers.ObjectClickHandler;
+import com.rs.game.player.Player;
+import com.rs.lib.net.packets.PacketHandler;
+import com.rs.lib.net.packets.decoders.WritePing;
 
-@PluginEventHandler
-public class Catherby {
+public class WritePingHandler implements PacketHandler<Player, WritePing> {
 
-	public static ObjectClickHandler taverlyDungeonClimbToWaterObelisk = new ObjectClickHandler(new Object[] { 32015 }, new WorldTile(2842, 9824, 0)) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			e.getPlayer().ladder(new WorldTile(2842, 3423, 0));
-		}
-	};
+	@Override
+	public void handle(Player player, WritePing packet) {
+		player.getNSV().setI("ping", packet.getPing());
+	}
+
 }

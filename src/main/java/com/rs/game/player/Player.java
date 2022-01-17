@@ -991,17 +991,8 @@ public class Player extends Entity {
 		timePlayed = getTimePlayed() + 1;
 		timeLoggedOut = System.currentTimeMillis();
 		if (!isDead()) {
-			if (getTickCounter() % 30 == 0) {
-                getCombatDefinitions().restoreSpecialAttack();
-                addEffect(Effect.PRAYER_RENEWAL, 500);
-                loyaltyPoints+=50;
-
-
-            }
-
-            if (getTickCounter() % 300 == 0) {
-                sendMessage("You have " + loyaltyPoints + " loyalty points!");
-            }
+			if (getTickCounter() % 50 == 0)
+				getCombatDefinitions().restoreSpecialAttack();
 
 			//Restore skilling stats
 			if (getTickCounter() % 100 == 0) {
@@ -1012,7 +1003,7 @@ public class Player extends Entity {
 			//Restore combat stats
 			if (getTickCounter() % (getPrayer().active(Prayer.BERSERKER) ? 115 : 100) == 0) {
 				final int amount = (getPrayer().active(Prayer.RAPID_RESTORE) ? 2 : 1) + (isResting() ? 1 : 0);
-				Arrays.stream(Skills.COMBAT).forEach(skill -> restoreTick(skill, amount*2));
+				Arrays.stream(Skills.COMBAT).forEach(skill -> restoreTick(skill, amount));
 			}
 		}
 		if (getNextRunDirection() == null) {
@@ -1092,7 +1083,7 @@ public class Player extends Entity {
 			WorldTasks.schedule(new WorldTask() {
 				@Override
 				public void run() {
-//					musicsManager.nextAmbientSong();
+					musicsManager.nextAmbientSong();
 					getTempAttribs().setB("MUSIC_BREAK", false);
 				}
 			}, Utils.randomInclusive(10, 30));
@@ -1703,6 +1694,10 @@ public class Player extends Entity {
 		});
 		World.updateEntityRegion(this);
 	}
+
+    public long getLastLoggedIn() {
+        return lastLoggedIn;
+    }
 
 	@Override
 	public boolean restoreHitPoints() {
@@ -4125,6 +4120,8 @@ public class Player extends Entity {
 	}
 
 	public Map<Integer, Offer> getGEOffers() {
+		if (geOffers == null)
+			geOffers = new HashMap<>();
 		return geOffers;
 	}
 
@@ -4214,5 +4211,9 @@ public class Player extends Entity {
 
 	public void simpleDialogue(String message) {
 		startConversation(new com.rs.game.player.content.dialogue.Dialogue(new SimpleStatement(message)));
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
 	}
 }
