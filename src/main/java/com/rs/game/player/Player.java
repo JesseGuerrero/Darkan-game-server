@@ -993,7 +993,10 @@ public class Player extends Entity {
 		if (!isDead()) {
 			if (getTickCounter() % 50 == 0)
 				getCombatDefinitions().restoreSpecialAttack();
-
+            if (getTickCounter() % 400 == 0) {
+                addEffect(Effect.PRAYER_RENEWAL, 500);
+                loyaltyPoints+=650;
+            }
 			//Restore skilling stats
 			if (getTickCounter() % 100 == 0) {
 				final int amount = (getPrayer().active(Prayer.RAPID_RESTORE) ? 2 : 1) + (isResting() ? 1 : 0);
@@ -1003,7 +1006,7 @@ public class Player extends Entity {
 			//Restore combat stats
 			if (getTickCounter() % (getPrayer().active(Prayer.BERSERKER) ? 115 : 100) == 0) {
 				final int amount = (getPrayer().active(Prayer.RAPID_RESTORE) ? 2 : 1) + (isResting() ? 1 : 0);
-				Arrays.stream(Skills.COMBAT).forEach(skill -> restoreTick(skill, amount));
+				Arrays.stream(Skills.COMBAT).forEach(skill -> restoreTick(skill, amount*2));
 			}
 		}
 		if (getNextRunDirection() == null) {
