@@ -17,10 +17,14 @@
 package com.rs.game.content.world.areas.dungeons;
 
 import com.rs.game.content.quests.Quest;
+import com.rs.game.content.world.AgilityShortcuts;
 import com.rs.game.model.entity.ForceMovement;
+import com.rs.game.model.entity.pathing.Direction;
+import com.rs.game.model.entity.player.Player;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
+import com.rs.lib.game.WorldObject;
 import com.rs.lib.game.WorldTile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
@@ -57,6 +61,18 @@ public class LumbridgeSwampDungeon {
 		@Override
 		public void handle(ObjectClickEvent e) {
 			e.getPlayer().setNextWorldTile(new WorldTile(3226, 9542, 0));
+		}
+	};
+
+	public static ObjectClickHandler handleRocksJuna = new ObjectClickHandler(new Object[] { 6673 }) {
+		@Override
+		public void handle(ObjectClickEvent e) {
+			Player p = e.getPlayer();
+			WorldObject obj = e.getObject();
+			if(p.getX() < obj.getX())
+				p.setNextWorldTile(new WorldTile(p.getX() + 2, p.getY(), p.getPlane()));
+			if(p.getX() > obj.getX())
+				AgilityShortcuts.forceMovement(p, new WorldTile(p.getX()-2, p.getY(), p.getPlane()), 2049, 1, 1);
 		}
 	};
 
