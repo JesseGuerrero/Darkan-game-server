@@ -16,12 +16,18 @@
 //
 package com.rs.game.content.quests.handlers.tearsofguthix;
 
+import com.rs.game.content.dialogue.Dialogue;
+import com.rs.game.content.dialogue.HeadE;
 import com.rs.game.content.quests.Quest;
 import com.rs.game.content.quests.QuestHandler;
 import com.rs.game.content.quests.QuestOutline;
+import com.rs.game.model.entity.player.Equipment;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.Constants;
+import com.rs.lib.game.Item;
 import com.rs.plugin.annotations.PluginEventHandler;
+import com.rs.plugin.events.ItemClickEvent;
+import com.rs.plugin.handlers.ItemClickHandler;
 
 import java.util.ArrayList;
 
@@ -30,9 +36,7 @@ import java.util.ArrayList;
 public class TearsOfGuthix extends QuestOutline {
 	public final static int NOT_STARTED = 0;
 	public final static int GET_BOWL = 1;
-	public final static int TEARS = 2;
-	public final static int REPORT_TO_JUNA = 3;
-	public final static int QUEST_COMPLETE = 4;
+	public final static int QUEST_COMPLETE = 2;
 	@Override
 	public int getCompletedStage() {
 		return QUEST_COMPLETE;
@@ -44,25 +48,15 @@ public class TearsOfGuthix extends QuestOutline {
 		switch(stage) {
 			case NOT_STARTED -> {
 				lines.add("Deep in the caves in the Lumbridge Swamp is an enchanted place where");
-				lines.add("the tears shed by Guthix when it saw the destruction Saradomin and ");
-				lines.add("Zamorak had caused with their wars flow from the very walls. These ");
-				lines.add("tears are said to have magical properties to help players gain deeper");
-				lines.add("understanding of the world. However, the cave is guarded by a loyal ");
-				lines.add("serpent named Juna who blocks passage from everyone. However, she has ");
-				lines.add("grown bored from three thousand years of sitting in the dark cave and");
-				lines.add("wishes to hear stories of life above. Maybe you could come to some sort");
-				lines.add("of arrangement...?");
+				lines.add("the tears shed by Guthix are said to have magical properties. However,");
+				lines.add("the cave is guarded by a loyal serpent named Juna...");
 				lines.add("");
 			}
 			case GET_BOWL -> {
-				lines.add("");
-				lines.add("");
-			}
-			case TEARS -> {
-				lines.add("");
+				lines.add("I must get a bowl to be able to fill with the tears.");
 				lines.add("");
 			}
-			case REPORT_TO_JUNA -> {
+			case QUEST_COMPLETE -> {
 				lines.add("");
 				lines.add("");
 				lines.add("QUEST COMPLETE!");
@@ -74,9 +68,24 @@ public class TearsOfGuthix extends QuestOutline {
 		return lines;
 	}
 
+	public static ItemClickHandler handleMagicStone = new ItemClickHandler(new Object[]{4703}, new String[]{"Craft"}) {
+		@Override
+		public void handle(ItemClickEvent e) {
+			if (e.getPlayer().getQuestManager().getStage(Quest.TEARS_OF_GUTHIX) != GET_BOWL) {
+				return;
+			}
+			e.getPlayer().getInventory().replace(new Item(4703, 1), new Item(4704, 1));
+		}
+	};
+
+	protected static void tearsOfGuthix(Player p) {
+		p.sendMessage("you are doing it...");
+		p.save("TimeLastTOG", System.currentTimeMillis());
+	}
+
 	@Override
 	public void complete(Player player) {
-		player.getSkills().addXpQuest(Constants.COOKING, 300);
-		getQuest().sendQuestCompleteInterface(player, 1891, "300 Cooking XP");
+		player.getSkills().addXpQuest(Constants.CRAFTING, 1000);
+		getQuest().sendQuestCompleteInterface(player, 4704, "1,000 Crafting XP", "Access to the Tears of Guthix");
 	}
 }
