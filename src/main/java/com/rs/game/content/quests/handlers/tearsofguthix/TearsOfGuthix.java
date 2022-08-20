@@ -86,6 +86,6 @@ public class TearsOfGuthix extends QuestOutline {
 	@Override
 	public void complete(Player player) {
 		player.getSkills().addXpQuest(Constants.CRAFTING, 1000);
-		getQuest().sendQuestCompleteInterface(player, 4704, "1,000 Crafting XP", "Access to the Tears of Guthix");
+		getQuest().sendQuestCompleteInterface(player, 4704, "1,000 Crafting XP"/*, "Access to the Tears of Guthix"*/);
 	}
 }
