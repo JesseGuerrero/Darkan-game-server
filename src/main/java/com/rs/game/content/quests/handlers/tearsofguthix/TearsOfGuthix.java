@@ -16,17 +16,12 @@
 //
 package com.rs.game.content.quests.handlers.tearsofguthix;
 
-import com.rs.game.content.dialogue.Conversation;
-import com.rs.game.content.dialogue.HeadE;
 import com.rs.game.content.quests.Quest;
 import com.rs.game.content.quests.QuestHandler;
 import com.rs.game.content.quests.QuestOutline;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.Constants;
-import com.rs.lib.game.Item;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.NPCClickEvent;
-import com.rs.plugin.handlers.NPCClickHandler;
 
 import java.util.ArrayList;
 
@@ -34,7 +29,7 @@ import java.util.ArrayList;
 @PluginEventHandler
 public class TearsOfGuthix extends QuestOutline {
 	public final static int NOT_STARTED = 0;
-	public final static int TALK_TO_JUNA = 1;
+	public final static int GET_BOWL = 1;
 	public final static int TEARS = 2;
 	public final static int REPORT_TO_JUNA = 3;
 	public final static int QUEST_COMPLETE = 4;
@@ -59,7 +54,7 @@ public class TearsOfGuthix extends QuestOutline {
 				lines.add("of arrangement...?");
 				lines.add("");
 			}
-			case TALK_TO_JUNA -> {
+			case GET_BOWL -> {
 				lines.add("");
 				lines.add("");
 			}
