@@ -6,6 +6,7 @@ import com.rs.game.content.dialogue.HeadE;
 import com.rs.game.content.quests.Quest;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.tasks.WorldTasks;
+import com.rs.lib.game.Animation;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.events.ObjectClickEvent;
 import com.rs.plugin.handlers.ObjectClickHandler;
@@ -17,9 +18,6 @@ import static com.rs.game.content.quests.handlers.tearsofguthix.TearsOfGuthix.te
 @PluginEventHandler
 public class JunaTearsOfGuthix extends Conversation {
 	private static final int NPC = 2023;
-	public JunaTearsOfGuthix(Player player) {
-		this(player, false);
-	}
 	public JunaTearsOfGuthix(Player p, boolean tellingStory) {
 		super(p);
 		switch(p.getQuestManager().getStage(Quest.TEARS_OF_GUTHIX)) {
@@ -98,8 +96,9 @@ public class JunaTearsOfGuthix extends Conversation {
 				addPlayer(HeadE.HAPPY_TALKING, "Okay, I'll do it!");
 			}
 			case QUEST_COMPLETE ->  {
+				addNPC(HeadE.CAT_CALM_TALK, "Tell me... a story...");
 				if(p.get("TimeLastTOG") instanceof Boolean || ((double)p.get("TimeLastTOG")) - System.currentTimeMillis() > 7*24*60*60*1000) {//1 week
-					tearsOfGuthix(p);
+					addNext(()->{tearsOfGuthix(p);});
 					return;
 				}
 				if(p.getEquipment().hasTwoHandedWeapon() || p.getEquipment().hasShield() || p.getEquipment().getWeaponId() != -1) {
@@ -116,7 +115,8 @@ public class JunaTearsOfGuthix extends Conversation {
     public static ObjectClickHandler handleDialogue = new ObjectClickHandler(new Object[]{6657}) {
         @Override
         public void handle(ObjectClickEvent e) {
-            e.getPlayer().startConversation(new JunaTearsOfGuthix(e.getPlayer()).getStart());
+			e.getObject().animate(new Animation(2055));
+            e.getPlayer().startConversation(new JunaTearsOfGuthix(e.getPlayer(), false).getStart());
         }
     };
 }

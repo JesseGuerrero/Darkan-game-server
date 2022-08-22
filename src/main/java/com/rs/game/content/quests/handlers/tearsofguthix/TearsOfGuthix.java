@@ -37,6 +37,8 @@ public class TearsOfGuthix extends QuestOutline {
 	public final static int NOT_STARTED = 0;
 	public final static int GET_BOWL = 1;
 	public final static int QUEST_COMPLETE = 2;
+	protected final static int TEARS_INTERFACE = 4;
+
 	@Override
 	public int getCompletedStage() {
 		return QUEST_COMPLETE;
