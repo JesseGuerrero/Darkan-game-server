@@ -26,6 +26,7 @@ import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.WorldTile;
+import com.rs.lib.util.Logger;
 import com.rs.utils.music.Genre;
 import com.rs.utils.music.Music;
 
@@ -62,7 +63,7 @@ public class DemonSlayer_WallyVSDelrith extends Controller {
 		instance = new DynamicRegionReference(4, 4);
 		instance.copyMapAllPlanes(401, 419, () -> {
 			spawn = instance.getLocalTile(19, 17);
-			System.out.println(spawn);
+			Logger.debug(DemonSlayer_WallyVSDelrith.class, "playCutscene", spawn);
 
 			WorldTasks.schedule(new WorldTask() {
 				int tick;
@@ -72,7 +73,7 @@ public class DemonSlayer_WallyVSDelrith extends Controller {
 				public void run() {
 					if (tick == 0) { // setup p1
 						player.getInterfaceManager().fadeIn();
-						player.getPackets().sendMusic(-1, 100, 255);
+						player.musicTrack(-1);
 					} else if (tick == 3) {// setup p2, move player
 						player.getPackets().setBlockMinimapState(2);
 						player.setNextWorldTile(spawn);
@@ -83,7 +84,7 @@ public class DemonSlayer_WallyVSDelrith extends Controller {
 						player.getPackets().sendCameraLook(player.getXInScene(player.getSceneBaseChunkId()) + 4, player.getYInScene(player.getSceneBaseChunkId()) - 4, 50);
 					} else if (tick == 6) {// start scene
 						player.getInterfaceManager().fadeOut();
-						player.getPackets().sendMusic(196, 100, 255);
+						player.musicTrack(196);
 						npc = World.spawnNPC(WALLY, new WorldTile(player.getX() - 1, player.getY() - 5, player.getPlane()), -1, false, true);
 						npc.setRandomWalk(false);
 					} else if (tick == 7)
@@ -174,7 +175,7 @@ public class DemonSlayer_WallyVSDelrith extends Controller {
 						player.getPackets().sendStopCameraShake();
 					} else if (tick == 27) {// closing p2
 						player.getInterfaceManager().setFadingInterface(170);
-						player.getPackets().sendMusic(125, 100, 255);
+						player.musicTrack(125);
 						player.getTempAttribs().setB("DemonSlayerCutscenePlayed", true);
 						player.startConversation(new GypsyArisDemonSlayerD(player, 1).getStart());
 						player.unlock();

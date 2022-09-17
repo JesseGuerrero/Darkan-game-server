@@ -785,7 +785,7 @@ public final class Skills {
 		else
 			player.getVars().setVar(2044, 0);
 		player.getVars().syncVarsToClient();
-		player.getPackets().updateStats(player, markedForUpdate.stream().mapToInt(e -> e.intValue()).toArray());
+		player.getPackets().updateStats(markedForUpdate.stream().mapToInt(e -> e.intValue()).toArray());
 		if (markedForLevelUp != -1)
 			sendLevelUp(markedForLevelUp);
 		markedForUpdate.clear();
@@ -804,7 +804,7 @@ public final class Skills {
 		switchFlash(player, skill, true);
 		int musicEffect = SKILL_LEVEL_UP_MUSIC_EFFECTS[skill];
 		if (musicEffect != -1)
-			player.getPackets().sendMusicEffect(musicEffect);
+			player.jingle(musicEffect);
 		if (!player.hasRights(Rights.ADMIN) && (level == 99 || level == 120))
 			checkMaxedNotification(player, skill, level);
 	}

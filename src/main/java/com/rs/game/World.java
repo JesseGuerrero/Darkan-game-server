@@ -59,6 +59,8 @@ import com.rs.lib.game.Item;
 import com.rs.lib.game.Rights;
 import com.rs.lib.game.SpotAnim;
 import com.rs.lib.game.WorldTile;
+import com.rs.lib.net.packets.encoders.Sound;
+import com.rs.lib.net.packets.encoders.Sound.SoundType;
 import com.rs.lib.util.Logger;
 import com.rs.lib.util.MapUtils;
 import com.rs.lib.util.MapUtils.Structure;
@@ -68,7 +70,7 @@ import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.annotations.ServerStartupEvent;
 import com.rs.plugin.events.EnterChunkEvent;
 import com.rs.plugin.events.NPCInstanceEvent;
-import com.rs.utils.AntiFlood;
+import com.rs.utils.AccountLimiter;
 import com.rs.utils.Areas;
 import com.rs.utils.Ticks;
 import com.rs.utils.WorldUtil;
@@ -109,7 +111,7 @@ public final class World {
 						PartyRoom.spawnBalloons();
 				}
 			} catch (Throwable e) {
-				Logger.handle(e);
+				Logger.handle(World.class, "processPartyRoom", e);
 			}
 		}, 2, 2);
 	}
@@ -123,7 +125,7 @@ public final class World {
 						player.getPhasmatysBrewery().process();
 					}
 			} catch (Throwable e) {
-				Logger.handle(e);
+				Logger.handle(World.class, "addBrewingProcessTask", e);
 			}
 		}, Ticks.fromHours(1), Ticks.fromHours(1));
 	}
@@ -133,7 +135,7 @@ public final class World {
 			try {
 				ShopsHandler.restoreShops();
 			} catch (Throwable e) {
-				Logger.handle(e);
+				Logger.handle(World.class, "addRestoreShopItemsTask", e);
 			}
 		}, 0, 1);
 	}
@@ -190,14 +192,14 @@ public final class World {
 		PLAYER_MAP_USERNAME.put(player.getUsername(), player);
 		PLAYER_MAP_DISPLAYNAME.put(player.getDisplayName(), player);
 		if (player.getSession() != null)
-			AntiFlood.add(player.getSession().getIP());
+			AccountLimiter.add(player.getSession().getIP());
 	}
 
 	public static void removePlayer(Player player) {
 		PLAYERS.remove(player);
 		PLAYER_MAP_USERNAME.remove(player.getUsername(), player);
 		PLAYER_MAP_DISPLAYNAME.remove(player.getDisplayName(), player);
-		AntiFlood.remove(player.getSession().getIP());
+		AccountLimiter.remove(player.getSession().getIP());
 	}
 
 	public static final void addNPC(NPC npc) {
@@ -931,19 +933,18 @@ public final class World {
 				continue;
 			player.getPackets().sendSystemUpdate(delay);
 		}
-		Launcher.pullAndCompile();
 		CoresManager.schedule(() -> {
 			try {
 				for (Player player : World.getPlayers()) {
 					if (player == null || !player.hasStarted())
 						continue;
-					player.getPackets().sendLogout(player, true);
+					player.getPackets().sendLogout(true);
 					player.realFinish();
 				}
 				PartyRoom.save();
 				Launcher.shutdown();
 			} catch (Throwable e) {
-				Logger.handle(e);
+				Logger.handle(World.class, "safeShutdown", e);
 			}
 		}, delay);
 	}
@@ -978,7 +979,7 @@ public final class World {
 						return;
 					removeObject(object);
 				} catch (Throwable e) {
-					Logger.handle(e);
+					Logger.handle(World.class, "spawnObjectTemporary", e);
 				}
 			}
 		}, Utils.clampI(ticks - 1, 0, Integer.MAX_VALUE));
@@ -998,7 +999,7 @@ public final class World {
 				try {
 					spawnObject(object);
 				} catch (Throwable e) {
-					Logger.handle(e);
+					Logger.handle(World.class, "removeObjectTemporary", e);
 				}
 			}
 		}, Utils.clampI(ticks, 0, Integer.MAX_VALUE));
@@ -1014,7 +1015,7 @@ public final class World {
 					removeObject(object);
 					addGroundItem(new Item(replaceId), object, null, false, 180);
 				} catch (Throwable e) {
-					Logger.handle(e);
+					Logger.handle(World.class, "spawnTempGroundObject", e);
 				}
 			}
 		}, Utils.clampI(ticks - 1, 0, Integer.MAX_VALUE));
@@ -1108,16 +1109,16 @@ public final class World {
 		NORMAL, TURN_UNTRADEABLES_TO_COINS
 	}
 
-	public static final void addGroundItem(Item item, WorldTile tile) {
-		addGroundItem(item, tile, null, false, -1, DropMethod.NORMAL, -1);
+	public static final GroundItem addGroundItem(Item item, WorldTile tile) {
+		return addGroundItem(item, tile, null, false, -1, DropMethod.NORMAL, -1);
 	}
 
-	public static final void addGroundItem(Item item, WorldTile tile, Player owner) {
-		addGroundItem(item, tile, owner, true, 60);
+	public static final GroundItem addGroundItem(Item item, WorldTile tile, Player owner) {
+		return addGroundItem(item, tile, owner, true, 60);
 	}
 
-	public static final void addGroundItem(Item item, WorldTile tile, Player owner, boolean invisible, int hiddenSecs) {
-		addGroundItem(item, tile, owner, invisible, hiddenSecs, DropMethod.NORMAL, 150);
+	public static final GroundItem addGroundItem(Item item, WorldTile tile, Player owner, boolean invisible, int hiddenSecs) {
+		return addGroundItem(item, tile, owner, invisible, hiddenSecs, DropMethod.NORMAL, 150);
 	}
 
 	public static final GroundItem addGroundItem(Item item, WorldTile tile, Player owner, boolean invisible, int hiddenSecs, DropMethod type) {
@@ -1201,7 +1202,7 @@ public final class World {
 					try {
 						addGroundItemForever(groundItem, groundItem.getTile());
 					} catch (Throwable e) {
-						Logger.handle(e);
+						Logger.handle(World.class, "removeGroundItem", e);
 					}
 				}, Ticks.fromSeconds(15));
 			return true;
@@ -1325,7 +1326,7 @@ public final class World {
 					event.run();
 					stop();
 				} catch (Throwable e) {
-					Logger.handle(e);
+					Logger.handle(World.class, "executeAfterLoadRegion", e);
 				}
 			}
 
@@ -1348,7 +1349,7 @@ public final class World {
 		return WildernessController.isAtWild(player.getTile());
 	}
 	
-	public static void playSound(Entity source, int soundId, int type) {
+	public static Sound playSound(Entity source, Sound sound) {
 		for (int regionId : source.getMapRegionsIds()) {
 			Set<Integer> playerIndexes = World.getRegion(regionId).getPlayerIndexes();
 			if (playerIndexes != null)
@@ -1356,9 +1357,50 @@ public final class World {
 					Player player = World.getPlayers().get(playerIndex);
 					if (player == null || !player.isRunning() || !source.withinDistance(player.getTile()))
 						continue;
-					player.getPackets().sendSound(soundId, 0, type);
+					player.playSound(sound);
 				}
 		}
+		return sound;
+	}
+	
+	private static Sound playSound(Entity source, int soundId, int delay, SoundType type) {
+		return playSound(source, new Sound(soundId, delay, type));
+	}
+	
+	public static void jingle(Entity source, int jingleId, int delay) {
+		playSound(source, jingleId, delay, SoundType.JINGLE);
+	}
+	
+	public static void jingle(Entity source, int jingleId) {
+		playSound(source, jingleId, 0, SoundType.JINGLE);
+	}
+	
+	public static void musicTrack(Entity source, int trackId, int delay, int volume) {
+		playSound(source, trackId, delay, SoundType.MUSIC).volume(volume);
+	}
+	
+	public static void musicTrack(Entity source, int trackId, int delay) {
+		playSound(source, trackId, delay, SoundType.MUSIC);
+	}
+	
+	public static void musicTrack(Entity source, int trackId) {
+		musicTrack(source, trackId, 100);
+	}
+	
+	public static void soundEffect(Entity source, int soundId, int delay) {
+		playSound(source, soundId, delay, SoundType.EFFECT);
+	}
+	
+	public static void soundEffect(Entity source, int soundId) {
+		soundEffect(source, soundId, 0);
+	}
+	
+	public static void voiceEffect(Entity source, int voiceId, int delay) {
+		playSound(source, voiceId, delay, SoundType.VOICE);
+	}
+	
+	public static void voiceEffect(Entity source, int voiceId) {
+		voiceEffect(source, voiceId, 0);
 	}
 
 	public static GameObject getClosestObject(int objectId, WorldTile tile) {
@@ -1376,8 +1418,19 @@ public final class World {
 		for (int dist = 0;dist < 16;dist++)
 			for (int x = -dist;x < dist;x++)
 				for (int y = -dist; y < dist;y++) {
-					GameObject object = World.getObject(tile.transform(x, y));
+					GameObject object = World.getObject(tile.transform(x, y), type);
 					if (object != null && object.getType() == type)
+						return object;
+				}
+		return null;
+	}
+	
+	public static GameObject getClosestObject(ObjectType type, int objectId, WorldTile tile) {
+		for (int dist = 0;dist < 16;dist++)
+			for (int x = -dist;x < dist;x++)
+				for (int y = -dist; y < dist;y++) {
+					GameObject object = World.getObject(tile.transform(x, y), type);
+					if (object != null && object.getId() == objectId)
 						return object;
 				}
 		return null;

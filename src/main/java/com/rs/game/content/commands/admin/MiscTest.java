@@ -47,6 +47,8 @@ import com.rs.game.content.tutorialisland.TutorialIslandController;
 import com.rs.game.content.world.doors.Doors;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
+import com.rs.game.model.entity.ModelRotator;
+import com.rs.game.model.entity.Rotation;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.npc.combat.NPCCombatDefinitions;
 import com.rs.game.model.entity.pathing.Direction;
@@ -69,6 +71,8 @@ import com.rs.lib.game.SpotAnim;
 import com.rs.lib.game.WorldTile;
 import com.rs.lib.net.packets.decoders.ReflectionCheckResponse.ResponseCode;
 import com.rs.lib.net.packets.encoders.HintTrail;
+import com.rs.lib.util.Logger;
+import com.rs.lib.util.RSColor;
 import com.rs.lib.util.Utils;
 import com.rs.lib.util.reflect.ReflectionCheck;
 import com.rs.plugin.annotations.PluginEventHandler;
@@ -108,6 +112,41 @@ public class MiscTest {
 		//		Commands.add(Rights.ADMIN, "command [args]", "Desc", (p, args) -> {
 		//
 		//		});
+		
+		Commands.add(Rights.DEVELOPER, "clanify", "Toggles the ability to clanify objects and npcs by examining them.", (p, args) -> {
+			p.getNSV().setB("clanifyStuff", !p.getNSV().getB("clanifyStuff"));
+			p.sendMessage("CLANIFY: " + p.getNSV().getB("clanifyStuff"));
+		});
+		
+		Commands.add(Rights.DEVELOPER, "allstopfaceme", "Stops all body model rotators.", (p, args) -> {
+			for (Player player : World.getPlayers()) {
+				if (player == null || !player.hasStarted() || player.hasFinished())
+					continue;
+				player.setBodyModelRotator(null);
+			}
+			for (NPC npc : World.getNPCs()) {
+				if (npc == null || npc.hasFinished())
+					continue;
+				npc.setBodyModelRotator(null);
+			}
+		});
+		
+		Commands.add(Rights.DEVELOPER, "allfaceme", "Sets body model rotators for all entities in the server.", (p, args) -> {
+			for (Player player : World.getPlayers()) {
+				if (player == null || !player.hasStarted() || player.hasFinished())
+					continue;
+				player.setBodyModelRotator(new ModelRotator().addRotator(new Rotation(p).enableAll()));
+			}
+			for (NPC npc : World.getNPCs()) {
+				if (npc == null || npc.hasFinished())
+					continue;
+				npc.setBodyModelRotator(new ModelRotator().addRotator(new Rotation(p).enableAll()));
+			}
+		});
+		
+		Commands.add(Rights.DEVELOPER, "spawnmax", "Spawns another max into the world on top of the player.", (p, args) -> {
+			World.spawnNPC(3373, new WorldTile(p.getTile()), -1, true, true, true);
+		});
 		
 		Commands.add(Rights.DEVELOPER, "playcs", "Plays a cutscene using new cutscene system", (p, args) -> {
 			p.getCutsceneManager().play(new ExampleCutscene());
@@ -184,13 +223,13 @@ public class MiscTest {
 		
 		Commands.add(Rights.DEVELOPER, "drcor [r, g, b]", "Set equipment color override", (p, args) -> {
 			if (p.getEquipment().get(Equipment.CHEST) != null)
-				p.getEquipment().get(Equipment.CHEST).addMetaData("drCOr", Utils.RGB_to_RS2HSB(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2])));
+				p.getEquipment().get(Equipment.CHEST).addMetaData("drCOr", RSColor.RGB_to_HSL(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2])));
 			if (p.getEquipment().get(Equipment.LEGS) != null)
-				p.getEquipment().get(Equipment.LEGS).addMetaData("drCOr", Utils.RGB_to_RS2HSB(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2])));
+				p.getEquipment().get(Equipment.LEGS).addMetaData("drCOr", RSColor.RGB_to_HSL(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2])));
 			if (p.getEquipment().get(Equipment.SHIELD) != null)
-				p.getEquipment().get(Equipment.SHIELD).addMetaData("drCOr", Utils.RGB_to_RS2HSB(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2])));
+				p.getEquipment().get(Equipment.SHIELD).addMetaData("drCOr", RSColor.RGB_to_HSL(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2])));
 			if (p.getEquipment().get(Equipment.HEAD) != null)
-				p.getEquipment().get(Equipment.HEAD).addMetaData("drCOr", Utils.RGB_to_RS2HSB(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2])));
+				p.getEquipment().get(Equipment.HEAD).addMetaData("drCOr", RSColor.RGB_to_HSL(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2])));
 			p.getAppearance().generateAppearanceData();
 		});
 		
@@ -294,12 +333,12 @@ public class MiscTest {
 										objects.add(obj);
 						}
 			for (GameObject o : objects) {
-				System.out.println(o);
-				System.out.println("vb: " + o.getDefinitions().varpBit);
+				Logger.debug(MiscTest.class, "areaobj", o);
+				Logger.debug(MiscTest.class, "areaobj", "vb: " + o.getDefinitions().varpBit);
 			}
 		});
 
-		Commands.add(Rights.DEVELOPER, "testnpc", "spawn npc walking dir", (player, args) -> {
+		Commands.add(Rights.DEVELOPER, "npcwalkdir", "Spawn npc walking dir.", (player, args) -> {
 			Direction dir = Arrays.stream(Direction.values()).filter(n -> n.name().equalsIgnoreCase(args[0])).findFirst().get();
 			if (dir == null)
 				return;
@@ -399,8 +438,8 @@ public class MiscTest {
 			p.getAppearance().generateAppearanceData();
 		});
 
-		Commands.add(Settings.getConfig().isDebug() ? Rights.PLAYER : Rights.DEVELOPER, "sound [id effectType]", "Plays a sound effect.", (p, args) -> {
-			p.getPackets().sendSound(Integer.valueOf(args[0]), 0, args.length > 1 ? Integer.valueOf(args[1]) : 1);
+		Commands.add(Settings.getConfig().isDebug() ? Rights.PLAYER : Rights.DEVELOPER, "sound [id]", "Plays a sound effect.", (p, args) -> {
+			p.soundEffect(Integer.valueOf(args[0]));
 		});
 
 		Commands.add(Settings.getConfig().isDebug() ? Rights.PLAYER : Rights.DEVELOPER, "music [id (volume)]", "Plays a music track.", (p, args) -> {
@@ -414,12 +453,12 @@ public class MiscTest {
 					Song song = Music.getSong(i);
 					count++;
 					if(song == null)
-						System.out.println("Error @" + i);
+						Logger.error(MiscTest.class, "unusedmusic", "Error @" + i);
 					else
-						System.out.println(i + " " + song.getName() + ": " + song.getHint());
+						Logger.debug(MiscTest.class, "unusedmusic", i + " " + song.getName() + ": " + song.getHint());
 				}
-			System.out.println("Total unused: " + count);
-			System.out.println("Unused is " + Math.ceil(count/1099.0*100) + "%");
+			Logger.debug(MiscTest.class, "unusedmusic", "Total unused: " + count);
+			Logger.debug(MiscTest.class, "unusedmusic", "Unused is " + Math.ceil(count/1099.0*100) + "%");
 		});
 
 		Commands.add(Rights.DEVELOPER, "nextm", "Plays a music track.", (p, args) -> {
@@ -442,19 +481,19 @@ public class MiscTest {
 		Commands.add(Rights.DEVELOPER, "frogland", "Plays frogland to everyone on the server.", (p, args) -> {
 			World.allPlayers(target -> {
 				target.getPackets().sendRunScript(1764, 12451857, 12451853, 20, 0); //0 music volume, 1 sound effect volume, 2 ambient sound volume
-				target.getPackets().sendMusic(409, 100, 255);
+				target.musicTrack(409);
 			});
 		});
 
 		Commands.add(Rights.DEVELOPER, "musicall [id]", "Plays music to everyone on the server.", (p, args) -> {
 			World.allPlayers(target -> {
 				target.getPackets().sendRunScript(1764, 12451857, 12451853, 20, 0); //0 music volume, 1 sound effect volume, 2 ambient sound volume
-				target.getPackets().sendMusic(Integer.valueOf(args[0]), 100, 255);
+				target.musicTrack(Integer.valueOf(args[0]));
 			});
 		});
 
-		Commands.add(Rights.DEVELOPER, "musiceffect [id]", "plays music effects", (p, args) -> {
-			p.getPackets().sendMusicEffect(Integer.valueOf(args[0]));
+		Commands.add(Rights.DEVELOPER, "jingle [id]", "plays jingles", (p, args) -> {
+			p.jingle(Integer.valueOf(args[0]));
 		});
 
 		Commands.add(Rights.DEVELOPER, "tileflags", "Get the tile flags for the tile you're standing on.", (p, args) -> {
@@ -504,6 +543,11 @@ public class MiscTest {
 		Commands.add(Rights.ADMIN, "infpray", "Toggles infinite prayer for the player.", (p, args) -> {
 			p.getNSV().setB("infPrayer", !p.getNSV().getB("infPrayer"));
 			p.sendMessage("INFINITE PRAYER: " + p.getNSV().getB("infPrayer"));
+		});
+		
+		Commands.add(Rights.ADMIN, "infrun", "Toggles infinite run for the player.", (p, args) -> {
+			p.getNSV().setB("infRun", !p.getNSV().getB("infRun"));
+			p.sendMessage("INFINITE RUN: " + p.getNSV().getB("infRun"));
 		});
 
 		Commands.add(Rights.ADMIN, "maxbank", "Sets all the item counts in the player's bank to 10m.", (p, args) -> {
@@ -749,9 +793,7 @@ public class MiscTest {
 			p.getSkills().init();
 		});
 
-		Commands.add(Rights.PLAYER, "voice, v [id]", "Plays voices.", (p, args) -> {
-			p.playSound(Integer.valueOf(args[0]), 2);
-		});
+		Commands.add(Rights.PLAYER, "voice, v [id]", "Plays voices.", (p, args) -> p.voiceEffect(Integer.valueOf(args[0])));
 
 		Commands.add(Rights.PLAYER, "playthroughvoices [start finish tick_delay]", "Gets player rights", (p, args) -> {
 			//		Voice[] voices = new Voice[3];
@@ -761,7 +803,7 @@ public class MiscTest {
 			//		try {
 			//			JsonFileManager.saveJsonFile(voices, new File("developer-information/voice.json"));
 			//		} catch(Exception e) {
-			//			System.out.println(e.getStackTrace());
+			//			Logger.debug(e.getStackTrace());
 			//		}
 
 			int tickDelay = Integer.valueOf(args[2]);
@@ -783,7 +825,7 @@ public class MiscTest {
 
 					if(!Voices.voicesMarked.contains(voiceID)) {
 						p.sendMessage("Playing voice " + voiceID);
-						p.getPackets().sendVoice(voiceID++);
+						p.voiceEffect(voiceID++);
 					}
 
 					if(voiceID > Integer.valueOf(args[1]))
@@ -959,7 +1001,7 @@ public class MiscTest {
 				return;
 			p.getPackets().sendDevConsoleMessage(Integer.valueOf(args[0]) + ": " + defs.getCompatibleAnimations().toString());
 			p.sendMessage(Integer.valueOf(args[0]) + ": " + defs.getCompatibleAnimations().toString());
-			System.out.println(defs.getCompatibleAnimations().toString());
+			Logger.debug(MiscTest.class, "companim", defs.getCompatibleAnimations().toString());
 		});
 
 		Commands.add(Rights.DEVELOPER, "varcstr [id value]", "Sets a varc string value.", (p, args) -> {

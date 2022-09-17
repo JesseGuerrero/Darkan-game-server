@@ -33,13 +33,14 @@ import com.rs.lib.util.Logger;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.annotations.ServerStartupEvent;
+import com.rs.plugin.annotations.ServerStartupEvent.Priority;
 
 @PluginEventHandler
 public class PacketHandlers {
 
 	private static Map<ClientPacket, PacketHandler<?, ? extends Packet>> PACKET_HANDLERS = new HashMap<>();
 
-	@ServerStartupEvent
+	@ServerStartupEvent(Priority.FILE_IO)
 	public static void loadPacketDecoders() {
 		loadHandlersFromPackage("com.rs.net.decoders.handlers.impl");
 	}
@@ -47,7 +48,7 @@ public class PacketHandlers {
 	@SuppressWarnings("unchecked")
 	public static void loadHandlersFromPackage(String pack) {
 		try {
-			Logger.log("PacketHandlers", "Initializing packet handlers ("+pack+")...");
+			Logger.info(PacketHandlers.class, "loadHandlersFromPackage", "Initializing packet handlers ("+pack+")...");
 			List<Class<?>> classes = Utils.getClasses(pack);
 
 			for (Class<?> clazz : classes)
@@ -59,8 +60,8 @@ public class PacketHandlers {
 					missing.add(packet);
 
 			int handled = ClientPacket.values().length - missing.size();
-			Logger.log("PacketHandlers", "Packet handlers loaded for " + handled + " packets...");
-			Logger.log("PacketHandlers", "Packets missing: " + missing);
+			Logger.info(PacketHandlers.class, "loadHandlersFromPackage", "Packet handlers loaded for " + handled + " packets...");
+			Logger.info(PacketHandlers.class, "loadHandlersFromPackage", "Packets missing: " + missing);
 		} catch (ClassNotFoundException | IOException | IllegalArgumentException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
 			e.printStackTrace();
 		}

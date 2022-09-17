@@ -33,11 +33,26 @@ import com.rs.plugin.handlers.ObjectClickHandler;
 
 @PluginEventHandler
 public class PortPhasmatys {
+	
+	public static NPCClickHandler handleBillTeach = new NPCClickHandler(new Object[] { 3157 }) {
+		@Override
+		public void handle(NPCClickEvent e) {
+			if (!e.getPlayer().isQuestComplete(Quest.CABIN_FEVER, "to travel to Mos' Le Harmless."))
+				return;
+			e.getPlayer().sendOptionDialogue(ops -> {
+				if (e.getPlayer().getRegionId() == 14638)
+					ops.add("Travel to Port Phasmatys.", () -> e.getPlayer().setNextWorldTile(new WorldTile(3713, 3497, 1)));
+				else
+					ops.add("Travel to Mos' Le Harmless.", () -> e.getPlayer().setNextWorldTile(new WorldTile(3682, 2949, 1)));
+				ops.add("Nevermind.");
+			});
+		}
+	};
 
 	public static ItemClickHandler handleEctophial = new ItemClickHandler(4251) {
 		@Override
 		public void handle(ItemClickEvent e) {
-			if (!Quest.GHOSTS_AHOY.meetsRequirements(e.getPlayer(), "to use the ectophial."))
+			if (!e.getPlayer().isQuestComplete(Quest.GHOSTS_AHOY, "to use the ectophial."))
 				return;
 			Ectofuntus.sendEctophialTeleport(e.getPlayer(), new WorldTile(3659, 3523, 0));
 		}
@@ -56,7 +71,7 @@ public class PortPhasmatys {
 							@Override
 							public void create() {
 								if (!player.containsItems(4251))
-									if (Quest.GHOSTS_AHOY.meetsRequirements(player, "to obtain an ectophial."))
+									if (player.isQuestComplete(Quest.GHOSTS_AHOY, "to obtain an ectophial."))
 										option("Can I have another ectophial?", new Dialogue()
 												.addPlayer(HeadE.CONFUSED, "Can I have an ectophial?" + (player.getBool("recTokkulZo") ? " I've lost mine." : ""))
 												.addNPC(1683, HeadE.CALM_TALK, "Of course you can, you have helped us more than we could ever have hoped.")

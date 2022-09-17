@@ -90,7 +90,7 @@ public class SlayerTaskManager {
 			player.sendMessage("You have completed " + player.consecutiveTasks + " tasks in a row and receive "+amount+" slayer points!");
 			player.sendMessage("You have finished your slayer task, talk to a slayer master for a new one.");
 			player.incrementCount("Slayer tasks completed");
-			player.getPackets().sendMusicEffect(61);
+			player.jingle(61);
 			removeTask();
 			player.updateSlayerTask();
 		}
@@ -122,7 +122,7 @@ public class SlayerTaskManager {
 		for (Task task : Task.values()) {
 			if ((task.getMaster() != master) || player.blockedTaskContains(task.getMonster()) || lastMonster == task.getMonster() || (player.getSkills().getLevelForXp(Constants.SLAYER) < task.getMonster().getLevel()))
 				continue;
-			if (task.getMonster().getQuestReq() != null && (!task.getMonster().getQuestReq().meetsRequirements(player) || !player.getQuestManager().isComplete(task.getMonster().getQuestReq())))
+			if (task.getMonster().getQuestReq() != null && !player.isQuestComplete(task.getMonster().getQuestReq()))
 				continue;
 			if ((task.getMonster() == TaskMonster.AQUANITES && !player.aquanitesUnlocked()) || (task.getMonster() == TaskMonster.CYCLOPES && !((player.getSkills().getLevelForXp(Constants.ATTACK) + player.getSkills().getLevelForXp(Constants.STRENGTH)) >= 130)))
 				continue;

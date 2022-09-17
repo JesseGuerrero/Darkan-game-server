@@ -53,7 +53,6 @@ import com.rs.game.content.skills.crafting.SandBucketFill;
 import com.rs.game.content.skills.crafting.Silver;
 import com.rs.game.content.skills.dungeoneering.rooms.puzzles.FishingFerretRoom;
 import com.rs.game.content.skills.firemaking.Bonfire;
-import com.rs.game.content.skills.hunter.FalconryController;
 import com.rs.game.content.skills.hunter.PuroPuroController;
 import com.rs.game.content.skills.magic.Magic;
 import com.rs.game.content.skills.runecrafting.Runecrafting;
@@ -436,9 +435,7 @@ public final class ObjectHandler {
 							});
 							ops.add("Nevermind.");
 						}));
-			} else if (id == 19222)
-				FalconryController.beginFalconry(player);
-			else if (id == 9356)
+			} else if (id == 9356)
 				FightCavesController.enterFightCaves(player);
 			else if (id == 68107)
 				FightKilnController.enterFightKiln(player, false);
@@ -1535,8 +1532,7 @@ public final class ObjectHandler {
 					break;
 				}
 		}));
-		if (Settings.getConfig().isDebug())
-			Logger.log("ObjectHandler", "clicked 1 at object id : " + id + ", " + object.getX() + ", " + object.getY() + ", " + object.getPlane());
+		Logger.debug(ObjectHandler.class, "handleOption1", "Object interaction 1: " + object);
 	}
 
 	public static void handleOption2(final Player player, final GameObject object) {
@@ -1554,11 +1550,11 @@ public final class ObjectHandler {
 			if (object.getDefinitions(player).getName().equalsIgnoreCase("furnace") || object.getDefinitions(player).getName().equalsIgnoreCase("clay forge") || object.getDefinitions(player).getName().equalsIgnoreCase("lava furnace"))
 				player.startConversation(new SmeltingD(player, object));
 			else if (id == 17010) {
-				if (!Quest.LUNAR_DIPLOMACY.meetsRequirements(player, "to use the Lunar Spellbook."))
-					return;
 				player.startConversation(new Dialogue().addOptions("Change spellbooks?", ops -> {
 					ops.add("Yes, replace my spellbook.", () -> {
 						if (player.getCombatDefinitions().getSpellbook() != Spellbook.LUNAR) {
+							if (!player.isQuestComplete(Quest.LUNAR_DIPLOMACY, "to use the Lunar Spellbook."))
+								return;
 							player.sendMessage("Your mind clears and you switch back to the ancient spellbook.");
 							player.getCombatDefinitions().setSpellbook(Spellbook.LUNAR);
 						} else {
@@ -1628,14 +1624,12 @@ public final class ObjectHandler {
 				default:
 					break;
 				}
-			if (Settings.getConfig().isDebug())
-				Logger.log("ObjectHandler", "clicked 2 at object id : " + id + ", " + object.getX() + ", " + object.getY() + ", " + object.getPlane());
+			Logger.debug(ObjectHandler.class, "handleOption2", "Object interaction 2: " + object);
 		}));
 	}
 
 	public static void handleOption3(final Player player, final GameObject object) {
 		final ObjectDefinitions def = object.getDefinitions(player);
-		final int id = object.getId();
 
 		if (!def.containsOption(2) || PluginManager.handle(new ObjectClickEvent(player, object, ClientPacket.OBJECT_OP3, false)))
 			return;
@@ -1674,14 +1668,12 @@ public final class ObjectHandler {
 			default:
 				break;
 			}
-			if (Settings.getConfig().isDebug())
-				Logger.log("ObjectHandler", "cliked 3 at object id : " + id + ", " + object.getX() + ", " + object.getY() + ", " + object.getPlane() + ", ");
+			Logger.debug(ObjectHandler.class, "handleOption3", "Object interaction 3: " + object);
 		}));
 	}
 
 	public static void handleOption4(final Player player, final GameObject object) {
 		final ObjectDefinitions def = object.getDefinitions(player);
-		final int id = object.getId();
 
 		if (!def.containsOption(3) || PluginManager.handle(new ObjectClickEvent(player, object, ClientPacket.OBJECT_OP4, false)))
 			return;
@@ -1696,8 +1688,7 @@ public final class ObjectHandler {
 				player.sendMessage("Nothing interesting happens.");
 				break;
 			}
-			if (Settings.getConfig().isDebug())
-				Logger.log("ObjectHandler", "cliked 4 at object id : " + id + ", " + object.getX() + ", " + object.getY() + ", " + object.getPlane() + ", ");
+			Logger.debug(ObjectHandler.class, "handleOption4", "Object interaction 4: " + object);
 		}));
 	}
 
@@ -1728,13 +1719,12 @@ public final class ObjectHandler {
 					player.sendMessage("Nothing interesting happens.");
 					break;
 				}
-			if (Settings.getConfig().isDebug())
-				Logger.log("ObjectHandler", "cliked 5 at object id : " + id + ", " + object.getX() + ", " + object.getY() + ", " + object.getPlane() + ", ");
+			Logger.debug(ObjectHandler.class, "handleOption5", "Object interaction 5: " + object);
 		}));
 	}
 
 	public static void handleOptionExamine(final Player player, final GameObject object) {
-		player.getPackets().sendObjectMessage(player, 0, 0xFFFFFF, object, "It's " + Utils.addArticle(object.getDefinitions(player).getName()).toLowerCase() + ".");
+		player.getPackets().sendObjectMessage(0, 0xFFFFFF, object, "It's " + Utils.addArticle(object.getDefinitions(player).getName()).toLowerCase() + ".");
 		if (player.hasRights(Rights.DEVELOPER)) {
 			player.sendMessage(object.toString());
 			if (object.getDefinitions().varpBit != -1)
@@ -1887,8 +1877,6 @@ public final class ObjectHandler {
 					player.simpleDialogue("You can't cook that on a " + (objectDef.getName().contains("Fire") ? "fire" : "range") + ".");
 					break;
 				}
-				if (Settings.getConfig().isDebug())
-					System.out.println("Item on object: " + object.getId());
 			}
 		}));
 	}

@@ -28,6 +28,7 @@ import com.rs.lib.file.JsonFileManager;
 import com.rs.lib.util.Logger;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.annotations.ServerStartupEvent;
+import com.rs.plugin.annotations.ServerStartupEvent.Priority;
 
 @PluginEventHandler
 public class Areas {
@@ -38,15 +39,15 @@ public class Areas {
 	private static HashMap<String, Set<Integer>> AREAS = new HashMap<>();
 
 	@SuppressWarnings("unchecked")
-	@ServerStartupEvent
+	@ServerStartupEvent(Priority.FILE_IO)
 	public static final void init() throws JsonIOException, IOException {
-		Logger.log("Areas", "Loading areas...");
+		Logger.info(Areas.class, "init", "Loading areas...");
 		File[] spawnFiles = new File(PATH).listFiles();
 		for (File f : spawnFiles) {
 			Set<Integer> area = (Set<Integer>) JsonFileManager.loadJsonFile(f, Set.class);
 			AREAS.put(f.getName().replace(".json", ""), area);
 		}
-		Logger.log("Areas", "Loaded " + AREAS.size() + " areas...");
+		Logger.info(Areas.class, "init", "Loaded " + AREAS.size() + " areas...");
 	}
 
 	@SuppressWarnings("unlikely-arg-type")

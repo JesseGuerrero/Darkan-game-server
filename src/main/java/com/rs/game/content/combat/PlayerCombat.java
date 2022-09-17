@@ -364,11 +364,17 @@ public class PlayerCombat extends PlayerAction {
 				@Override
 				public void run() {
 					if (hit > 0) {
-						if (spell.getHitSpotAnim() != null)
+						if (spell.getHitSpotAnim() != null) {
 							target.setNextSpotAnim(spell.getHitSpotAnim());
+							if (spell.landSound != -1)
+								playSound(spell.landSound, player, target);
+						}
 					} else {
 						target.setNextSpotAnim(new SpotAnim(85, 0, 96));
-						playSound(227, player, target);
+						if (spell.splashSound != -1)
+							playSound(spell.landSound, player, target);
+						else
+							playSound(227, player, target);
 					}
 				}
 			}, delay);
@@ -411,15 +417,22 @@ public class PlayerCombat extends PlayerAction {
 							target.setNextSpotAnim(new SpotAnim(1677, 0, 96));
 						else
 							target.setNextSpotAnim(spell.getHitSpotAnim());
+						if (spell.landSound != -1)
+							playSound(spell.landSound, player, target);
 						break;
 					default:
 						if (spell.getHitSpotAnim() != null)
 							target.setNextSpotAnim(spell.getHitSpotAnim());
+						if (spell.landSound != -1)
+							playSound(spell.landSound, player, target);
 						break;
 				}
 			else {
 				target.setNextSpotAnim(new SpotAnim(85, 0, 96));
-				playSound(227, player, target);
+				if (spell.splashSound != -1)
+					playSound(spell.landSound, player, target);
+				else
+					playSound(227, player, target);
 			}
 		}, () -> {
 			spell.onHit(player, target, hit);
@@ -1273,9 +1286,9 @@ public class PlayerCombat extends PlayerAction {
 	public static void playSound(int soundId, Player player, Entity target) {
 		if (soundId == -1)
 			return;
-		player.getPackets().sendSound(soundId, 0, 1);
+		player.soundEffect(soundId);
 		if (target instanceof Player p2)
-			p2.getPackets().sendSound(soundId, 0, 1);
+			p2.soundEffect(soundId);
 	}
 
 	public static int getSpecialAmmount(int weaponId) {
@@ -1832,7 +1845,7 @@ public class PlayerCombat extends PlayerAction {
 				afterDelay.run();
 			target.setNextAnimationNoPriority(new Animation(PlayerCombat.getDefenceEmote(target)));
 			if (target instanceof NPC n)
-				World.playSound(n, n.getCombatDefinitions().getDefendSound(), 1);
+				n.soundEffect(n.getCombatDefinitions().getDefendSound());
 			if (target instanceof Player p2) {
 				p2.closeInterfaces();
 				if (!p2.isLocked() && p2.getCombatDefinitions().isAutoRetaliate() && !p2.getActionManager().hasSkillWorking() && p2.getInteractionManager().getInteraction() == null && !p2.hasWalkSteps())
@@ -2010,14 +2023,14 @@ public class PlayerCombat extends PlayerAction {
 
 	public static int getWeaponAttackEmote(int weaponId, AttackStyle attackStyle) {
 		if (weaponId != -1) {
-			if (weaponId == -2)
-				// punch/block:14393 kick:14307 spec:14417
+			if (weaponId == -2) {
 				switch (attackStyle.getIndex()) {
 					case 1:
 						return 14307;
 					default:
 						return 14393;
 				}
+			}
 			String weaponName = ItemDefinitions.getDefs(weaponId).getName().toLowerCase();
 			if (weaponName != null && !weaponName.equals("null")) {
 				if (weaponName.contains("boxing gloves"))

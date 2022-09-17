@@ -52,6 +52,7 @@ import com.rs.game.content.achievements.AchievementInterface;
 import com.rs.game.content.books.Book;
 import com.rs.game.content.bosses.godwars.GodwarsController;
 import com.rs.game.content.bosses.godwars.zaros.Nex;
+import com.rs.game.content.clans.ClansManager;
 import com.rs.game.content.combat.CombatDefinitions;
 import com.rs.game.content.combat.PlayerCombat;
 import com.rs.game.content.death.DeathOfficeController;
@@ -68,6 +69,7 @@ import com.rs.game.content.minigames.duel.DuelRules;
 import com.rs.game.content.minigames.herblorehabitat.HabitatFeature;
 import com.rs.game.content.minigames.treasuretrails.TreasureTrailsManager;
 import com.rs.game.content.minigames.wguild.WarriorsGuild;
+import com.rs.game.content.miniquests.Miniquest;
 import com.rs.game.content.miniquests.MiniquestManager;
 import com.rs.game.content.pet.Pet;
 import com.rs.game.content.pet.PetManager;
@@ -134,8 +136,8 @@ import com.rs.lib.game.SpotAnim;
 import com.rs.lib.game.VarManager;
 import com.rs.lib.game.WorldTile;
 import com.rs.lib.model.Account;
-import com.rs.lib.model.Clan;
 import com.rs.lib.model.Social;
+import com.rs.lib.model.clan.Clan;
 import com.rs.lib.net.ClientPacket;
 import com.rs.lib.net.ServerPacket;
 import com.rs.lib.net.Session;
@@ -143,6 +145,8 @@ import com.rs.lib.net.packets.Packet;
 import com.rs.lib.net.packets.PacketHandler;
 import com.rs.lib.net.packets.encoders.MinimapFlag;
 import com.rs.lib.net.packets.encoders.ReflectionCheckRequest;
+import com.rs.lib.net.packets.encoders.Sound;
+import com.rs.lib.net.packets.encoders.Sound.SoundType;
 import com.rs.lib.net.packets.encoders.social.MessageGame.MessageType;
 import com.rs.lib.util.Logger;
 import com.rs.lib.util.MapUtils;
@@ -203,6 +207,7 @@ public class Player extends Entity {
 	public transient boolean disconnected = false;
 	private transient int pvpCombatLevelThreshhold = -1;
 	private transient String[] playerOptions = new String[10];
+	private transient Set<Sound> sounds = new HashSet<Sound>();
 	
 	private WorldTile lastNonDynamicTile;
 
@@ -319,7 +324,6 @@ public class Player extends Entity {
 	private transient boolean resting;
 	private transient boolean canPvp;
 	private transient boolean cantTrade;
-	private transient long lockDelay; // used for doors and stuff like that
 	private transient long foodDelay;
 	private transient long potionDelay;
 	private transient long boneDelay;
@@ -661,6 +665,7 @@ public class Player extends Entity {
 		if (varManager == null)
 			varManager = new VarManager();
 		varManager.setSession(session);
+		sounds = new HashSet<>();
 		cutsceneManager = new CutsceneManager(this);
 		trade = new Trade(this);
 		// loads player on saved instances
@@ -692,8 +697,7 @@ public class Player extends Entity {
 			pouchesType = new boolean[4];
 		World.addPlayer(this);
 		World.updateEntityRegion(this);
-		if (Settings.getConfig().isDebug())
-			Logger.log(this, "Initiated player: " + account.getUsername());
+		Logger.info(Player.class, "init", "Initiated player: " + account.getUsername());
 
 		// Do not delete >.>, useful for security purpose. this wont waste that
 		// much space..
@@ -853,12 +857,16 @@ public class Player extends Entity {
 
 	public void refreshSpawnedObjects() {
 		for (int regionId : getMapRegionsIds()) {
-			List<GameObject> removedObjects = new ArrayList<>(World.getRegion(regionId).getRemovedObjects().values());
-			for (GameObject object : removedObjects)
+			for (GameObject object : new ArrayList<>(World.getRegion(regionId).getRemovedObjects().values()))
 				getPackets().sendRemoveObject(object);
-			List<GameObject> spawnedObjects = World.getRegion(regionId).getSpawnedObjects();
-			for (GameObject object : spawnedObjects)
+			for (GameObject object : World.getRegion(regionId).getSpawnedObjects())
 				getPackets().sendAddObject(object);
+			List<GameObject> all =  World.getRegion(regionId).getAllObjects();
+			if (all == null)
+				continue;
+			for (GameObject object : all)
+				if (object.getMeshModifier() != null)
+					getPackets().sendCustomizeObject(object.getMeshModifier());
 		}
 	}
 
@@ -905,13 +913,14 @@ public class Player extends Entity {
 	public void stopAll(boolean stopWalk, boolean stopInterfaces, boolean stopActions) {
 		TransformationRing.triggerDeactivation(this);
 		setRouteEvent(null);
-		getInteractionManager().forceStop();
 		if (stopInterfaces)
 			closeInterfaces();
 		if (stopWalk)
 			resetWalkSteps();
-		if (stopActions)
+		if (stopActions) {
 			getActionManager().forceStop();
+			getInteractionManager().forceStop();
+		}
 		combatDefinitions.resetSpells(false);
 	}
 
@@ -946,8 +955,9 @@ public class Player extends Entity {
 		endConversation();
 		getSession().writeToQueue(ServerPacket.TRIGGER_ONDIALOGABORT);
 		if (closeInterfacesEvent != null) {
-			closeInterfacesEvent.run();
+			Runnable event = closeInterfacesEvent;
 			closeInterfacesEvent = null;
+			event.run();
 		}
 	}
 
@@ -1020,7 +1030,7 @@ public class Player extends Entity {
 			prayer.processPrayer();
 			controllerManager.process();
 		} catch (Throwable e) {
-			WorldDB.getLogs().logError(e);
+			Logger.handle(Player.class, "processEntity", e);
 		}
 	}
 	
@@ -1138,6 +1148,11 @@ public class Player extends Entity {
 		getInventory().processRefresh();
 		getVars().syncVarsToClient();
 		skills.updateXPDrops();
+		
+		for (Sound sound : sounds)
+			if (sound != null)
+				getPackets().sendSound(sound);
+		sounds.clear();
 	}
 
 	public void tickFarming() {
@@ -1156,8 +1171,6 @@ public class Player extends Entity {
 
 	@Override
 	public void processReceivedHits() {
-		if (lockDelay > World.getServerTicks())
-			return;
 		super.processReceivedHits();
 	}
 
@@ -1221,6 +1234,8 @@ public class Player extends Entity {
 	}
 
 	public void drainRunEnergy(double energy) {
+		if (getNSV().getB("infRun"))
+			return;
 		if ((runEnergy - energy) < 0.0)
 			runEnergy = 0.0;
 		else
@@ -1229,16 +1244,18 @@ public class Player extends Entity {
 	}
 
 	public void run() {
-		LobbyCommunicator.addWorldPlayer(this, response -> {
-			if (!Settings.getConfig().isDebug() && !response) {
-				forceLogout();
-				return;
-			}
-		});
 		if (getAccount().getRights() == null) {
 			setRights(Rights.PLAYER);
 			LobbyCommunicator.updateRights(this);
 		}
+		LobbyCommunicator.addWorldPlayer(account, response -> {
+			if (!response) {
+				forceLogout();
+				return;
+			}
+		});
+		getClan(clan -> appearence.generateAppearanceData());
+		getGuestClan();
 		int updateTimer = (int) World.getTicksTillUpdate();
 		if (updateTimer != -1)
 			getPackets().sendSystemUpdate(updateTimer);
@@ -1281,7 +1298,7 @@ public class Player extends Entity {
 		questManager.unlockQuestTabOptions();
 		questManager.updateAllQuestStages();
 		miniquestManager.updateAllStages();
-		getPackets().sendGameBarStages(this);
+		getPackets().sendGameBarStages();
 		musicsManager.init();
 		emotesManager.refreshListConfigs();
 		sendUnlockedObjectConfigs();
@@ -1400,9 +1417,9 @@ public class Player extends Entity {
 
 	public boolean unlockedLodestone(Lodestone stone) {
 		if (stone == Lodestone.BANDIT_CAMP)
-			return getQuestManager().isComplete(Quest.DESERT_TREASURE);
+			return isQuestComplete(Quest.DESERT_TREASURE);
 		if (stone == Lodestone.LUNAR_ISLE)
-			return getQuestManager().isComplete(Quest.LUNAR_DIPLOMACY);
+			return isQuestComplete(Quest.LUNAR_DIPLOMACY);
 		return lodestones[stone.ordinal()];
 	}
 
@@ -1655,20 +1672,20 @@ public class Player extends Entity {
 		}
 		if (isDead() || isDying())
 			return;
-		getPackets().sendLogout(this, lobby);
+		getPackets().sendLogout(lobby);
 		finish();
 		running = false;
 	}
 
 	public void forceLogout() {
-		getPackets().sendLogout(this, false);
+		getPackets().sendLogout(false);
 		running = false;
 		realFinish();
 	}
 
 	public void idleLog() {
 		incrementCount("Idle logouts");
-		getPackets().sendLogout(this, true);
+		getPackets().sendLogout(true);
 		finish();
 	}
 
@@ -1699,7 +1716,7 @@ public class Player extends Entity {
 					else
 						finish(tryCount + 1);
 				} catch (Throwable e) {
-					Logger.handle(e);
+					Logger.handle(Player.class, "finish", e);
 				}
 			}, Ticks.fromSeconds(10));
 			return;
@@ -1729,8 +1746,7 @@ public class Player extends Entity {
 			World.removePlayer(this);
 			World.updateEntityRegion(this);
 			WorldDB.getHighscores().save(this);
-			if (Settings.getConfig().isDebug())
-				Logger.log(this, "Finished Player: " + getUsername());
+			Logger.info(Player.class, "realFinish", "Finished Player: " + getUsername());
 		});
 		World.updateEntityRegion(this);
 	}
@@ -1973,6 +1989,11 @@ public class Player extends Entity {
 	}
 
 	public void setRunEnergy(double runEnergy) {
+		if (getNSV().getB("infRun")) {
+			this.runEnergy = 100.0;
+			getPackets().sendRunEnergy(this.runEnergy);
+			return;
+		}
 		this.runEnergy = runEnergy;
 		if (this.runEnergy < 0.0)
 			this.runEnergy = 0.0;
@@ -2281,7 +2302,7 @@ public class Player extends Entity {
 				} else if (loop == 3) {
 					setNextAnimation(new Animation(-1));
 				} else if (loop == 4) {
-					getPackets().sendMusicEffect(90);
+					jingle(90);
 					unlock();
 					stop();
 				}
@@ -2479,27 +2500,6 @@ public class Player extends Entity {
 
 	public PrayerManager getPrayer() {
 		return prayer;
-	}
-
-	public boolean isLocked() {
-		return lockDelay >= World.getServerTicks();
-	}
-
-	/**
-	 * You are invincible & cannot use your character until unlocked.
-	 * All hits are processed after unlocking.
-	 * If you use resetRecievedHits you lose those hits.
-	 */
-	public void lock() {
-		lockDelay = Long.MAX_VALUE;
-	}
-
-	public void lock(int ticks) {
-		lockDelay = World.getServerTicks() + ticks;
-	}
-
-	public void unlock() {
-		lockDelay = 0;
 	}
 
 	public void useStairs(WorldTile dest) {
@@ -3617,6 +3617,10 @@ public class Player extends Entity {
 		startConversation(new Dialogue().addNPC(npcId, emote, message));
 	}
 	
+	public void npcDialogue(NPC npc, HeadE emote, String message) {
+		startConversation(new Dialogue().addNPC(npc, emote, message));
+	}
+	
 	public void itemDialogue(int itemId, String message) {
 		startConversation(new Dialogue().addItem(itemId, message));
 	}
@@ -3752,8 +3756,9 @@ public class Player extends Entity {
 		if (getInterfaceManager().containsChatBoxInter())
 			getInterfaceManager().closeChatBoxInterface();
 		if (finishConversationEvent != null) {
-			finishConversationEvent.run();
+			Runnable event = finishConversationEvent;
 			finishConversationEvent = null;
+			event.run();
 		}
 	}
 
@@ -3788,6 +3793,9 @@ public class Player extends Entity {
 	
 	public void markTile(WorldTile tile) {
 		getPackets().sendAddObject(new GameObject(21777, ObjectType.GROUND_DECORATION, 0, tile));
+		//model 4162 = orange square
+		//model 2636 = white dot?
+		
 	}
 	
 	public void updateTilemanTiles() {
@@ -3876,6 +3884,7 @@ public class Player extends Entity {
 	public void processPackets() {
 		Packet packet;
 		while ((packet = session.getPacketQueue().poll()) != null) {
+			//Logger.trace(Player.class, "processPackets", "Packet processed: " + packet.getOpcode());
 			if (hasStarted() && packet.getOpcode() != ClientPacket.IF_CONTINUE && packet.getOpcode() != ClientPacket.IF_OP1 && !isChosenAccountType())
 				continue;
 			PacketHandler<Player, Packet> handler = PacketHandlers.getHandler(packet.getOpcode());
@@ -4094,7 +4103,19 @@ public class Player extends Entity {
 	}
 
 	public Clan getClan() {
-		return LobbyCommunicator.getClan(getAccount().getSocial().getClanName());
+		return ClansManager.getClan(getAccount().getSocial().getClanName());
+	}
+	
+	public void getClan(Consumer<Clan> cb) {
+		ClansManager.getClan(getAccount().getSocial().getClanName(), cb);
+	}
+	
+	public Clan getGuestClan() {
+		return ClansManager.getClan(getAccount().getSocial().getGuestedClanChat());
+	}
+	
+	public void getGuestClan(Consumer<Clan> cb) {
+		ClansManager.getClan(getAccount().getSocial().getGuestedClanChat(), cb);
 	}
 
 	public void setHabitatFeature(HabitatFeature habitatFeature) {
@@ -4379,10 +4400,51 @@ public class Player extends Entity {
 		getAppearance().generateAppearanceData();
 	}
 	
-	public void playSound(int soundId, int type) {
-		if (soundId == -1)
-			return;
-		getPackets().sendSound(soundId, 0, type);
+	public Sound playSound(Sound sound) {
+		if (sound.getId() == -1)
+			return null;
+		sounds.add(sound);
+		return sound;
+	}
+	
+	private Sound playSound(int soundId, int delay, SoundType type) {
+		return playSound(new Sound(soundId, delay, type));
+	}
+	
+	public void jingle(int jingleId, int delay) {
+		playSound(jingleId, delay, SoundType.JINGLE);
+	}
+	
+	public void jingle(int jingleId) {
+		playSound(jingleId, 0, SoundType.JINGLE);
+	}
+	
+	public void musicTrack(int trackId, int delay, int volume) {
+		playSound(trackId, delay, SoundType.MUSIC).volume(volume);
+	}
+	
+	public void musicTrack(int trackId, int delay) {
+		playSound(trackId, delay, SoundType.MUSIC);
+	}
+	
+	public void musicTrack(int trackId) {
+		musicTrack(trackId, 100);
+	}
+	
+	public void soundEffect(int soundId, int delay) {
+		playSound(soundId, delay, SoundType.EFFECT);
+	}
+	
+	public void soundEffect(int soundId) {
+		soundEffect(soundId, 0);
+	}
+	
+	public void voiceEffect(int voiceId, int delay) {
+		playSound(voiceId, delay, SoundType.VOICE);
+	}
+	
+	public void voiceEffect(int voiceId) {
+		voiceEffect(voiceId, 0);
 	}
 	
 	public Map<Integer, MachineInformation> getMachineMap() {
@@ -4394,7 +4456,7 @@ public class Player extends Entity {
 	}
 	
 	private void checkWasInDynamicRegion() {
-		if (lastNonDynamicTile != null) {
+		if (lastNonDynamicTile != null && (getControllerManager().getController() == null || !getControllerManager().getController().reenableDynamicRegion())) {
 			setNextWorldTile(new WorldTile(lastNonDynamicTile));
 			clearLastNonDynamicTile();
 		}
@@ -4410,5 +4472,27 @@ public class Player extends Entity {
 
 	public Recorder getRecorder() {
 		return recorder;
+	}
+
+	public boolean isQuestComplete(Quest quest, String actionString) {
+		return getQuestManager().isComplete(quest, actionString);
+	}
+	
+	public boolean isQuestComplete(Quest quest) {
+		return isQuestComplete(quest, null);
+	}
+	
+	public boolean isMiniquestComplete(Miniquest quest, String actionString) {
+		return getMiniquestManager().isComplete(quest, actionString);
+	}
+	
+	public boolean isMiniquestComplete(Miniquest quest) {
+		return isMiniquestComplete(quest, null);
+	}
+
+	public void delayLock(int ticks, Runnable task) {
+		lock();
+		WorldTasks.delay(ticks, task);
+		WorldTasks.delay(ticks+1, () -> unlock());
 	}
 }

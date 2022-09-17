@@ -32,7 +32,7 @@ public class Siphon implements NexAttack {
 	public int attack(Nex nex, Entity target) {
 		nex.killBloodReavers();
 		nex.setNextForceTalk(new ForceTalk("A siphon will solve this!"));
-		nex.playSound(3317, 2);
+		nex.voiceEffect(3317);
 		nex.setNextAnimation(new Animation(6948));
 		nex.setNextSpotAnim(new SpotAnim(1201));
 		nex.getTempAttribs().setB("siphoning", true);
@@ -43,7 +43,7 @@ public class Siphon implements NexAttack {
 			if (tile != null)
 				nex.getBloodReavers()[respawnedBloodReaverCount++] = new NPC(13458, tile, true);
 		}
-		WorldTasks.schedule(9, () -> nex.getTempAttribs().setB("siphoning", false));
+		WorldTasks.schedule(6, () -> nex.getTempAttribs().setB("siphoning", false));
 		return nex.getAttackSpeed();
 	}
 
