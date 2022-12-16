@@ -167,7 +167,7 @@ public final class Familiar extends NPC {
 	public void dropInventory() {
 		if (inv == null)
 			return;
-		WorldTile tile = new WorldTile(getCoordFaceX(getSize()), getCoordFaceY(getSize()), getPlane());
+		WorldTile tile = WorldTile.of(getCoordFaceX(getSize()), getCoordFaceY(getSize()), getPlane());
 		for (int i = 0; i < inv.getSize(); i++) {
 			Item item = inv.get(i);
 			if (item != null)
@@ -565,7 +565,7 @@ public final class Familiar extends NPC {
 			return;
 		}
 		if (!getCombat().process())
-			if (isAgressive() && owner.getAttackedBy() != null && owner.inCombat() && canAttack(owner.getAttackedBy()) && Utils.getRandomInclusive(25) == 0)
+			if (!getCombat().hasTarget() && isAgressive() && owner.getAttackedBy() != null && owner.inCombat() && canAttack(owner.getAttackedBy()) && Utils.getRandomInclusive(5) == 0)
 				getCombat().setTarget(owner.getAttackedBy());
 			else if (routeEvent == null && !isLocked() && !getActionManager().hasSkillWorking())
 				getActionManager().setAction(new EntityFollow(owner));

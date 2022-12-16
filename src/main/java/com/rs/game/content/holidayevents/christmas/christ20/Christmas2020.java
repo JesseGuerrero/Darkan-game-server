@@ -21,6 +21,7 @@ import com.rs.lib.game.SpotAnim;
 import com.rs.lib.game.WorldTile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.annotations.ServerStartupEvent;
+import com.rs.plugin.annotations.ServerStartupEvent.Priority;
 import com.rs.plugin.events.ItemClickEvent;
 import com.rs.plugin.events.LoginEvent;
 import com.rs.plugin.handlers.ItemClickHandler;
@@ -33,14 +34,14 @@ public class Christmas2020 {
 
 	public static final String STAGE_KEY = "christ2022";
 
-	private static boolean ACTIVE = false;
+	private static boolean ACTIVE = true;
 
-	@ServerStartupEvent
+	@ServerStartupEvent(Priority.FILE_IO)
 	public static void load() {
 		if (!ACTIVE)
 			return;
-		NPCSpawns.add(new NPCSpawn(9398, new WorldTile(2655, 5678, 0), "Queen of Snow"));
-		NPCSpawns.add(new NPCSpawn(9400, new WorldTile(2654, 5679, 0), "Santa"));
+		NPCSpawns.add(new NPCSpawn(9398, WorldTile.of(2655, 5678, 0), "Queen of Snow"));
+		NPCSpawns.add(new NPCSpawn(9400, WorldTile.of(2654, 5679, 0), "Santa"));
 	}
 
 	public static LoginHandler login = new LoginHandler() {

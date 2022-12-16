@@ -61,30 +61,46 @@ public final class WorldThread extends Thread {
 			World.processRegions();
 			NAMES.clear();
 			for (Player player : World.getPlayers()) {
-				if (player != null && player.getTempAttribs().getB("realFinished"))
-					player.realFinish();
-				if (player == null || !player.hasStarted() || player.hasFinished())
-					continue;
-				if (NAMES.contains(player.getUsername()))
-					player.logout(false);
-				else
-					NAMES.add(player.getUsername());
-				player.processEntity();
+				try {
+					if (player != null && player.getTempAttribs().getB("realFinished"))
+						player.realFinish();
+					if (player == null || !player.hasStarted() || player.hasFinished())
+						continue;
+					if (NAMES.contains(player.getUsername()))
+						player.logout(false);
+					else
+						NAMES.add(player.getUsername());
+					player.processEntity();
+				} catch(Throwable e) {
+					Logger.handle(WorldThread.class, "run:playerProcessEntity", "Error processing player: " + (player == null ? "NULL PLAYER" : player.getUsername()), e);
+				}
 			}
 			for (NPC npc : World.getNPCs()) {
-				if (npc == null || npc.hasFinished())
-					continue;
-				npc.processEntity();
+				try {
+					if (npc == null || npc.hasFinished())
+						continue;
+					npc.processEntity();
+				} catch(Throwable e) {
+					Logger.handle(WorldThread.class, "run:npcProcessEntity", "Error processing NPC: " + (npc == null ? "NULL NPC" : npc.getId()), e);
+				}
 			}
 			for (Player player : World.getPlayers()) {
 				if (player == null || !player.hasStarted() || player.hasFinished())
 					continue;
-				player.processMovement();
+				try {
+					player.processMovement();
+				} catch(Throwable e) {
+					Logger.handle(WorldThread.class, "processPlayerMovement", e);
+				}
 			}
 			for (NPC npc : World.getNPCs()) {
 				if (npc == null || npc.hasFinished())
 					continue;
-				npc.processMovement();
+				try {
+					npc.processMovement();
+				} catch(Throwable e) {
+					Logger.handle(WorldThread.class, "processNPCMovement", e);
+				}
 			}
 			for (Player player : World.getPlayers()) {
 				if (player == null || !player.hasStarted() || player.hasFinished())

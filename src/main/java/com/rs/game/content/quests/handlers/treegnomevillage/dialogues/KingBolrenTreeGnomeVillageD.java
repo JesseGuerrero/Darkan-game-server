@@ -9,6 +9,7 @@ import static com.rs.game.content.quests.handlers.treegnomevillage.TreeGnomeVill
 import static com.rs.game.content.quests.handlers.treegnomevillage.TreeGnomeVillage.TALK_TO_MONTAI_ABOUT_TRACKERS;
 import static com.rs.game.content.quests.handlers.treegnomevillage.TreeGnomeVillage.TALK_TO_MONTAI_ABOUT_WOOD;
 
+import java.lang.SuppressWarnings;
 import com.rs.game.content.dialogue.Conversation;
 import com.rs.game.content.dialogue.Dialogue;
 import com.rs.game.content.dialogue.HeadE;
@@ -66,7 +67,7 @@ public class KingBolrenTreeGnomeVillageD extends Conversation {
 													});
 													player.fadeScreen(() -> {
 														player.sendMessage("Elkoy leads you through the maze...");
-														player.setNextWorldTile(player.getY() > 3177 ? new WorldTile(2515, 3160, 0) : new WorldTile(2502, 3193, 0));
+														player.setNextWorldTile(player.getY() > 3177 ? WorldTile.of(2515, 3160, 0) : WorldTile.of(2502, 3193, 0));
 													});
 												})
 										);
@@ -122,7 +123,7 @@ public class KingBolrenTreeGnomeVillageD extends Conversation {
 										});
 										player.fadeScreen(() -> {
 											player.sendMessage("Elkoy leads you through the maze...");
-											player.setNextWorldTile(player.getY() > 3177 ? new WorldTile(2515, 3160, 0) : new WorldTile(2502, 3193, 0));
+											player.setNextWorldTile(player.getY() > 3177 ? WorldTile.of(2515, 3160, 0) : WorldTile.of(2502, 3193, 0));
 										});
 									})
 							);

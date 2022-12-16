@@ -19,6 +19,7 @@ package com.rs.net.decoders.handlers;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
+import java.lang.SuppressWarnings;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -63,7 +64,7 @@ public class PacketHandlers {
 			Logger.info(PacketHandlers.class, "loadHandlersFromPackage", "Packet handlers loaded for " + handled + " packets...");
 			Logger.info(PacketHandlers.class, "loadHandlersFromPackage", "Packets missing: " + missing);
 		} catch (ClassNotFoundException | IOException | IllegalArgumentException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-			e.printStackTrace();
+			Logger.handle(PacketHandlers.class, "loadHandlersFromPackage", e);
 		}
 	}
 

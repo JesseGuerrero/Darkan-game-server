@@ -125,7 +125,7 @@ public class NPC extends Entity {
 	public NPC(int id, WorldTile tile, Direction direction, boolean permaDeath) {
 		super(tile);
 		this.id = id;
-		respawnTile = new WorldTile(tile);
+		respawnTile = WorldTile.of(tile);
 		setSpawned(permaDeath);
 		combatLevel = -1;
 		setHitpoints(getMaxHitpoints());
@@ -275,8 +275,8 @@ public class NPC extends Entity {
 		//Restore combat stats
 		if (getTickCounter() % 100 == 0)
 			restoreTick();
-		if (!combat.process() && routeEvent == null)
-			if (!isForceWalking() && !cantInteract && !checkAggressivity() && !hasEffect(Effect.FREEZE))
+		if (!combat.process() && routeEvent == null) {
+			if (!isForceWalking() && !cantInteract && !checkAggressivity() && !hasEffect(Effect.FREEZE)) {
 				if (!hasWalkSteps() && shouldRandomWalk()) {
 					boolean can = Math.random() > 0.9;
 					if (can) {
@@ -292,6 +292,8 @@ public class NPC extends Entity {
 							DumbRouteFinder.addDumbPathfinderSteps(this, respawnTile, getDefinitions().hasAttackOption() ? 7 : 3, getClipType());
 					}
 				}
+			}
+		}
 		if (isForceWalking())
 			if (!hasEffect(Effect.FREEZE))
 				if (getX() != forceWalk.getX() || getY() != forceWalk.getY()) {
@@ -304,7 +306,7 @@ public class NPC extends Entity {
 								break;
 					}
 					if (!hasWalkSteps()) { // failing finding route
-						setNextWorldTile(new WorldTile(forceWalk));
+						setNextWorldTile(WorldTile.of(forceWalk));
 						forceWalk = null; // so ofc reached forcewalk place
 					}
 				} else
@@ -318,7 +320,7 @@ public class NPC extends Entity {
 			super.processEntity();
 			processNPC();
 		} catch (Throwable e) {
-			Logger.handle(NPC.class, "processEntity", e);
+			Logger.handle(NPC.class, "processEntityNPC", e);
 		}
 	}
 
@@ -414,7 +416,7 @@ public class NPC extends Entity {
 	public void setRespawnTask(int time) {
 		if (!hasFinished()) {
 			reset();
-			getTile().setLocation(respawnTile);
+			setTile(respawnTile);
 			finish();
 		}
 		CoresManager.schedule(() -> spawn(), time < 0 ? getCombatDefinitions().getRespawnDelay() : time);
@@ -478,6 +480,8 @@ public class NPC extends Entity {
 		final NPCCombatDefinitions defs = getCombatDefinitions();
 		getInteractionManager().forceStop();
 		resetWalkSteps();
+		if (combat.getTarget() != null)
+			combat.getTarget().setAttackedByDelay(0);
 		combat.removeTarget();
 		if (source.getAttackedBy() == NPC.this) {
 			source.setAttackedBy(null);
@@ -496,7 +500,7 @@ public class NPC extends Entity {
 					player.getControllerManager().processNPCDeath(NPC.this);
 				drop();
 				reset();
-				getTile().setLocation(respawnTile);
+				setTile(respawnTile);
 				finish();
 				if (!isSpawned())
 					setRespawnTask();
@@ -659,7 +663,7 @@ public class NPC extends Entity {
 			sendDropDirectlyToBank(dropTo, item);
 			return;
 		}
-		GroundItem gItem = World.addGroundItem(item, new WorldTile(getCoordFaceX(size), getCoordFaceY(size), getPlane()), dropTo, true, 60);
+		GroundItem gItem = World.addGroundItem(item, WorldTile.of(getCoordFaceX(size), getCoordFaceY(size), getPlane()), dropTo, true, 60);
 		int value = item.getDefinitions().getValue() * item.getAmount();
 		if (gItem != null && (value > player.getI("lootbeamThreshold", 90000) || item.getDefinitions().name.contains("Scroll box") || item.getDefinitions().name.contains(" defender") || yellDrop(item.getId())))
 			player.getPackets().sendGroundItemMessage(50, 0xFF0000, gItem, "<shad=000000><col=cc0033>You received: "+ item.getAmount() + " " + item.getDefinitions().getName());
@@ -856,7 +860,7 @@ public class NPC extends Entity {
 	}
 
 	protected void setRespawnTile(WorldTile respawnTile) {
-		this.respawnTile = new WorldTile(respawnTile);
+		this.respawnTile = WorldTile.of(respawnTile);
 	}
 
 	public boolean isUnderCombat() {

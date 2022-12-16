@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.lang.SuppressWarnings;
 
 import com.rs.Settings;
 import com.rs.cache.loaders.Bonus;
@@ -924,7 +925,7 @@ public class PlayerCombat extends PlayerAction {
 		player.getEquipment().removeAmmo(slot, quantity);
 		if (Utils.random(5) == 0) //1/5 chance to just break the ammo entirely
 			return;
-		World.addGroundItem(new Item(ammoId, quantity), new WorldTile(target.getCoordFaceX(target.getSize()), target.getCoordFaceY(target.getSize()), target.getPlane()), player);
+		World.addGroundItem(new Item(ammoId, quantity), WorldTile.of(target.getCoordFaceX(target.getSize()), target.getCoordFaceY(target.getSize()), target.getPlane()), player);
 	}
 
 	public void dropAmmo(Player player) {
@@ -968,7 +969,7 @@ public class PlayerCombat extends PlayerAction {
 				case 21373:
 				case 21374:
 				case 21375: {
-					final WorldTile tile = new WorldTile(target.getX(), target.getY(), target.getPlane());
+					final WorldTile tile = WorldTile.of(target.getX(), target.getY(), target.getPlane());
 					player.setNextAnimation(new Animation(11971));
 					player.setNextSpotAnim(new SpotAnim(476));
 					WorldTasks.scheduleTimer(tick -> {
@@ -976,7 +977,7 @@ public class PlayerCombat extends PlayerAction {
 							return false;
 						if (tick % 5 == 0) {
 							World.sendSpotAnim(player, new SpotAnim(478), tile);
-							for (Entity entity : getMultiAttackTargets(player, new WorldTile(target.getTile()), 1, 9)) {
+							for (Entity entity : getMultiAttackTargets(player, WorldTile.of(target.getTile()), 1, 9)) {
 								Hit hit = getMeleeHit(player, getRandomMaxHit(player, entity, 0, getMaxHit(player, target, 21371, attackStyle, false, 0.33), 21371, attackStyle, false, true, 1.25));
 								addXp(player, entity, attackStyle.getXpType(), hit);
 								if (hit.getDamage() > 0 && Utils.getRandomInclusive(8) == 0)
@@ -1662,15 +1663,15 @@ public class PlayerCombat extends PlayerAction {
 		//int multiplier = PluginManager.handle()
 
 		switch (weaponId) {
-			case 11694:
-			case 23679:
-			case 11696:
-			case 23680:
-			case 11698:
-			case 23681:
-			case 11700:
-			case 23682:
-				baseDamage *= 1.1;
+//			case 11694:
+//			case 23679:
+//			case 11696:
+//			case 23680:
+//			case 11698:
+//			case 23681:
+//			case 11700:
+//			case 23682:
+//				baseDamage *= 1.1;
 			case 6523:
 			case 6525:
 			case 6527:
@@ -2272,6 +2273,8 @@ public class PlayerCombat extends PlayerAction {
 	public boolean checkAll(Player player) {
 		if (target.isDead())
 			return false;
+		if (!player.canAttackMulti(target) || !target.canAttackMulti(player))
+			return false;
 		if (target instanceof Player p2) {
 			if (!player.isCanPvp() || !p2.isCanPvp())
 				return false;
@@ -2284,10 +2287,6 @@ public class PlayerCombat extends PlayerAction {
 					return false;
 			} else if (isAttackExeption(player, n))
 				return false;
-		}
-		if ((!(target instanceof NPC n && n.isForceMultiAttacked()) && !target.isAtMultiArea() || !player.isAtMultiArea()) && ((player.getAttackedBy() != target && player.inCombat()) || (target.getAttackedBy() != player) && target.inCombat())) {
-			//TODO possibly print here
-			return false;
 		}
 		if (player.getTempAttribs().getL("SOL_SPEC") >= System.currentTimeMillis() && !(player.getEquipment().getWeaponId() == 15486 || player.getEquipment().getWeaponId() == 22207 || player.getEquipment().getWeaponId() == 22209 || player.getEquipment().getWeaponId() == 22211 || player.getEquipment().getWeaponId() == 22213))
 			player.getTempAttribs().setL("SOL_SPEC", 0);

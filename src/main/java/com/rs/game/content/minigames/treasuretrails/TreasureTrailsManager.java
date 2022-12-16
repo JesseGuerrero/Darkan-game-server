@@ -208,7 +208,10 @@ public class TreasureTrailsManager {
 			if (!meerkat) {
 				boolean inWilderness = player.getControllerManager().getController() instanceof WildernessController;
 				boolean isCoordinateClue = currentClue.details.type == COORDINATE;
-				final ClueNPC npc = new ClueNPC(player, inWilderness ? isCoordinateClue ? 1007 : 5144 : isCoordinateClue ? 1264 : 5145, player.getNearestTeleTile(1));
+				WorldTile tile = player.getNearestTeleTile(1);
+				if (tile == null)
+					tile = WorldTile.of(player.getTile());
+				final ClueNPC npc = new ClueNPC(player, inWilderness ? isCoordinateClue ? 1007 : 5144 : isCoordinateClue ? 1264 : 5145, tile);
 				npc.setNextSpotAnim(new SpotAnim(74));
 				WorldTasks.schedule(() -> {
 					npc.setTarget(player);
@@ -311,8 +314,8 @@ public class TreasureTrailsManager {
 			return;
 		if (!hasCurrentClue())
 			return;
-		else if (!player.withinDistance(new WorldTile(currentClue.details.getId()), 8)) {
-			player.sendMessage("Hint: " + new WorldTile(currentClue.details.getId()).toString());
+		else if (!player.withinDistance(WorldTile.of(currentClue.details.getId()), 8)) {
+			player.sendMessage("Hint: " + WorldTile.of(currentClue.details.getId()).toString());
 			return;
 		} else if (emote != ((Emote[]) currentClue.details.parameters[0])[cluePhase == 3 ? 1 : 0])
 			return;
@@ -338,7 +341,7 @@ public class TreasureTrailsManager {
 		if ((currentClue.details.type == SIMPLE || currentClue.details.type == MAP) && currentClue.details.idType == TILE) {
 			if (!hasCurrentClue())
 				return false;
-			WorldTile tile = new WorldTile(currentClue.details.getId());
+			WorldTile tile = WorldTile.of(currentClue.details.getId());
 			if (!player.withinDistance(tile, currentClue.details.type == MAP ? meerkat ? 12 : 6 : meerkat ? 32 : 16))
 				return false;
 			setNextClue(SOURCE_DIG, meerkat);
@@ -540,7 +543,7 @@ public class TreasureTrailsManager {
 	public static WorldTile getTile(int degreeY, int minY, int dirY, int degreeX, int minX, int dirX) {
 		double offsetY = degreeY * 60 / 1.875 + minY / 1.875;
 		double offsetX = degreeX * 60 / 1.875 + minX / 1.875;
-		return new WorldTile(2440 + (dirX == EAST ? (int) offsetX : (int) -offsetX), 3162 + (dirY == NORTH ? (int) offsetY : (int) -offsetY), 0);
+		return WorldTile.of(2440 + (dirX == EAST ? (int) offsetX : (int) -offsetX), 3162 + (dirY == NORTH ? (int) offsetY : (int) -offsetY), 0);
 	}
 
 	private int[] getCoordinates(WorldTile tile) {

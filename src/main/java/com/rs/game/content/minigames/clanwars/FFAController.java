@@ -40,7 +40,7 @@ public final class FFAController extends Controller {
 			WorldTasks.delay(0, () -> {
 				e.getPlayer().getVars().setVarBit(5279, e.getObjectId() == 38699 ? 1 : 0);
 				if (e.getPlayer().getVars().getVarBit(5294 + e.getPlayer().getVars().getVarBit(5279)) == 1) {
-					e.getPlayer().setNextWorldTile(new WorldTile(e.getPlayer().getVars().getVarBit(5279) == 1 ? 3007 : 2815, 5511, 0));
+					e.getPlayer().setNextWorldTile(WorldTile.of(e.getPlayer().getVars().getVarBit(5279) == 1 ? 3007 : 2815, 5511, 0));
 					e.getPlayer().getControllerManager().startController(new FFAController(e.getPlayer().getVars().getVarBit(5279) == 1));
 					return;
 				}
@@ -59,7 +59,7 @@ public final class FFAController extends Controller {
 				if (e.getPlayer().getVars().getVarBit(5294 + e.getPlayer().getVars().getVarBit(5279)) == 1)
 					e.getPlayer().getVars().saveVarBit(5294 + e.getPlayer().getVars().getVarBit(5279), 1);
 				e.getPlayer().closeInterfaces();
-				e.getPlayer().setNextWorldTile(new WorldTile(e.getPlayer().getVars().getVarBit(5279) == 1 ? 3007 : 2815, 5511, 0));
+				e.getPlayer().setNextWorldTile(WorldTile.of(e.getPlayer().getVars().getVarBit(5279) == 1 ? 3007 : 2815, 5511, 0));
 				e.getPlayer().getControllerManager().startController(new FFAController(e.getPlayer().getVars().getVarBit(5279) == 1));
 			}
 			}
@@ -102,11 +102,13 @@ public final class FFAController extends Controller {
 					killer.removeDamage(player);
 					killer.increaseKillCount(player);
 				}
-				player.sendItemsOnDeath(killer);
-				player.getEquipment().init();
-				player.getInventory().init();
-				player.reset();
-				player.setNextWorldTile(new WorldTile(2993, 9679, 0));
+				if (dangerous) {
+					player.sendItemsOnDeath(killer);
+					player.getEquipment().init();
+					player.getInventory().init();
+					player.reset();
+				}
+				player.setNextWorldTile(WorldTile.of(2993, 9679, 0));
 				remove(true);
 				player.setNextAnimation(new Animation(-1));
 			} else if (loop == 4) {
@@ -142,7 +144,7 @@ public final class FFAController extends Controller {
 		switch (object.getId()) {
 		case 38700:
 			remove(true);
-			player.useStairs(-1, new WorldTile(2993, 9679, 0), 0, 1);
+			player.useStairs(-1, WorldTile.of(2993, 9679, 0), 0, 1);
 			return false;
 		}
 		return true;
