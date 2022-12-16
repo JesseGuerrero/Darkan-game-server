@@ -21,13 +21,16 @@ import com.rs.game.content.dialogue.HeadE;
 import com.rs.game.content.quests.Quest;
 import com.rs.game.content.quests.QuestHandler;
 import com.rs.game.content.quests.QuestOutline;
+import com.rs.game.content.quests.handlers.shieldofarrav.ShieldOfArrav;
 import com.rs.game.model.entity.player.Equipment;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Item;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.events.ItemClickEvent;
+import com.rs.plugin.events.ItemOnItemEvent;
 import com.rs.plugin.handlers.ItemClickHandler;
+import com.rs.plugin.handlers.ItemOnItemHandler;
 
 import java.util.ArrayList;
 
@@ -77,6 +80,15 @@ public class TearsOfGuthix extends QuestOutline {
 				return;
 			}
 			e.getPlayer().getInventory().replace(new Item(4703, 1), new Item(4704, 1));
+		}
+	};
+
+	public static ItemOnItemHandler handleLensToBullsEye = new ItemOnItemHandler(4542, new int[]{4544}) {
+		@Override
+		public void handle(ItemOnItemEvent e) {
+			e.getPlayer().getInventory().deleteItem(e.getItem1().getId(), 1);
+			e.getPlayer().getInventory().deleteItem(e.getItem2().getId(), 1);
+			e.getPlayer().getInventory().addItem(4546, 1);
 		}
 	};
 

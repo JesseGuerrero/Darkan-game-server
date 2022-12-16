@@ -72,9 +72,9 @@ public class LumbridgeSwampDungeon {
 			Player p = e.getPlayer();
 			WorldObject obj = e.getObject();
 			if(p.getX() < obj.getX())
-				p.setNextWorldTile(new WorldTile(p.getX() + 2, p.getY(), p.getPlane()));
+				p.setNextWorldTile(WorldTile.of(p.getX() + 2, p.getY(), p.getPlane()));
 			if(p.getX() > obj.getX())
-				AgilityShortcuts.forceMovement(p, new WorldTile(p.getX()-2, p.getY(), p.getPlane()), 2049, 1, 1);
+				AgilityShortcuts.forceMovement(p, WorldTile.of(p.getX()-2, p.getY(), p.getPlane()), 2049, 1, 1);
 		}
 	};
 

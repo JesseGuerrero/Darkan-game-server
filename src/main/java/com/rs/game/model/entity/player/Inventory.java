@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.rs.Settings;
 import com.rs.cache.loaders.ItemDefinitions;
 import com.rs.cache.loaders.interfaces.IFEvents;
 import com.rs.cache.loaders.interfaces.IFEvents.UseFlag;
@@ -495,6 +496,8 @@ public final class Inventory {
 			player.sendMessage("<col=FF0000>It looks like it will last another " + Utils.ticksToTime(item.getMetaDataI("combatCharges")));
 		else if (item.getMetaData("brawlerCharges") != null)
 			player.sendMessage("These gloves have " + item.getMetaDataI("brawlerCharges") + " charges left.");
+		if(Settings.getConfig().isDebug())
+			player.sendMessage("Item ID: " + item.getId());
 	}
 
 	public void refresh() {
