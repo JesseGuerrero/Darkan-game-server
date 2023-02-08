@@ -9,11 +9,11 @@ Darkan features proprietary plugins which handle triggers activated by the playe
 
 <br/>
 
-<div align="center"><img src="https://firebasestorage.googleapis.com/v0/b/swimmio-content/o/repositories%2FZ2l0aHViJTNBJTNBZGFya2FuLXdvcmxkLXNlcnZlciUzQSUzQUplc3NlR3VlcnJlcm8%3D%2Fc81126de-6437-4623-9aed-6c0eec88c1ec.png?alt=media&token=3eae8574-65ed-40bc-a41d-ff1762fecc50" style="width:'25%'"/></div>
+<div align="center"><img src="https://firebasestorage.googleapis.com/v0/b/swimmio-content/o/repositories%2FZ2l0aHViJTNBJTNBZGFya2FuLXdvcmxkLXNlcnZlciUzQSUzQUplc3NlR3VlcnJlcm8%3D%2F59041af9-11f4-4e93-b895-1aba5d022c29.png?alt=media&token=27e8fa5e-07da-4f73-8c4f-25fa03e15df6" style="width:'50%'"/></div>
 
 <br/>
 
-These plugins are children to PluginHandler<T> generic. Each plugin creates an event in the case of some trigger in the world. The header, for example the COUNT\_DRAYNOR\_ID below is the trigger which is handled by the plugin. These plugins contain the code activated by said trigger of the plugin type. Below is the natural progression of abstraction of an example plugin and its trigger...
+These plugins are children to PluginHandler<T> generic and each are implemented for a specific case in the Darkan World. The header, for example the COUNT\_DRAYNOR\_ID below is the trigger which is handled by the plugin. These plugins contain the code activated by said trigger of the plugin type/generic. Below is the natural progression of abstraction of an example plugin and its trigger...
 <!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
 ### 📄 src/main/java/com/rs/game/content/quests/handlers/vampireslayer/CountDraynorBoss.java
 ```java
@@ -61,7 +61,7 @@ Here is the parent
 
 <br/>
 
-and here is the generic
+And here is the generic...
 <!-- NOTE-swimm-snippet: the lines below link your snippet to Swimm -->
 ### 📄 src/main/java/com/rs/plugin/handlers/PluginHandler.java
 ```java
@@ -90,6 +90,10 @@ and here is the generic
 39     }
 40     
 ```
+
+<br/>
+
+Every single plugin contains an event handler "e" with distinct functions which can be used to manipulate the world and player.
 
 <br/>
 
