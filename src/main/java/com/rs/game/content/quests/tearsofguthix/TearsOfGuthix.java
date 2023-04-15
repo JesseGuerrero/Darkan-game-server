@@ -14,15 +14,11 @@
 //  Copyright (C) 2021 Trenton Kress
 //  This file is part of project: Darkan
 //
-package com.rs.game.content.quests.handlers.tearsofguthix;
+package com.rs.game.content.quests.tearsofguthix;
 
-import com.rs.game.content.dialogue.Dialogue;
-import com.rs.game.content.dialogue.HeadE;
-import com.rs.game.content.quests.Quest;
-import com.rs.game.content.quests.QuestHandler;
-import com.rs.game.content.quests.QuestOutline;
-import com.rs.game.content.quests.handlers.shieldofarrav.ShieldOfArrav;
-import com.rs.game.model.entity.player.Equipment;
+import com.rs.engine.quest.Quest;
+import com.rs.engine.quest.QuestHandler;
+import com.rs.engine.quest.QuestOutline;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Item;
@@ -73,26 +69,21 @@ public class TearsOfGuthix extends QuestOutline {
 		return lines;
 	}
 
-	public static ItemClickHandler handleMagicStone = new ItemClickHandler(new Object[]{4703}, new String[]{"Craft"}) {
-		@Override
-		public void handle(ItemClickEvent e) {
-			if (e.getPlayer().getQuestManager().getStage(Quest.TEARS_OF_GUTHIX) != GET_BOWL) {
-				return;
-			}
-			e.getPlayer().getInventory().replace(new Item(4703, 1), new Item(4704, 1));
+	public static ItemClickHandler handleMagicStone = new ItemClickHandler(new Object[]{4703}, new String[]{"Craft"}, e-> {
+		if (e.getPlayer().getQuestManager().getStage(Quest.TEARS_OF_GUTHIX) != GET_BOWL) {
+			return;
 		}
-	};
+		e.getPlayer().getInventory().replace(new Item(4703, 1), new Item(4704, 1));
+	});
 
-	public static ItemOnItemHandler handleLensToBullsEye = new ItemOnItemHandler(4542, new int[]{4544}) {
-		@Override
-		public void handle(ItemOnItemEvent e) {
-			e.getPlayer().getInventory().deleteItem(e.getItem1().getId(), 1);
-			e.getPlayer().getInventory().deleteItem(e.getItem2().getId(), 1);
-			e.getPlayer().getInventory().addItem(4546, 1);
-		}
-	};
 
-	protected static void tearsOfGuthix(Player p) {
+	public static ItemOnItemHandler handleLensToBullsEye = new ItemOnItemHandler(4542, new int[]{4544}, e -> {
+		e.getPlayer().getInventory().deleteItem(e.getItem1().getId(), 1);
+		e.getPlayer().getInventory().deleteItem(e.getItem2().getId(), 1);
+		e.getPlayer().getInventory().addItem(4546, 1);
+	});
+
+	public static void tearsOfGuthix(Player p) {
 		p.sendMessage("you are doing it...");
 		p.save("TimeLastTOG", System.currentTimeMillis());
 	}

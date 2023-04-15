@@ -53,12 +53,9 @@ public class Mining extends Action {
 
 	public static ObjectClickHandler handleLimestone = new ObjectClickHandler(new Object[] { "Limestone rocks" },
 			e -> e.getPlayer().getActionManager().setAction(new Mining(RockType.LIMESTONE, e.getObject())));
-	public static ObjectClickHandler handleMagicStone = new ObjectClickHandler(new Object[] { 6669, 6670, 6671 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
+	public static ObjectClickHandler handleMagicStone = new ObjectClickHandler(new Object[] { 6669, 6670, 6671 }, e->{
 			e.getPlayer().getActionManager().setAction(new Mining(RockType.MAGIC_STONE, e.getObject()));
-		}
-	};
+	});
 
 	public static ObjectClickHandler handleIron = new ObjectClickHandler(new Object[] { "Iron ore rocks", "Iron ore vein" },
 			e -> e.getPlayer().getActionManager().setAction(new Mining(RockType.IRON, e.getObject())));

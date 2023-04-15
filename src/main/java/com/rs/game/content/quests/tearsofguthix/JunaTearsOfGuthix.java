@@ -1,9 +1,10 @@
-package com.rs.game.content.quests.handlers.tearsofguthix;
+package com.rs.game.content.quests.tearsofguthix;
 
-import com.rs.game.content.dialogue.Conversation;
-import com.rs.game.content.dialogue.Dialogue;
-import com.rs.game.content.dialogue.HeadE;
-import com.rs.game.content.quests.Quest;
+
+import com.rs.engine.dialogue.Conversation;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
+import com.rs.engine.quest.Quest;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
@@ -11,9 +12,8 @@ import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.events.ObjectClickEvent;
 import com.rs.plugin.handlers.ObjectClickHandler;
 
-import static com.rs.game.content.quests.handlers.familycrest.FamilyCrest.*;
-import static com.rs.game.content.quests.handlers.tearsofguthix.TearsOfGuthix.GET_BOWL;
-import static com.rs.game.content.quests.handlers.tearsofguthix.TearsOfGuthix.tearsOfGuthix;
+import static com.rs.game.content.quests.tearsofguthix.TearsOfGuthix.*;
+import static com.rs.game.content.quests.tearsofguthix.TearsOfGuthix.tearsOfGuthix;
 
 @PluginEventHandler
 public class JunaTearsOfGuthix extends Conversation {
@@ -112,11 +112,8 @@ public class JunaTearsOfGuthix extends Conversation {
 	}
 
 
-    public static ObjectClickHandler handleDialogue = new ObjectClickHandler(new Object[]{6657}) {
-        @Override
-        public void handle(ObjectClickEvent e) {
-			e.getObject().animate(new Animation(2055));
-            e.getPlayer().startConversation(new JunaTearsOfGuthix(e.getPlayer(), false).getStart());
-        }
-    };
+    public static ObjectClickHandler handleDialogue = new ObjectClickHandler(new Object[]{6657}, e-> {
+		e.getObject().animate(new Animation(2055));
+		e.getPlayer().startConversation(new JunaTearsOfGuthix(e.getPlayer(), false).getStart());
+	});
 }

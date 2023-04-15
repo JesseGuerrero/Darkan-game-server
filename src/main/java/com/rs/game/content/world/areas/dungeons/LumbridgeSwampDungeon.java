@@ -16,15 +16,15 @@
 //
 package com.rs.game.content.world.areas.dungeons;
 
-import com.rs.game.content.quests.Quest;
+import com.rs.engine.quest.Quest;
+import com.rs.game.content.world.AgilityShortcuts;
 import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ItemOnNPCEvent;
 import com.rs.plugin.events.ObjectClickEvent;
 import com.rs.plugin.handlers.ItemOnNPCHandler;
 import com.rs.plugin.handlers.ObjectClickHandler;
@@ -53,17 +53,12 @@ public class LumbridgeSwampDungeon {
 		e.getPlayer().setNextTile(Tile.of(3226, 9542, 0));
 	});
 
-	public static ObjectClickHandler handleRocksJuna = new ObjectClickHandler(new Object[] { 6673 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			Player p = e.getPlayer();
-			WorldObject obj = e.getObject();
-			if(p.getX() < obj.getX())
-				p.setNextWorldTile(WorldTile.of(p.getX() + 2, p.getY(), p.getPlane()));
-			if(p.getX() > obj.getX())
-				AgilityShortcuts.forceMovement(p, WorldTile.of(p.getX()-2, p.getY(), p.getPlane()), 2049, 1, 1);
-		}
-	};
+	public static ObjectClickHandler handleRocksJuna = new ObjectClickHandler(new Object[] { 6673 }, e->{
+		if(e.getPlayer().getX() < e.getObject().getX())
+			e.getPlayer().setNextTile(Tile.of(e.getPlayer().getX() + 2, e.getPlayer().getY(), e.getPlayer().getPlane()));
+		if(e.getPlayer().getX() > e.getObject().getX())
+			AgilityShortcuts.forceMovement(e.getPlayer(), Tile.of(e.getPlayer().getX()-2, e.getPlayer().getY(), e.getPlayer().getPlane()), 2049, 1, 1);
+	});
 
 	public static ObjectClickHandler handleSteppingStone1 = new ObjectClickHandler(false, new Object[] { 5948 }, e -> {
 		final boolean isRunning = e.getPlayer().getRun();
