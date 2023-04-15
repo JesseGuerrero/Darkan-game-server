@@ -18,10 +18,10 @@ package com.rs.game.content.skills.runecrafting.runespan;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.lang.SuppressWarnings;
 
 import com.rs.game.World;
 import com.rs.game.content.skills.runecrafting.Runecrafting;
+import com.rs.game.map.ChunkManager;
 import com.rs.game.model.WorldProjectile;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.actions.PlayerAction;
@@ -33,7 +33,6 @@ import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ObjectClickEvent;
 import com.rs.plugin.handlers.ObjectClickHandler;
 
 @PluginEventHandler
@@ -128,15 +127,12 @@ public class SiphonNodeAction extends PlayerAction {
 		}
 	}
 
-	public static ObjectClickHandler handleNodes = new ObjectClickHandler(false, Node.MAP.keySet().toArray()) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			//			Nodes node = getNode(e.getObjectId());
-			//			if (node == null)
-			//				return;
-			//			e.getPlayer().getActionManager().setAction(new SiphonNodeAction(node, e.getObject()));
-		}
-	};
+	public static ObjectClickHandler handleNodes = new ObjectClickHandler(false, Node.MAP.keySet().toArray(), e -> {
+		//		Nodes node = getNode(e.getObjectId());
+		//			if (node == null)
+		//				return;
+		//			e.getPlayer().getActionManager().setAction(new SiphonNodeAction(node, e.getObject()));
+	});
 
 	@SuppressWarnings("unused")
 	private static int getRandomTransformationId() {
@@ -164,7 +160,7 @@ public class SiphonNodeAction extends PlayerAction {
 		}
 		if (!started && !player.withinDistance(node.getTile(), 6))
 			return true;
-		if (!World.getRegion(player.getRegionId()).objectExists(node)) {
+		if (!ChunkManager.getChunk(node.getTile().getChunkId()).objectExists(node)) {
 			stop(player);
 			return false;
 		}
@@ -211,7 +207,7 @@ public class SiphonNodeAction extends PlayerAction {
 				player.getSkills().addXp(Constants.RUNECRAFTING, totalXp);
 			}
 			player.setNextAnimation(new Animation(nodes.getEmoteId()));
-			player.setNextFaceWorldTile(node.getTile());
+			player.setNextFaceTile(node.getTile());
 			WorldProjectile p = World.sendProjectile(node, player, 3060, 31, 40, 35, 1, 2, 0);
 			final boolean succF = success;
 			WorldTasks.schedule(new WorldTask() {

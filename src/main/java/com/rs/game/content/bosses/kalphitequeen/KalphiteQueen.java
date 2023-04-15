@@ -23,14 +23,14 @@ import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
 
 @PluginEventHandler
 public class KalphiteQueen extends NPC {
 
-	public KalphiteQueen(int id, WorldTile tile, boolean spawned) {
+	public KalphiteQueen(int id, Tile tile, boolean spawned) {
 		super(id, tile, spawned);
 		setIgnoreNPCClipping(true);
 		setLureDelay(0);
@@ -77,10 +77,5 @@ public class KalphiteQueen extends NPC {
 		});
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(1158, 1160) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new KalphiteQueen(npcId, tile, false);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 1158, 1160 }, (npcId, tile) -> new KalphiteQueen(npcId, tile, false));
 }

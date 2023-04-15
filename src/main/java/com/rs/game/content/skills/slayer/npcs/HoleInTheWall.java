@@ -26,7 +26,7 @@ import com.rs.game.model.entity.player.Player;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
@@ -36,7 +36,7 @@ public class HoleInTheWall extends NPC {
 
 	private transient boolean hasGrabbed;
 
-	public HoleInTheWall(int id, WorldTile tile) {
+	public HoleInTheWall(int id, Tile tile) {
 		super(id, tile);
 		setCantFollowUnderCombat(true);
 		setCantInteract(true);
@@ -111,10 +111,5 @@ public class HoleInTheWall extends NPC {
 		});
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(2058) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new HoleInTheWall(npcId, tile);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(2058, (npcId, tile) -> new HoleInTheWall(npcId, tile));
 }

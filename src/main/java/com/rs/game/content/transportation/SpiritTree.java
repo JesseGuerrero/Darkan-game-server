@@ -16,14 +16,12 @@
 //
 package com.rs.game.content.transportation;
 
-import com.rs.game.content.dialogue.Dialogue;
-import com.rs.game.content.dialogue.HeadE;
 import com.rs.game.content.skills.magic.Magic;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
 import com.rs.game.model.entity.player.Player;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ButtonClickEvent;
-import com.rs.plugin.events.ObjectClickEvent;
 import com.rs.plugin.handlers.ButtonClickHandler;
 import com.rs.plugin.handlers.ObjectClickHandler;
 
@@ -31,31 +29,28 @@ import com.rs.plugin.handlers.ObjectClickHandler;
 public class SpiritTree {
 
 	private static final int TREE_INTERFACE = 864;
-	private static final WorldTile[] TELEPORTS = {
-			WorldTile.of(2554, 3255, 0),
-			WorldTile.of(3187, 3507, 0),
-			WorldTile.of(2416, 2852, 0),
-			WorldTile.of(2339, 3108, 0),
-			WorldTile.of(2541, 3170, 0),
-			WorldTile.of(2462, 3445, 0)
+	private static final Tile[] TELEPORTS = {
+			Tile.of(2554, 3255, 0),
+			Tile.of(3187, 3507, 0),
+			Tile.of(2416, 2852, 0),
+			Tile.of(2339, 3108, 0),
+			Tile.of(2541, 3170, 0),
+			Tile.of(2462, 3445, 0)
 	};
 	
-	public static ObjectClickHandler handleTrees = new ObjectClickHandler(new Object[] { "Spirit Tree", "Spirit tree", 26723 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			String op = e.getOption().toLowerCase();
-			if (op.contains("talk")) {
-				e.getPlayer().startConversation(new Dialogue()
-						.addNPC((e.getObjectId() == 68973 && e.getObjectId() == 68974) ? 3637 : 3636, HeadE.CALM_TALK, "If you are a friend of the gnome people, you are a friend of mine. Do you wish to travel?")
-						.addOptions(ops -> {
-							ops.add("Yes, please.", () -> SpiritTree.openInterface(e.getPlayer()));
-							ops.add("No, thanks.");
-						}));
-			} else if (op.contains("travel") || op.contains("teleport")) {
-				SpiritTree.openInterface(e.getPlayer());
-			}
+	public static ObjectClickHandler handleTrees = new ObjectClickHandler(new Object[] { "Spirit Tree", "Spirit tree", 26723 }, e -> {
+		String op = e.getOption().toLowerCase();
+		if (op.contains("talk")) {
+			e.getPlayer().startConversation(new Dialogue()
+					.addNPC((e.getObjectId() == 68973 && e.getObjectId() == 68974) ? 3637 : 3636, HeadE.CALM_TALK, "If you are a friend of the gnome people, you are a friend of mine. Do you wish to travel?")
+					.addOptions(ops -> {
+						ops.add("Yes, please.", () -> SpiritTree.openInterface(e.getPlayer()));
+						ops.add("No, thanks.");
+					}));
+		} else if (op.contains("travel") || op.contains("teleport")) {
+			SpiritTree.openInterface(e.getPlayer());
 		}
-	};
+	});
 
 	public static void openInterface(Player player) {
 		player.getVars().setVarBit(3959, 3);
@@ -69,14 +64,9 @@ public class SpiritTree {
 			sendTeleport(player, TELEPORTS[4]);
 	}
 
-	public static ButtonClickHandler handleButtons = new ButtonClickHandler(864) {
-		@Override
-		public void handle(ButtonClickEvent e) {
-			handleSpiritTree(e.getPlayer(), e.getSlotId());
-		}
-	};
+	public static ButtonClickHandler handleButtons = new ButtonClickHandler(864, e -> handleSpiritTree(e.getPlayer(), e.getSlotId()));
 
-	private static void sendTeleport(Player player, WorldTile tile) {
+	private static void sendTeleport(Player player, Tile tile) {
 		player.sendMessage("You place your hands on the dry tough bark of the spirit tree, and feel a surge of energy run through your veins.");
 		Magic.sendTeleportSpell(player, 7082, 7084, 1229, 1229, 1, 0, tile, 4, true, Magic.OBJECT_TELEPORT, null);
 	}

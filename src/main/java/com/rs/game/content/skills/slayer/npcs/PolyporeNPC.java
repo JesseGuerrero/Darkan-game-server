@@ -19,7 +19,7 @@ package com.rs.game.content.skills.slayer.npcs;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.npc.NPC;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
 
@@ -28,7 +28,7 @@ public class PolyporeNPC extends NPC {
 
 	private int realId;
 
-	public PolyporeNPC(int id, WorldTile tile, boolean spawned) {
+	public PolyporeNPC(int id, Tile tile, boolean spawned) {
 		super(id, tile, spawned);
 		realId = id;
 		setRandomWalk(true);
@@ -73,10 +73,7 @@ public class PolyporeNPC extends NPC {
 		}
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(14688, 14689, 14690, 14691, 14692, 14693, 14696, 14697, 14698, 14699, 14700, 14701) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new PolyporeNPC(npcId, tile, false);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 14688, 14689, 14690, 14691, 14692, 14693, 14696, 14697, 14698, 14699, 14700, 14701 }, (npcId, tile) -> {
+		return new PolyporeNPC(npcId, tile, false);
+	});
 }

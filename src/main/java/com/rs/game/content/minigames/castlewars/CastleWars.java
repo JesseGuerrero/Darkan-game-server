@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.lang.SuppressWarnings;
 
 import com.rs.cache.loaders.ObjectType;
 import com.rs.game.World;
@@ -31,9 +30,8 @@ import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Item;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ObjectClickEvent;
 import com.rs.plugin.handlers.ObjectClickHandler;
 import com.rs.utils.Ticks;
 
@@ -48,7 +46,7 @@ public final class CastleWars {
 	@SuppressWarnings("unchecked")
 	private static final List<Player>[] playing = new List[2];
 	private static int[] seasonWins = new int[2];
-	public static final WorldTile LOBBY = WorldTile.of(2442, 3090, 0), SARA_WAITING = WorldTile.of(2381, 9489, 0), ZAMO_WAITING = WorldTile.of(2421, 9523, 0), SARA_BASE = WorldTile.of(2426, 3076, 1), ZAMO_BASE = WorldTile.of(2373, 3131, 1);
+	public static final Tile LOBBY = Tile.of(2442, 3090, 0), SARA_WAITING = Tile.of(2381, 9489, 0), ZAMO_WAITING = Tile.of(2421, 9523, 0), SARA_BASE = Tile.of(2426, 3076, 1), ZAMO_BASE = Tile.of(2373, 3131, 1);
 
 	private static PlayingGame playingGame;
 
@@ -107,7 +105,7 @@ public final class CastleWars {
 		setCape(player, new Item(team == ZAMORAK ? 4042 : 4041));
 		setHood(player, new Item(team == ZAMORAK ? 4515 : 4513));
 		player.getControllerManager().startController(new CastleWarsWaitingController(team));
-		player.setNextWorldTile(WorldTile.of(team == ZAMORAK ? ZAMO_WAITING : SARA_WAITING, 1));
+		player.setNextTile(Tile.of(team == ZAMORAK ? ZAMO_WAITING : SARA_WAITING, 1));
 		player.getMusicsManager().playSongAndUnlock(318); // 5 players to start a game
 		if (playingGame == null && waiting[team].size() >= 5)
 			createPlayingGame();
@@ -186,7 +184,7 @@ public final class CastleWars {
 		waiting[team].remove(player);
 		setCape(player, null);
 		setHood(player, null);
-		player.setNextWorldTile(WorldTile.of(LOBBY, 2));
+		player.setNextTile(Tile.of(LOBBY, 2));
 		if (playingGame != null && waiting[team].size() == 0 && playing[team].size() == 0)
 			destroyPlayingGame(); // cancels if 0 players playing/waiting on any
 		// of the tea
@@ -216,7 +214,7 @@ public final class CastleWars {
 		int weaponId = player.getEquipment().getWeaponId();
 		if (weaponId == 4037 || weaponId == 4039) {
 			CastleWars.setWeapon(player, null);
-			CastleWars.dropFlag(player.getLastWorldTile(), weaponId == 4037 ? CastleWars.SARADOMIN : CastleWars.ZAMORAK);
+			CastleWars.dropFlag(player.getLastTile(), weaponId == 4037 ? CastleWars.SARADOMIN : CastleWars.ZAMORAK);
 		}
 		player.closeInterfaces();
 		player.getInventory().deleteItem(4049, Integer.MAX_VALUE); // bandages
@@ -224,7 +222,7 @@ public final class CastleWars {
 
 		player.getHintIconsManager().removeUnsavedHintIcon();
 		player.getMusicsManager().reset();
-		player.setNextWorldTile(WorldTile.of(LOBBY, 2));
+		player.setNextTile(Tile.of(LOBBY, 2));
 		if (playingGame != null && waiting[team].size() == 0 && playing[team].size() == 0)
 			destroyPlayingGame(); // cancels if 0 players playing/waiting on any
 		// of the tea
@@ -238,7 +236,7 @@ public final class CastleWars {
 		playing[team].add(player);
 		player.setCanPvp(true);
 		player.getControllerManager().startController(new CastleWarsPlayingController(team));
-		player.setNextWorldTile(WorldTile.of(team == ZAMORAK ? ZAMO_BASE : SARA_BASE, 1));
+		player.setNextTile(Tile.of(team == ZAMORAK ? ZAMO_BASE : SARA_BASE, 1));
 	}
 
 	public static void endGame(int winner) {
@@ -286,7 +284,7 @@ public final class CastleWars {
 		playingGame.takeFlag(player, team, flagTeam, object, droped);
 	}
 
-	public static void dropFlag(WorldTile tile, int flagTeam) {
+	public static void dropFlag(Tile tile, int flagTeam) {
 		if (playingGame == null)
 			return;
 		playingGame.dropFlag(tile, flagTeam);
@@ -304,7 +302,7 @@ public final class CastleWars {
 		playingGame.addBarricade(team, player);
 	}
 
-	public static boolean isBarricadeAt(WorldTile tile) {
+	public static boolean isBarricadeAt(Tile tile) {
 		if (playingGame == null)
 			return false;
 		return playingGame.isBarricadeAt(tile);
@@ -337,7 +335,7 @@ public final class CastleWars {
 			barricades.clear();
 		}
 
-		public boolean isBarricadeAt(WorldTile tile) {
+		public boolean isBarricadeAt(Tile tile) {
 			for (Iterator<CastleWarBarricade> it = barricades.iterator(); it.hasNext();) {
 				CastleWarBarricade npc = it.next();
 				if (npc.isDead() || npc.hasFinished()) {
@@ -357,7 +355,7 @@ public final class CastleWars {
 			}
 			player.getInventory().deleteItem(new Item(4053, 1));
 			barricadesCount[team]++;
-			barricades.add(new CastleWarBarricade(team, WorldTile.of(player.getTile())));
+			barricades.add(new CastleWarBarricade(team, Tile.of(player.getTile())));
 		}
 
 		public void removeBarricade(int team, CastleWarBarricade npc) {
@@ -414,7 +412,7 @@ public final class CastleWars {
 			refreshAllPlayersPlaying();
 		}
 
-		public void dropFlag(WorldTile tile, int flagTeam) {
+		public void dropFlag(Tile tile, int flagTeam) {
 			removeHintIcon(flagTeam);
 			GameObject flagDroped = new GameObject(flagTeam == SARADOMIN ? 4900 : 4901, ObjectType.SCENERY_INTERACT, 0, tile.getX(), tile.getY(), tile.getPlane());
 			spawnedObjects.add(flagDroped);
@@ -451,33 +449,10 @@ public final class CastleWars {
 				player.closeInterfaces();
 	}
 
-	public static ObjectClickHandler handleScoreboard = new ObjectClickHandler(new Object[] { 4484 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			CastleWars.viewScoreBoard(e.getPlayer());
-		}
-	};
-
-	public static ObjectClickHandler handleJoinZamorak = new ObjectClickHandler(new Object[] { 4388 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			joinPortal(e.getPlayer(), ZAMORAK);
-		}
-	};
-
-	public static ObjectClickHandler handleJoinGuthix = new ObjectClickHandler(new Object[] { 4408 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			joinPortal(e.getPlayer(), GUTHIX);
-		}
-	};
-
-	public static ObjectClickHandler handleJoinSaradomin = new ObjectClickHandler(new Object[] { 4387 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			joinPortal(e.getPlayer(), SARADOMIN);
-		}
-	};
+	public static ObjectClickHandler handleScoreboard = new ObjectClickHandler(new Object[] { 4484 }, e -> CastleWars.viewScoreBoard(e.getPlayer()));
+	public static ObjectClickHandler handleJoinZamorak = new ObjectClickHandler(new Object[] { 4388 }, e -> joinPortal(e.getPlayer(), ZAMORAK));
+	public static ObjectClickHandler handleJoinGuthix = new ObjectClickHandler(new Object[] { 4408 }, e -> joinPortal(e.getPlayer(), GUTHIX));
+	public static ObjectClickHandler handleJoinSaradomin = new ObjectClickHandler(new Object[] { 4387 }, e -> joinPortal(e.getPlayer(), SARADOMIN));
 
 	public static List<Player>[] getPlaying() {
 		return playing;

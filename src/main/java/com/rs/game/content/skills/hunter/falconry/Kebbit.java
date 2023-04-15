@@ -12,7 +12,7 @@ import com.rs.game.model.entity.player.Equipment;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
 import com.rs.lib.game.Item;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
@@ -62,7 +62,7 @@ public class Kebbit extends NPC {
 	private Player caughtBy;
 	private int hintIcon = -1;
 
-	public Kebbit(int id, WorldTile tile) {
+	public Kebbit(int id, Tile tile) {
 		super(id, tile);
 		this.type = KebbitType.forKebbit(id);
 		if (this.type == null)
@@ -123,12 +123,7 @@ public class Kebbit extends NPC {
 		caughtBy = null;
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(Arrays.stream(KebbitType.values()).map(k -> k.kebbitId).toArray()) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new Kebbit(npcId, tile);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(Arrays.stream(KebbitType.values()).map(k -> k.kebbitId).toArray(), (npcId, tile) -> new Kebbit(npcId, tile));
 
 	public void sendFalcon(Player player) {
 		if (player.getSkills().getLevel(Skills.HUNTER) < type.level) {
@@ -185,7 +180,7 @@ public class Kebbit extends NPC {
 		player.anim(827);
 		player.getSkills().addXp(Skills.HUNTER, type.xp);
 		player.getInventory().addItemDrop(type.furId, 1);
-		if (!DropCleaners.bonecrush(player, new Item(526, 1)))
+		if (!DropCleaners.Companion.bonecrush(player, new Item(526, 1)))
 			player.getInventory().addItemDrop(526, 1);
 		sendDeath(player);
 	}

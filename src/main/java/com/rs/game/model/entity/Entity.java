@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.rs.Settings;
 import com.rs.cache.loaders.NPCDefinitions.MovementType;
@@ -35,11 +36,13 @@ import com.rs.cache.loaders.map.RegionSize;
 import com.rs.game.World;
 import com.rs.game.content.Effect;
 import com.rs.game.content.combat.PlayerCombat;
-import com.rs.game.content.skills.dungeoneering.npcs.Stomp;
 import com.rs.game.content.skills.magic.Magic;
 import com.rs.game.content.skills.prayer.Prayer;
 import com.rs.game.content.skills.summoning.Familiar;
 import com.rs.game.content.world.npcs.max.Max;
+import com.rs.game.map.Chunk;
+import com.rs.game.map.ChunkManager;
+import com.rs.game.map.instance.InstancedChunk;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.actions.Action;
 import com.rs.game.model.entity.interactions.InteractionManager;
@@ -51,6 +54,7 @@ import com.rs.game.model.entity.pathing.DumbRouteFinder;
 import com.rs.game.model.entity.pathing.EntityStrategy;
 import com.rs.game.model.entity.pathing.FixedTileStrategy;
 import com.rs.game.model.entity.pathing.ObjectStrategy;
+import com.rs.game.model.entity.pathing.Route;
 import com.rs.game.model.entity.pathing.RouteEvent;
 import com.rs.game.model.entity.pathing.RouteFinder;
 import com.rs.game.model.entity.pathing.WalkStep;
@@ -59,14 +63,12 @@ import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
 import com.rs.game.model.entity.player.actions.ActionManager;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.region.DynamicRegion;
-import com.rs.game.region.Region;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.GenericAttribMap;
 import com.rs.lib.util.MapUtils;
 import com.rs.lib.util.MapUtils.Structure;
@@ -74,20 +76,24 @@ import com.rs.lib.util.Utils;
 import com.rs.lib.util.Vec2;
 import com.rs.plugin.PluginManager;
 import com.rs.plugin.events.PlayerStepEvent;
+import com.rs.utils.TriFunction;
 import com.rs.utils.WorldUtil;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSets;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 public abstract class Entity {
 	public enum MoveType {
 		WALK(1),
 		RUN(2),
 		TELE(127);
-		
+
 		private int id;
-		
+
 		MoveType(int id) {
 			this.id = id;
 		}
-		
+
 		public int getId() {
 			return id;
 		}
@@ -97,19 +103,18 @@ public abstract class Entity {
 	private transient int index;
 	private String uuid;
 	private transient int sceneBaseChunkId;
-	private transient int lastRegionId; // the last region the entity was at
 	private transient int lastChunkId;
 	private transient boolean forceUpdateEntityRegion;
-	private transient Set<Integer> mapRegionIds;
+	private transient Set<Integer> mapChunkIds;
 	protected transient GenericAttribMap temporaryAttributes;
 	protected transient GenericAttribMap nonsavingVars;
 	private transient int faceAngle;
-	private transient WorldTile lastWorldTile;
-	private transient WorldTile tileBehind;
-	private transient WorldTile nextWorldTile;
+	private transient Tile lastTile;
+	private transient Tile tileBehind;
+	private transient Tile nextTile;
 	private transient Direction nextWalkDirection;
 	private transient Direction nextRunDirection;
-	private transient WorldTile nextFaceWorldTile;
+	private transient Tile nextFaceTile;
 	private transient boolean teleported;
 	private transient ConcurrentLinkedQueue<WalkStep> walkSteps;
 	protected transient RouteEvent routeEvent;
@@ -141,14 +146,14 @@ public abstract class Entity {
 	protected transient long attackedByDelay; // delay till someone else can attack you
 	protected transient long timeLastHit;
 	private transient boolean multiArea;
-	private transient boolean isAtDynamicRegion;
+	private transient boolean hasNearbyInstancedChunks;
 	private transient long lastAnimationEnd;
 	private transient boolean forceMultiArea;
 	private transient long findTargetDelay;
 
 	// saving stuff
 	private int hitpoints;
-	private WorldTile tile;
+	private Tile tile;
 	private RegionSize regionSize;
 
 	private boolean run;
@@ -156,8 +161,8 @@ public abstract class Entity {
 	private Map<Effect, Long> effects = new HashMap<>();
 
 	// creates Entity and saved classes
-	public Entity(WorldTile tile) {
-		this.tile = WorldTile.of(tile);
+	public Entity(Tile tile) {
+		this.tile = Tile.of(tile);
 		this.uuid = UUID.randomUUID().toString();
 		poison = new Poison();
 	}
@@ -238,30 +243,45 @@ public abstract class Entity {
 		return false;
 	}
 
-	public WorldTile getBackfacingTile() {
+	public Tile getBackfacingTile() {
 		int[] backFaceDirs = Utils.getBackFace(faceAngle);
 		return transform(backFaceDirs[0], backFaceDirs[1], 0);
+	}
+
+	public Tile getBackfacingTile(int distance) {
+		int[] backFaceDirs = Utils.getBackFace(faceAngle);
+		return transform(backFaceDirs[0] * distance, backFaceDirs[1] * distance, 0);
+	}
+
+	public Tile getFrontfacingTile() {
+		int[] frontFaceDirs = Utils.getFrontFace(faceAngle);
+		return transform(frontFaceDirs[0], frontFaceDirs[1], 0);
+	}
+
+	public Tile getFrontfacingTile(int distance) {
+		int[] frontFaceDirs = Utils.getFrontFace(faceAngle);
+		return transform(frontFaceDirs[0] * distance, frontFaceDirs[1] * distance, 0);
 	}
 
 	public boolean inArea(int a, int b, int c, int d) {
 		return getX() >= a && getY() >= b && getX() <= c && getY() <= d;
 	}
-	
-	public WorldTile getTileInScene(int x, int y) {
-		WorldTile tile = WorldTile.of(x, y, getPlane());
-		return WorldTile.of(tile.getXInScene(getSceneBaseChunkId()), tile.getYInScene(getSceneBaseChunkId()), getPlane());
+
+	public Tile getTileInScene(int x, int y) {
+		Tile tile = Tile.of(x, y, getPlane());
+		return Tile.of(tile.getXInScene(getSceneBaseChunkId()), tile.getYInScene(getSceneBaseChunkId()), getPlane());
 	}
-	
+
 	public int getSceneX(int targetX) {
-		return WorldTile.of(targetX, 0, 0).getXInScene(getSceneBaseChunkId());
+		return Tile.of(targetX, 0, 0).getXInScene(getSceneBaseChunkId());
 	}
-	
+
 	public int getSceneY(int targetY) {
-		return WorldTile.of(0, targetY, 0).getYInScene(getSceneBaseChunkId());
+		return Tile.of(0, targetY, 0).getYInScene(getSceneBaseChunkId());
 	}
 
 	public final void initEntity() {
-		mapRegionIds = ConcurrentHashMap.newKeySet();
+		mapChunkIds = IntSets.synchronize(new IntOpenHashSet());
 		walkSteps = new ConcurrentLinkedQueue<>();
 		receivedHits = new ConcurrentLinkedQueue<>();
 		receivedDamage = new ConcurrentHashMap<>();
@@ -323,6 +343,7 @@ public abstract class Entity {
 	}
 
 	public abstract void handlePreHit(Hit hit);
+
 	public abstract void handlePreHitOut(Entity target, Hit hit);
 
 	public void reset(boolean attributes) {
@@ -501,15 +522,13 @@ public abstract class Entity {
 
 	public boolean calcFollow(Object target, int maxStepsCount, boolean intelligent) {
 		if (intelligent) {
-			int steps = RouteFinder.findRoute(RouteFinder.WALK_ROUTEFINDER, getX(), getY(), getPlane(), getSize(), target instanceof GameObject go ? new ObjectStrategy(go) : target instanceof Entity e ? new EntityStrategy(e) : new FixedTileStrategy(((WorldTile) target).getX(), ((WorldTile) target).getY()), true);
-			if (steps == -1)
+			Route route = RouteFinder.find(getX(), getY(), getPlane(), getSize(), target instanceof GameObject go ? new ObjectStrategy(go) : target instanceof Entity e ? new EntityStrategy(e) : new FixedTileStrategy(((Tile) target).getX(), ((Tile) target).getY()), true);
+			if (route.getStepCount() == -1)
 				return false;
-			if (steps == 0)
+			if (route.getStepCount() == 0)
 				return DumbRouteFinder.addDumbPathfinderSteps(this, target, getClipType());
-			int[] bufferX = RouteFinder.getLastPathBufferX();
-			int[] bufferY = RouteFinder.getLastPathBufferY();
-			for (int step = steps - 1; step >= 0; step--)
-				if (!addWalkSteps(bufferX[step], bufferY[step], maxStepsCount, true, true))
+			for (int step = route.getStepCount() - 1; step >= 0; step--)
+				if (!addWalkSteps(route.getBufferX()[step], route.getBufferY()[step], maxStepsCount, true, true))
 					break;
 			return true;
 		}
@@ -583,8 +602,8 @@ public abstract class Entity {
 
 	public abstract void sendDeath(Entity source);
 
-	public void updateAngle(WorldTile base, int sizeX, int sizeY) {
-		WorldTile from = nextWorldTile != null ? nextWorldTile : this.getTile();
+	public void updateAngle(Tile base, int sizeX, int sizeY) {
+		Tile from = nextTile != null ? nextTile : this.getTile();
 		int srcX = (from.getX() * 512) + (getSize() * 256);
 		int srcY = (from.getY() * 512) + (getSize() * 256);
 		int dstX = (base.getX() * 512) + (sizeX * 256);
@@ -598,7 +617,7 @@ public abstract class Entity {
 		NPC npc = this instanceof NPC ? (NPC) this : null;
 		Player player = this instanceof Player ? (Player) this : null;
 
-		lastWorldTile = WorldTile.of(getTile());
+		lastTile = Tile.of(getTile());
 		if (lastFaceEntity >= 0) {
 			Entity target = lastFaceEntity >= 32768 ? World.getPlayers().get(lastFaceEntity - 32768) : World.getNPCs().get(lastFaceEntity);
 			if (target != null) {
@@ -607,19 +626,19 @@ public abstract class Entity {
 			}
 		}
 		nextWalkDirection = nextRunDirection = null;
-		if (nextWorldTile != null) {
-			tile = nextWorldTile;
+		if (nextTile != null) {
+			tile = nextTile;
 			tileBehind = getBackfacingTile();
-			nextWorldTile = null;
+			nextTile = null;
 			teleported = true;
 			if (player != null && player.getTemporaryMoveType() == null)
 				player.setTemporaryMoveType(MoveType.TELE);
-			World.updateEntityRegion(this);
+			ChunkManager.updateChunks(this);
 			if (needMapUpdate())
 				loadMapRegions();
 			if (player != null) {
-				if (World.getRegion(getRegionId(), true) instanceof DynamicRegion)
-					player.setLastNonDynamicTile(WorldTile.of(lastWorldTile));
+				if (player.isHasNearbyInstancedChunks())
+					player.setLastNonDynamicTile(Tile.of(lastTile));
 				else
 					player.clearLastNonDynamicTile();
 			}
@@ -649,7 +668,7 @@ public abstract class Entity {
 			if (nextStep == null)
 				break;
 			if (player != null)
-				PluginManager.handle(new PlayerStepEvent(player, nextStep, WorldTile.of(getX() + nextStep.getDir().getDx(), getY() + nextStep.getDir().getDy(), getPlane())));
+				PluginManager.handle(new PlayerStepEvent(player, nextStep, Tile.of(getX() + nextStep.getDir().getDx(), getY() + nextStep.getDir().getDy(), getPlane())));
 			if ((nextStep.checkClip() && !World.checkWalkStep(getPlane(), getX(), getY(), nextStep.getDir(), getSize(), getClipType())) || (nextStep.checkClip() && npc != null && !npc.checkNPCCollision(nextStep.getDir())) || !canMove(nextStep.getDir())) {
 				resetWalkSteps();
 				break;
@@ -658,7 +677,7 @@ public abstract class Entity {
 				nextWalkDirection = nextStep.getDir();
 			else
 				nextRunDirection = nextStep.getDir();
-			tileBehind = WorldTile.of(getTile());
+			tileBehind = Tile.of(getTile());
 			moveLocation(nextStep.getDir().getDx(), nextStep.getDir().getDy(), 0);
 			if (run && stepCount == 0) { // fixes impossible steps TODO is this even necessary?
 				WalkStep previewStep = previewNextWalkStep();
@@ -676,7 +695,7 @@ public abstract class Entity {
 						player.setRun(false);
 				}
 		}
-		World.updateEntityRegion(this);
+		ChunkManager.updateChunks(this);
 		if (needMapUpdate())
 			loadMapRegions();
 	}
@@ -697,7 +716,7 @@ public abstract class Entity {
 		return needMapUpdate(getTile());
 	}
 
-	public boolean needMapUpdate(WorldTile tile) {
+	public boolean needMapUpdate(Tile tile) {
 		int baseChunk[] = MapUtils.decode(Structure.CHUNK, sceneBaseChunkId);
 		// chunks length - offset. if within 16 tiles of border it updates map
 		int limit = getMapSize().size / 8 - 2;
@@ -712,58 +731,69 @@ public abstract class Entity {
 		return addWalkSteps(destX, destY, -1, true);
 	}
 
-	public WorldTile getMiddleWorldTile() {
+	public Tile getMiddleTile() {
 		int size = getSize();
-		return size == 1 ? getTile() : WorldTile.of(getCoordFaceX(size), getCoordFaceY(size), getPlane());
+		return size == 1 ? getTile() : Tile.of(getCoordFaceX(size), getCoordFaceY(size), getPlane());
 	}
 
 	public boolean ignoreWallsWhenMeleeing() {
 		return false;
 	}
 
+	private static Set<Object> LOS_NPC_OVERRIDES = new HashSet<>();
+	private static List<TriFunction<Entity, Object, Boolean, Boolean>> LOS_FUNCTION_OVERRIDES = new ArrayList<>();
+
+	public static void addLOSOverride(int npcId) {
+		LOS_NPC_OVERRIDES.add(npcId);
+	}
+
+	public static void addLOSOverride(String npcName) {
+		LOS_NPC_OVERRIDES.add(npcName);
+	}
+
+	public static void addLOSOverrides(int... npcIds) {
+		for (int npcId : npcIds)
+			addLOSOverride(npcId);
+	}
+
+	public static void addLOSOverrides(String... npcNames) {
+		for (String npcName : npcNames)
+			addLOSOverride(npcName);
+	}
+
+	public static void addLOSOverride(TriFunction<Entity, Object, Boolean, Boolean> func) {
+		LOS_FUNCTION_OVERRIDES.add(func);
+	}
+
 	public boolean lineOfSightTo(Object target, boolean melee) {
-		WorldTile tile = WorldUtil.targetToTile(target);
+		Tile tile = WorldUtil.targetToTile(target);
 		int targSize = target instanceof Entity ? ((Entity) target).getSize() : 1;
 		if (target instanceof NPC npc) {
-			switch(npc.getId()) {
-			case 2440:
-			case 2443:
-			case 2446:
-			case 7567:
-			case 3777:
-			case 9712:
-			case 9710:
-			case 706:
-			case 14860:
-			case 14864:
-			case 14858:
-			case 14883:
-			case 2859:
-			case 8709://Desert musician
-			case 8715://Drunken musician
-			case 8723://Elf musician
-			case 8712://Goblin musician
+			if (LOS_NPC_OVERRIDES.contains(npc.getId()) || LOS_NPC_OVERRIDES.contains(npc.getName()))
 				return true;
+			switch(npc.getId()) {
+				case 233: //Fishing contest player spot
+				case 234: //Fishing contest big carp spot
+				case 9712: //dung tutor
+				case 9710: //frem banker
+				case 706: //wizard mizgog
+				case 14860: //Head Farmer Jones
+				case 14864: //Ayleth Beaststalker
+				case 14858: //Alison Elmshaper
+				case 14883: //Marcus Everburn
+					return true;
 			}
 			switch(npc.getName()) {
-			case "Tool leprechaun":
-			case "Xuan":
-			case "Fremennik shipmaster":
-			case "Fishing spot":
-			case "Fishing Spot":
-			case "Cavefish shoal":
-			case "Rocktail shoal":
-			case "Musician":
-			case "Ghostly piper":
-			case "Clan vexillum":
-				return true;
+				case "Fremennik shipmaster":
+					return true;
 			}
 		}
-		if (target instanceof Stomp stomp)
-			return stomp.getManager().isAtBossRoom(this.getTile());
+		for (TriFunction<Entity, Object, Boolean, Boolean> func : LOS_FUNCTION_OVERRIDES)
+			if (func.apply(this, target, melee))
+				return true;
 		if (melee && !(target instanceof Entity e ? e.ignoreWallsWhenMeleeing() : false))
-			return World.checkMeleeStep(this, this.getSize(), target, targSize) && World.hasLineOfSight(getMiddleWorldTile(), target instanceof Entity e ? e.getMiddleWorldTile() : tile);
-		return World.hasLineOfSight(getMiddleWorldTile(), target instanceof Entity e ? e.getMiddleWorldTile() : tile);
+			return World.checkMeleeStep(this, this.getSize(), target, targSize) && World.hasLineOfSight(getMiddleTile(), target instanceof Entity e ? e.getMiddleTile() : tile);
+		return World.hasLineOfSight(getMiddleTile(), target instanceof Entity e ? e.getMiddleTile() : tile);
 	}
 
 	public boolean addWalkSteps(final int destX, final int destY, int maxStepsCount) {
@@ -859,7 +889,7 @@ public abstract class Entity {
 	}
 
 	public boolean needMasksUpdate() {
-		return nextBodyGlow != null || nextFaceEntity != -2 || nextAnimation != null || nextSpotAnim1 != null || nextSpotAnim2 != null || nextSpotAnim3 != null || nextSpotAnim4 != null || (nextWalkDirection == null && nextFaceWorldTile != null) || !nextHits.isEmpty() || !nextHitBars.isEmpty() || nextForceMovement != null || nextForceTalk != null || bodyModelRotator != null;
+		return nextBodyGlow != null || nextFaceEntity != -2 || nextAnimation != null || nextSpotAnim1 != null || nextSpotAnim2 != null || nextSpotAnim3 != null || nextSpotAnim4 != null || (nextWalkDirection == null && nextFaceTile != null) || !nextHits.isEmpty() || !nextHitBars.isEmpty() || nextForceMovement != null || nextForceTalk != null || bodyModelRotator != null;
 	}
 
 	public boolean isDead() {
@@ -874,7 +904,7 @@ public abstract class Entity {
 		nextSpotAnim3 = null;
 		nextSpotAnim4 = null;
 		if (nextWalkDirection == null)
-			nextFaceWorldTile = null;
+			nextFaceTile = null;
 		if (bodyModelRotator == ModelRotator.RESET)
 			bodyModelRotator = null;
 		nextForceMovement = null;
@@ -904,31 +934,49 @@ public abstract class Entity {
 	}
 
 	public void loadMapRegions() {
-		mapRegionIds.clear();
-		isAtDynamicRegion = false;
-		int chunkX = getChunkX();
-		int chunkY = getChunkY();
-		int sceneChunksRadio = getMapSize().size / 16;
-		int sceneBaseChunkX = (chunkX - sceneChunksRadio);
-		int sceneBaseChunkY = (chunkY - sceneChunksRadio);
+		loadMapRegions(getMapSize());
+	}
+
+	public void loadMapRegions(RegionSize oldSize) {
+		Player player = this instanceof Player p ? p : null;
+		NPC npc = this instanceof NPC n ? n : null;
+		Set<Integer> old = player != null ? new IntOpenHashSet(mapChunkIds) : null;
+		if (player != null)
+			ChunkManager.getUpdateZone(sceneBaseChunkId, oldSize).removePlayerWatcher(player.getIndex());
+		if (npc != null && npc.isLoadsUpdateZones())
+			ChunkManager.getUpdateZone(sceneBaseChunkId, oldSize).removeNPCWatcher(npc.getIndex());
+		mapChunkIds.clear();
+		hasNearbyInstancedChunks = false;
+		int currChunkX = getChunkX();
+		int currChunkY = getChunkY();
+		int sceneChunkRadius = getMapSize().size / 16;
+		int sceneBaseChunkX = (currChunkX - sceneChunkRadius);
+		int sceneBaseChunkY = (currChunkY - sceneChunkRadius);
 		if (sceneBaseChunkX < 0)
 			sceneBaseChunkX = 0;
 		if (sceneBaseChunkY < 0)
 			sceneBaseChunkY = 0;
-		int fromRegionX = sceneBaseChunkX / 8;
-		int fromRegionY = sceneBaseChunkY / 8;
-		int toRegionX = (chunkX + sceneChunksRadio) / 8;
-		int toRegionY = (chunkY + sceneChunksRadio) / 8;
-
-		for (int regionX = fromRegionX; regionX <= toRegionX; regionX++)
-			for (int regionY = fromRegionY; regionY <= toRegionY; regionY++) {
-				int regionId = MapUtils.encode(Structure.REGION, regionX, regionY);
-				Region region = World.getRegion(regionId, this instanceof Player || this instanceof Max);
-				if (region instanceof DynamicRegion)
-					isAtDynamicRegion = true;
-				mapRegionIds.add(regionId);
+		sceneBaseChunkId = MapUtils.encode(Structure.CHUNK, sceneBaseChunkX, sceneBaseChunkY, 0);
+		for (int planeOff = 0;planeOff < 4 * Chunk.PLANE_INC;planeOff += Chunk.PLANE_INC) {
+			for (int chunkOffX = 0; chunkOffX <= sceneChunkRadius * Chunk.X_INC * 2; chunkOffX += Chunk.X_INC) {
+				for (int chunkOffY = 0; chunkOffY <= sceneChunkRadius * 2; chunkOffY++) {
+					int chunkId = sceneBaseChunkId + chunkOffX + chunkOffY + planeOff;
+					Chunk chunk = ChunkManager.getChunk(chunkId, (npc != null && npc.isLoadsUpdateZones()) || player != null);
+					if (chunk instanceof InstancedChunk)
+						hasNearbyInstancedChunks = true;
+					mapChunkIds.add(chunkId);
+					if (old != null) {
+						if (!old.contains(chunkId))
+							player.getMapChunksNeedInit().add(chunkId);
+						old.remove(chunkId);
+					}
+				}
 			}
-		sceneBaseChunkId = MapUtils.encode(Structure.CHUNK, sceneBaseChunkX, sceneBaseChunkY);
+		}
+		if (player != null)
+			ChunkManager.getUpdateZone(sceneBaseChunkId, oldSize).addPlayerWatcher(player.getIndex());
+		if (npc != null && npc.isLoadsUpdateZones())
+			ChunkManager.getUpdateZone(sceneBaseChunkId, oldSize).addNPCWatcher(npc.getIndex());
 	}
 
 	public void setIndex(int index) {
@@ -947,14 +995,6 @@ public abstract class Entity {
 		this.hitpoints = hitpoints;
 	}
 
-	public void setLastRegionId(int lastRegionId) {
-		this.lastRegionId = lastRegionId;
-	}
-
-	public int getLastRegionId() {
-		return lastRegionId;
-	}
-
 	public RegionSize getMapSize() {
 		if (regionSize == null)
 			regionSize = RegionSize.SIZE_104;
@@ -962,12 +1002,13 @@ public abstract class Entity {
 	}
 
 	public void setMapSize(RegionSize size) {
+		RegionSize oldSize = regionSize;
 		regionSize = size;
-		loadMapRegions();
+		loadMapRegions(oldSize);
 	}
 
-	public Set<Integer> getMapRegionsIds() {
-		return mapRegionIds;
+	public Set<Integer> getMapChunkIds() {
+		return mapChunkIds;
 	}
 
 	public void setNextAnimation(Animation nextAnimation) {
@@ -1010,6 +1051,10 @@ public abstract class Entity {
 		}
 	}
 
+	public void moveTo(Tile worldtile) {
+		setNextTile(worldtile);
+	}
+
 	public SpotAnim getNextSpotAnim1() {
 		return nextSpotAnim1;
 	}
@@ -1042,12 +1087,12 @@ public abstract class Entity {
 		return finished;
 	}
 
-	public void setNextWorldTile(WorldTile nextWorldTile) {
-		this.nextWorldTile = WorldTile.of(nextWorldTile);
+	public void setNextTile(Tile nextTile) {
+		this.nextTile = Tile.of(nextTile);
 	}
 
-	public WorldTile getNextWorldTile() {
-		return nextWorldTile;
+	public Tile getNextTile() {
+		return nextTile;
 	}
 
 	public boolean hasTeleported() {
@@ -1070,40 +1115,40 @@ public abstract class Entity {
 		return run;
 	}
 
-	public WorldTile getNextFaceWorldTile() {
-		return nextFaceWorldTile;
+	public Tile getNextFaceTile() {
+		return nextFaceTile;
 	}
 
 	public Direction getDirection() {
 		return Direction.fromAngle(getFaceAngle());
 	}
 
-	public void setNextFaceWorldTile(WorldTile nextFaceWorldTile) {
-		if (nextFaceWorldTile != null && nextFaceWorldTile.getX() == getX() && nextFaceWorldTile.getY() == getY())
+	public void setNextFaceTile(Tile nextFaceTile) {
+		if (nextFaceTile != null && nextFaceTile.getX() == getX() && nextFaceTile.getY() == getY())
 			return;
-		this.nextFaceWorldTile = nextFaceWorldTile;
-		if (nextFaceWorldTile == null)
+		this.nextFaceTile = nextFaceTile;
+		if (nextFaceTile == null)
 			return;
-		if (nextWorldTile != null)
-			faceAngle = Utils.getAngleTo(nextFaceWorldTile.getX() - nextWorldTile.getX(), nextFaceWorldTile.getY() - nextWorldTile.getY());
+		if (nextTile != null)
+			faceAngle = Utils.getAngleTo(nextFaceTile.getX() - nextTile.getX(), nextFaceTile.getY() - nextTile.getY());
 		else
-			faceAngle = Utils.getAngleTo(nextFaceWorldTile.getX() - getX(), nextFaceWorldTile.getY() - getY());
+			faceAngle = Utils.getAngleTo(nextFaceTile.getX() - getX(), nextFaceTile.getY() - getY());
 	}
 
 	public void faceNorth() {
-		setNextFaceWorldTile(WorldTile.of(getX(), getY()+1, getPlane()));
+		setNextFaceTile(Tile.of(getX(), getY()+1, getPlane()));
 	}
 
 	public void faceEast() {
-		setNextFaceWorldTile(WorldTile.of(getX()+1, getY(), getPlane()));
+		setNextFaceTile(Tile.of(getX()+1, getY(), getPlane()));
 	}
 
 	public void faceSouth() {
-		setNextFaceWorldTile(WorldTile.of(getX(), getY()-1, getPlane()));
+		setNextFaceTile(Tile.of(getX(), getY()-1, getPlane()));
 	}
 
 	public void faceWest() {
-		setNextFaceWorldTile(WorldTile.of(getX()-1, getY(), getPlane()));
+		setNextFaceTile(Tile.of(getX()-1, getY(), getPlane()));
 	}
 
 	public abstract int getSize();
@@ -1130,11 +1175,11 @@ public abstract class Entity {
 	public int getLastFaceEntity() {
 		return lastFaceEntity;
 	}
-	
+
 	public void unfreeze() {
 		removeEffect(Effect.FREEZE);
 	}
-	
+
 	public void freeze() {
 		freeze(Integer.MAX_VALUE, false);
 	}
@@ -1210,8 +1255,8 @@ public abstract class Entity {
 		this.multiArea = multiArea;
 	}
 
-	public boolean isAtDynamicRegion() {
-		return isAtDynamicRegion;
+	public boolean isHasNearbyInstancedChunks() {
+		return hasNearbyInstancedChunks;
 	}
 
 	public ForceMovement getNextForceMovement() {
@@ -1220,6 +1265,29 @@ public abstract class Entity {
 
 	public void setNextForceMovement(ForceMovement nextForceMovement) {
 		this.nextForceMovement = nextForceMovement;
+	}
+
+	public void forceMoveVis(Tile toTile, int delay, Direction dir) {
+		setNextForceMovement(new ForceMovement(toTile, delay, dir));
+	}
+
+	public void forceMoveVis(Tile toFirstTile, int firstTileDelay, Tile toSecondTile, int secondTileDelay) {
+		setNextForceMovement(new ForceMovement(toFirstTile, firstTileDelay, toSecondTile, secondTileDelay));
+	}
+
+	public void forceMoveVis(Tile toFirstTile, int firstTileDelay, Tile toSecondTile, int secondTileDelay, Direction direction) {
+		setNextForceMovement(new ForceMovement(toFirstTile, firstTileDelay, toSecondTile, secondTileDelay, direction));
+	}
+
+	public void forceMoveVis(Tile toFirstTile, int firstTileDelay, Tile toSecondTile, int secondTileDelay, int direction) {
+		setNextForceMovement(new ForceMovement(toFirstTile, firstTileDelay, toSecondTile, secondTileDelay, direction));
+	}
+
+	public void forceMove(Direction dir, int distance, int delay, Runnable afterComplete) {
+		Tile toTile = transform(dir.getDx()*distance, dir.getDy()*distance);
+		forceMoveVis(toTile, delay, dir);
+		WorldTasks.schedule(delay, () -> setNextTile(toTile));
+		WorldTasks.schedule(delay+1, afterComplete);
 	}
 
 	public Poison getPoison() {
@@ -1239,7 +1307,7 @@ public abstract class Entity {
 	}
 
 	public void faceEntity(Entity target) {
-		setNextFaceWorldTile(WorldTile.of(target.getCoordFaceX(target.getSize()), target.getCoordFaceY(target.getSize()), target.getPlane()));
+		setNextFaceTile(Tile.of(target.getCoordFaceX(target.getSize()), target.getCoordFaceY(target.getSize()), target.getPlane()));
 	}
 
 	public void faceObject(GameObject object) {
@@ -1305,11 +1373,11 @@ public abstract class Entity {
 			x = object.getCoordFaceX();
 			y = object.getCoordFaceY();
 		}
-		setNextFaceWorldTile(WorldTile.of(x, y, object.getPlane()));
+		setNextFaceTile(Tile.of(x, y, object.getPlane()));
 	}
 
-	public void faceTile(WorldTile tile) {
-		setNextFaceWorldTile(tile);
+	public void faceTile(Tile tile) {
+		setNextFaceTile(tile);
 	}
 
 	public long getLastAnimationEnd() {
@@ -1320,21 +1388,32 @@ public abstract class Entity {
 		return temporaryAttributes;
 	}
 
-	/**
-	 * ONLY use this check in non-expensive cases. Checking outside region only is relatively expensive.
-	 * @param regionOnly Whether the NPC should be found in the entitie's region only
-	 * @return List of nearby NPCs
-	 */
-	public List<NPC> getNearbyNPCs(boolean regionOnly, Function<NPC, Boolean> predicate) {
-		List<NPC> startList = regionOnly ? World.getNPCsInRegion(this.getRegionId()) : World.getNPCsInRegionRange(this.getRegionId());
-		List<NPC> list = new ArrayList<NPC>();
+	public List<NPC> queryNearbyNPCsByTileRange(int tileRange, Function<NPC, Boolean> predicate) {
+		List<NPC> startList = World.getNPCsInChunkRange(getChunkId(), ((tileRange / 8) + 1));
+		List<NPC> list = new ObjectArrayList<>();
 		for (NPC npc : startList) {
-			if (npc.hasFinished())
-				continue;
 			if (predicate == null || predicate.apply(npc))
 				list.add(npc);
 		}
 		return list;
+	}
+
+	public List<Player> queryNearbyPlayersByTileRange(int tileRange, Function<Player, Boolean> predicate) {
+		List<Player> startList = World.getPlayersInChunkRange(getChunkId(), ((tileRange / 8) + 1));
+		List<Player> list = new ObjectArrayList<>();
+		for (Player npc : startList) {
+			if (predicate == null || predicate.apply(npc))
+				list.add(npc);
+		}
+		return list;
+	}
+
+	public List<Entity> queryNearbyPlayersByTileRangeAsEntityList(int tileRange, Function<Player, Boolean> predicate) {
+		return queryNearbyPlayersByTileRange(tileRange, predicate).stream().map(e -> (Entity) e).collect(Collectors.toList());
+	}
+
+	public List<Entity> queryNearbyNPCsByTileRangeAsEntityList(int tileRange, Function<NPC, Boolean> predicate) {
+		return queryNearbyNPCsByTileRange(tileRange, predicate).stream().map(e -> (Entity) e).collect(Collectors.toList());
 	}
 
 	public GenericAttribMap getNSV() {
@@ -1350,8 +1429,8 @@ public abstract class Entity {
 		checkMultiArea();
 	}
 
-	public WorldTile getLastWorldTile() {
-		return lastWorldTile;
+	public Tile getLastTile() {
+		return lastTile;
 	}
 
 	public ArrayList<Hit> getNextHits() {
@@ -1390,7 +1469,7 @@ public abstract class Entity {
 		this.lastChunkId = lastChunkId;
 	}
 
-	public WorldTile getTileBehind() {
+	public Tile getTileBehind() {
 		return tileBehind;
 	}
 
@@ -1402,7 +1481,7 @@ public abstract class Entity {
 		return tickCounter;
 	}
 
-	public Vec2 getMiddleWorldTileAsVector() {
+	public Vec2 getMiddleTileAsVector() {
 		int size = getSize();
 		if (size == 1)
 			return new Vec2(this.getTile());
@@ -1431,28 +1510,28 @@ public abstract class Entity {
 		this.clipType = clipType;
 	}
 
-	public WorldTile getNearestTeleTile(Entity toMove) {
+	public Tile getNearestTeleTile(Entity toMove) {
 		return getNearestTeleTile(toMove.getSize());
 	}
 
-	public WorldTile getNearestTeleTile(int size) {
+	public Tile getNearestTeleTile(int size) {
 		return World.findAdjacentFreeSpace(this.getTile(), size);
 	}
 
-	public WorldTile getTile() {
+	public Tile getTile() {
 		return tile;
 	}
 
-	public void setTile(WorldTile tile) {
+	public void setTile(Tile tile) {
 		this.tile = tile;
 	}
 
-	public void setLocation(WorldTile tile) {
+	public void setLocation(Tile tile) {
 		this.tile = tile;
 	}
 
 	public void setLocation(int x, int y, int z) {
-		this.tile = WorldTile.of(x, y, z);
+		this.tile = Tile.of(x, y, z);
 	}
 
 	public boolean isAt(int x, int y) {
@@ -1551,11 +1630,11 @@ public abstract class Entity {
 		return tile.getTileHash();
 	}
 
-	public boolean withinDistance(WorldTile other, int distance) {
+	public boolean withinDistance(Tile other, int distance) {
 		return tile.withinDistance(other, distance);
 	}
 
-	public boolean withinDistance(WorldTile tile) {
+	public boolean withinDistance(Tile tile) {
 		return tile.withinDistance(tile);
 	}
 
@@ -1575,19 +1654,19 @@ public abstract class Entity {
 		return tile.getCoordFaceY(sizeX, sizeY, rotation);
 	}
 
-	public int getLongestDelta(WorldTile other) {
+	public int getLongestDelta(Tile other) {
 		return tile.getLongestDelta(other);
 	}
 
-	public WorldTile transform(int x, int y) {
+	public Tile transform(int x, int y) {
 		return tile.transform(x, y);
 	}
 
-	public WorldTile transform(int x, int y, int plane) {
+	public Tile transform(int x, int y, int plane) {
 		return tile.transform(x, y, plane);
 	}
 
-	public boolean matches(WorldTile other) {
+	public boolean matches(Tile other) {
 		return tile.matches(other);
 	}
 
@@ -1596,13 +1675,15 @@ public abstract class Entity {
 	}
 
 	public boolean canAttackMulti(Entity target) {
+		if(this instanceof Familiar && target.isForceMultiArea())
+			return true;
 		if(target instanceof Familiar && this.isForceMultiArea())
 			return true;
 		if (target instanceof NPC npc && npc.isForceMultiAttacked())
 			return true;
 		if (target.isAtMultiArea() && isAtMultiArea())
 			return true;
-		
+
 		if (this instanceof Player p) {
 			if (target instanceof Player) {
 				if (getAttackedBy() instanceof Player && inCombat() && getAttackedBy() != target) {
@@ -1631,23 +1712,23 @@ public abstract class Entity {
 		}
 		return true;
 	}
-	
+
 	public void anim(int anim) {
 		setNextAnimation(new Animation(anim));
 	}
-	
+
 	public void spotAnim(int spotAnim, int speed, int height) {
 		setNextSpotAnim(new SpotAnim(spotAnim, speed, height));
 	}
-	
+
 	public void spotAnim(int spotAnim, int speed) {
 		setNextSpotAnim(new SpotAnim(spotAnim, speed));
 	}
-	
+
 	public void spotAnim(int spotAnim) {
 		setNextSpotAnim(new SpotAnim(spotAnim));
 	}
-	
+
 	public void sync(int anim, int spotAnim) {
 		anim(anim);
 		spotAnim(spotAnim);
@@ -1656,11 +1737,11 @@ public abstract class Entity {
 	public InteractionManager getInteractionManager() {
 		return interactionManager;
 	}
-	
+
 	public ActionManager getActionManager() {
 		return actionManager;
 	}
-	
+
 	public boolean canLowerStat(int skillId, double perc, double maxDrain) {
 		if (this instanceof Player player) {
 			if (player.getSkills().getLevel(skillId) < (player.getSkills().getLevelForXp(skillId) * maxDrain))
@@ -1670,26 +1751,26 @@ public abstract class Entity {
 				if (skillId == skill)
 					return false;
 			switch(skillId) {
-			case Skills.ATTACK -> {
-				if (npc.getAttackLevel() < (npc.getCombatDefinitions().getAttackLevel() * maxDrain))
-					return false;
-			}
-			case Skills.STRENGTH -> {
-				if (npc.getStrengthLevel() < (npc.getCombatDefinitions().getStrengthLevel() * maxDrain))
-					return false;
-			}
-			case Skills.DEFENSE -> {
-				if (npc.getDefenseLevel() < (npc.getCombatDefinitions().getDefenseLevel() * maxDrain))
-					return false;		
-						}
-			case Skills.MAGIC -> {
-				if (npc.getMagicLevel() < (npc.getCombatDefinitions().getMagicLevel() * maxDrain))
-					return false;
-			}
-			case Skills.RANGE -> {
-				if (npc.getRangeLevel() < (npc.getCombatDefinitions().getRangeLevel() * maxDrain))
-					return false;
-			}
+				case Skills.ATTACK -> {
+					if (npc.getAttackLevel() < (npc.getCombatDefinitions().getAttackLevel() * maxDrain))
+						return false;
+				}
+				case Skills.STRENGTH -> {
+					if (npc.getStrengthLevel() < (npc.getCombatDefinitions().getStrengthLevel() * maxDrain))
+						return false;
+				}
+				case Skills.DEFENSE -> {
+					if (npc.getDefenseLevel() < (npc.getCombatDefinitions().getDefenseLevel() * maxDrain))
+						return false;
+				}
+				case Skills.MAGIC -> {
+					if (npc.getMagicLevel() < (npc.getCombatDefinitions().getMagicLevel() * maxDrain))
+						return false;
+				}
+				case Skills.RANGE -> {
+					if (npc.getRangeLevel() < (npc.getCombatDefinitions().getRangeLevel() * maxDrain))
+						return false;
+				}
 			}
 		}
 		return true;
@@ -1706,15 +1787,15 @@ public abstract class Entity {
 			player.getSkills().lowerStat(skillId, perc, maxDrain);
 		} else if (this instanceof NPC npc) {
 			switch(skillId) {
-			case Skills.ATTACK -> npc.lowerAttack(skillId, maxDrain);
-			case Skills.STRENGTH -> npc.lowerStrength(skillId, maxDrain);
-			case Skills.DEFENSE -> npc.lowerDefense(skillId, maxDrain);
-			case Skills.MAGIC -> npc.lowerMagic(skillId, maxDrain);
-			case Skills.RANGE -> npc.lowerRange(skillId, maxDrain);
+				case Skills.ATTACK -> npc.lowerAttack(perc, maxDrain);
+				case Skills.STRENGTH -> npc.lowerStrength(perc, maxDrain);
+				case Skills.DEFENSE -> npc.lowerDefense(perc, maxDrain);
+				case Skills.MAGIC -> npc.lowerMagic(perc, maxDrain);
+				case Skills.RANGE -> npc.lowerRange(perc, maxDrain);
 			}
 		}
 	}
-	
+
 	public void lowerStat(int skillId, int amt, double maxDrain) {
 		if (this instanceof Player player) {
 			if (skillId == Skills.HITPOINTS)
@@ -1726,18 +1807,19 @@ public abstract class Entity {
 			player.getSkills().lowerStat(skillId, amt, maxDrain);
 		} else if (this instanceof NPC npc) {
 			switch(skillId) {
-			case Skills.ATTACK -> npc.lowerAttack(amt, maxDrain);
-			case Skills.STRENGTH -> npc.lowerStrength(amt, maxDrain);
-			case Skills.DEFENSE -> npc.lowerDefense(amt, maxDrain);
-			case Skills.MAGIC -> npc.lowerMagic(amt, maxDrain);
-			case Skills.RANGE -> npc.lowerRange(amt, maxDrain);
+				case Skills.ATTACK -> npc.lowerAttack(amt, maxDrain);
+				case Skills.STRENGTH -> npc.lowerStrength(amt, maxDrain);
+				case Skills.DEFENSE -> npc.lowerDefense(amt, maxDrain);
+				case Skills.MAGIC -> npc.lowerMagic(amt, maxDrain);
+				case Skills.RANGE -> npc.lowerRange(amt, maxDrain);
 			}
 		}
 	}
-	
+
 	public void repeatAction(int ticks, Function<Integer, Boolean> action) {
 		getActionManager().setAction(new Action() {
 			int count = 0;
+
 			@Override
 			public boolean start(Entity entity) {
 				return true;
@@ -1757,7 +1839,7 @@ public abstract class Entity {
 
 			@Override
 			public void stop(Entity entity) {
-				
+
 			}
 		});
 	}
@@ -1785,11 +1867,11 @@ public abstract class Entity {
 		}
 		setBasNoReset(basAnim);
 	}
-	
+
 	public void setBasNoReset(int bas) {
 		this.bas = bas;
 	}
-	
+
 	public boolean isLocked() {
 		return lockDelay >= World.getServerTicks();
 	}

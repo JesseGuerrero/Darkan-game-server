@@ -21,7 +21,7 @@ import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
 import com.rs.lib.game.GroundItem;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.net.packets.encoders.MinimapFlag;
 import com.rs.utils.WorldUtil;
 
@@ -59,10 +59,10 @@ public class RouteEvent {
 		if (last != null && match(strategies, last) && !entity.hasWalkSteps()) {
 			for (int i = 0; i < strategies.length; i++) {
 				RouteStrategy strategy = strategies[i];
-				int steps = RouteFinder.findRoute(RouteFinder.WALK_ROUTEFINDER, entity.getX(), entity.getY(), entity.getPlane(), entity.getSize(), strategy, i == (strategies.length - 1));
-				if (steps == -1)
+				Route route = RouteFinder.find(entity.getX(), entity.getY(), entity.getPlane(), entity.getSize(), strategy, i == (strategies.length - 1));
+				if (route.getStepCount() == -1)
 					continue;
-				if ((!RouteFinder.lastIsAlternative() && steps <= 0) || alternative) {
+				if ((!route.foundAltRoute() && route.getStepCount() <= 0) || alternative) {
 					if (alternative && player != null)
 						player.getSession().writeToQueue(new MinimapFlag());
 					event.run();
@@ -79,26 +79,23 @@ public class RouteEvent {
 
 		for (int i = 0; i < strategies.length; i++) {
 			RouteStrategy strategy = strategies[i];
-			int steps = RouteFinder.findRoute(RouteFinder.WALK_ROUTEFINDER, entity.getX(), entity.getY(), entity.getPlane(), entity.getSize(), strategy, i == (strategies.length - 1));
-			if (steps == -1)
+			Route route = RouteFinder.find(entity.getX(), entity.getY(), entity.getPlane(), entity.getSize(), strategy, i == (strategies.length - 1));
+			if (route.getStepCount() == -1)
 				continue;
-			if ((!RouteFinder.lastIsAlternative() && steps <= 0)) {
+			if ((!route.foundAltRoute() && route.getStepCount() <= 0)) {
 				if (alternative && player != null)
 					player.getSession().writeToQueue(new MinimapFlag());
 				event.run();
 				return true;
 			}
-			int[] bufferX = RouteFinder.getLastPathBufferX();
-			int[] bufferY = RouteFinder.getLastPathBufferY();
-
-			WorldTile last = WorldTile.of(bufferX[0], bufferY[0], entity.getPlane());
+			Tile last = Tile.of(route.getBufferX()[0], route.getBufferY()[0], entity.getPlane());
 			entity.resetWalkSteps();
 			if (player != null)
 				player.getSession().writeToQueue(new MinimapFlag(last.getXInScene(entity.getSceneBaseChunkId()), last.getYInScene(entity.getSceneBaseChunkId())));
 			if (entity.hasEffect(Effect.FREEZE) || (object instanceof Entity e && e.hasWalkSteps() && WorldUtil.collides(entity, e)))
 				return false;
-			for (int step = steps - 1; step >= 0; step--)
-				if (!entity.addWalkSteps(bufferX[step], bufferY[step], 25, true, true))
+			for (int step = route.getStepCount() - 1; step >= 0; step--)
+				if (!entity.addWalkSteps(route.getBufferX()[step], route.getBufferY()[step], 25, true, true))
 					break;
 			return false;
 		}
@@ -116,7 +113,7 @@ public class RouteEvent {
 			return entity.getPlane() == e.getPlane();
 		else if (object instanceof GroundItem e)
 			return entity.getPlane() == e.getTile().getPlane();
-		else if (object instanceof WorldTile e)
+		else if (object instanceof Tile e)
 			return entity.getPlane() == e.getPlane();
 		else
 			throw new RuntimeException(object + " is not instanceof any reachable entity.");
@@ -127,7 +124,7 @@ public class RouteEvent {
 			return new RouteStrategy[] { new EntityStrategy(e) };
 		if (object instanceof GameObject go)
 			return new RouteStrategy[] { new ObjectStrategy(go) };
-		if (object instanceof WorldTile wt)
+		if (object instanceof Tile wt)
 			return new RouteStrategy[] { new FixedTileStrategy(wt.getX(), wt.getY()), new FloorItemStrategy(wt, true)};
 		else if (object instanceof GroundItem gi)
 			return new RouteStrategy[] { new FixedTileStrategy(gi.getTile().getX(), gi.getTile().getY()), new FloorItemStrategy(gi) };

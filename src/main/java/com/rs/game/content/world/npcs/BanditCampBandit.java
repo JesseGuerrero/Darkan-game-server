@@ -25,14 +25,14 @@ import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
 
 @PluginEventHandler
 public class BanditCampBandit extends NPC {
 
-	public BanditCampBandit(int id, WorldTile tile, boolean spawned) {
+	public BanditCampBandit(int id, Tile tile, boolean spawned) {
 		super(id, tile, spawned);
 		setForceAgressive(true); // to ignore combat lvl
 		setIgnoreDocile(true);
@@ -57,11 +57,6 @@ public class BanditCampBandit extends NPC {
 		super.setTarget(entity);
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(1926, 1931) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new BanditCampBandit(npcId, tile, false);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 1926, 1931 }, (npcId, tile) -> new BanditCampBandit(npcId, tile, false));
 
 }

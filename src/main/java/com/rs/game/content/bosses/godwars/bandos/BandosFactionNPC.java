@@ -20,14 +20,14 @@ import com.rs.game.content.bosses.godwars.zaros.ZarosFactionNPC;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.game.Item;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
 
 @PluginEventHandler
 public class BandosFactionNPC extends NPC {
 
-	public BandosFactionNPC(int id, WorldTile tile, boolean spawned) {
+	public BandosFactionNPC(int id, Tile tile, boolean spawned) {
 		super(id, tile, spawned);
 		setIgnoreDocile(true);
 		setCanAggroNPCs(true);
@@ -55,10 +55,6 @@ public class BandosFactionNPC extends NPC {
 		return false;
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(6268, 6269, 6270, 6271, 6272, 6273, 6274, 6275, 6276, 6277, 6278, 6279, 6280, 6281, 6282, 6283) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new BandosFactionNPC(npcId, tile, false);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 6268, 6269, 6270, 6271, 6272, 6273, 6274, 6275, 6276, 6277, 6278, 6279, 6280, 6281, 6282, 6283 }, 
+			(npcId, tile) -> new BandosFactionNPC(npcId, tile, false));
 }

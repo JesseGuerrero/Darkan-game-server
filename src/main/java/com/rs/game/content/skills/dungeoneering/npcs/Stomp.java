@@ -27,23 +27,26 @@ import com.rs.game.content.skills.dungeoneering.DungeonManager;
 import com.rs.game.content.skills.dungeoneering.DungeonUtils;
 import com.rs.game.content.skills.dungeoneering.RoomReference;
 import com.rs.game.content.skills.dungeoneering.npcs.bosses.DungeonBoss;
+import com.rs.game.map.Chunk;
 import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.npc.combat.NPCCombatDefinitions;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.region.Region;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.GroundItem;
 import com.rs.lib.game.Item;
 import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
+import com.rs.plugin.annotations.PluginEventHandler;
+import com.rs.plugin.annotations.ServerStartupEvent;
 import com.rs.utils.Ticks;
 import com.rs.utils.WorldUtil;
 
+@PluginEventHandler
 public final class Stomp extends DungeonBoss {
 
 	private static final int IVULNERABLE_TIMER = 37; // 16.5 sec
@@ -54,12 +57,21 @@ public final class Stomp extends DungeonBoss {
 
 	private List<int[]> shadows;
 
-	public Stomp(WorldTile tile, DungeonManager manager, RoomReference reference) {
+	public Stomp(Tile tile, DungeonManager manager, RoomReference reference) {
 		super(DungeonUtils.getClosestToCombatLevel(Utils.range(9782, 9796), manager.getBossLevel()), tile, manager, reference);
 		setCantFollowUnderCombat(true); // force cant walk
 		freeze(5000000);
 		lodestones = new boolean[2];
 		shadows = new ArrayList<>();
+	}
+	
+	@ServerStartupEvent
+	public static void overrideLoS() {
+		Entity.addLOSOverride((source, target, melee) -> {
+			if (target instanceof Stomp s)
+				return s.getManager().isAtBossRoom(source.getTile());
+			return false;
+		});
 	}
 
 	@Override
@@ -68,7 +80,7 @@ public final class Stomp extends DungeonBoss {
 	}
 
 	@Override
-	public WorldTile getMiddleWorldTile() {
+	public Tile getMiddleTile() {
 		return this.getTile();
 	}
 
@@ -205,11 +217,9 @@ public final class Stomp extends DungeonBoss {
 	}
 
 	public void removeCrystals() {
-		Region region = World.getRegion(getRegionId());
-		if (region.getGroundItems() != null)
-			for (GroundItem item : region.getAllGroundItems())
-				if (item.getId() == CRYSTAL[lodeStoneType])
-					World.removeGroundItem(item);
+		for (GroundItem item : World.getAllGroundItemsInChunkRange(getChunkId(), 2))
+			if (item.getId() == CRYSTAL[lodeStoneType])
+				World.removeGroundItem(item);
 	}
 
 	public boolean containsShadow(int x, int y) {

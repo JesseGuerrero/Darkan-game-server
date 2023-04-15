@@ -16,15 +16,14 @@
 //
 package com.rs.game.content.skills.dungeoneering.dialogues;
 
-import com.rs.game.content.dialogue.Conversation;
-import com.rs.game.content.dialogue.Dialogue;
-import com.rs.game.content.dialogue.HeadE;
 import com.rs.game.content.minigames.treasuretrails.Ugi;
 import com.rs.game.content.minigames.treasuretrails.UgiDialogue;
+import com.rs.engine.dialogue.Conversation;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.game.Item;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.NPCClickEvent;
 import com.rs.plugin.handlers.NPCClickHandler;
 
 @PluginEventHandler
@@ -32,18 +31,14 @@ public class DungeoneeringTutor extends Conversation {
 	
 	private static final int DUNGEON_TUTOR = 9712;
 	
-	public static NPCClickHandler talk = new NPCClickHandler(new Object[] { DUNGEON_TUTOR }) {
-		@Override
-		public void handle(NPCClickEvent e) {
-			if (e.getNPC() instanceof Ugi ugi)
-				e.getPlayer().startConversation(new UgiDialogue(e.getPlayer(), ugi));
-		}
-	};
+	public static NPCClickHandler talk = new NPCClickHandler(new Object[] { DUNGEON_TUTOR }, e -> {
+		e.getPlayer().startConversation(new DungeoneeringTutor(e.getPlayer()));
+	});
 
 	public DungeoneeringTutor(Player player) {
 		super(player);
 		
-		addNPC(HeadE.CHEERFUL, "Greetings, adventurer!");
+		addNPC(DUNGEON_TUTOR, HeadE.CHEERFUL, "Greetings, adventurer!");
 		if (!player.containsItem(15707)) {
 			addNPC(DUNGEON_TUTOR, HeadE.CHEERFUL, "Before we carry on, let me give you this.");
 			if (player.getInventory().hasFreeSlots())

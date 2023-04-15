@@ -16,17 +16,16 @@
 //
 package com.rs.game.content.randomevents;
 
-import com.rs.game.content.dialogue.Conversation;
-import com.rs.game.content.dialogue.Dialogue;
-import com.rs.game.content.dialogue.HeadE;
-import com.rs.game.content.dialogue.Options;
+import com.rs.engine.dialogue.Conversation;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
+import com.rs.engine.dialogue.Options;
 import com.rs.game.model.entity.npc.OwnedNPC;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.NPCClickEvent;
 import com.rs.plugin.handlers.NPCClickHandler;
 
 @PluginEventHandler
@@ -35,7 +34,7 @@ public class Genie extends OwnedNPC {
 	private int ticks = 0;
 	private boolean claimed = false;
 
-	public Genie(Player owner, WorldTile tile) {
+	public Genie(Player owner, Tile tile) {
 		super(owner, 3022, tile, false);
 		setRun(true);
 		setNextFaceEntity(owner);
@@ -74,9 +73,9 @@ public class Genie extends OwnedNPC {
 			owner.setNextAnimation(new Animation(836));
 			owner.stopAll();
 			owner.fadeScreen(() -> {
-				WorldTile tile = RandomEvents.getRandomTile();
+				Tile tile = RandomEvents.getRandomTile();
 				owner.getControllerManager().processMagicTeleport(tile);
-				owner.setNextWorldTile(tile);
+				owner.setNextTile(tile);
 				owner.setNextAnimation(new Animation(-1));
 				owner.unlock();
 			});
@@ -87,55 +86,52 @@ public class Genie extends OwnedNPC {
 			finish();
 	}
 
-	public static NPCClickHandler handleTalkTo = new NPCClickHandler(new Object[] { 3022 }) {
-		@Override
-		public void handle(NPCClickEvent e) {
-			if (e.getNPC() instanceof Genie) {
-				Genie npc = (Genie) e.getNPC();
-				if (npc.ticks >= 149)
-					return;
-				if (npc.getOwner() != e.getPlayer()) {
-					e.getPlayer().startConversation(new Conversation(new Dialogue()
-							.addNPC(3022, HeadE.CALM_TALK, "This wish is for " + npc.getOwner().getDisplayName() + ", not you!")));
-					return;
-				}
-				if (e.getPlayer().inCombat()) {
-					if(e.getPlayer().getInventory().hasFreeSlots()) {
-						e.getPlayer().sendMessage("The genie gives you a lamp!");
-						e.getPlayer().getInventory().addItem(2528, 1);
-						npc.forceTalk("Hope that satisfies you!");
-						npc.claimed = true;
-					} else {
-						e.getPlayer().sendMessage("Your inventory is too full for a lamp!");
-						npc.claimed = true;
-					}
-					npc.ticks = 152;
-					return;
-				}
-				e.getPlayer().startConversation(new Conversation(e.getPlayer())
-						.addNPC(3022, HeadE.HAPPY_TALKING, "Ah, so you are there master. I'm so glad you summoned me. Please take this lamp and make your with!")
-						.addOptions(new Options() {
-							@Override
-							public void create() {
-								option("Take the lamp", () -> {
-									if(e.getPlayer().getInventory().hasFreeSlots()) {
-										e.getPlayer().sendMessage("The genie gives you a lamp!");
-										e.getPlayer().getInventory().addItem(2528, 1);
-										npc.forceTalk("I hope you're happy with your wish.");
-										npc.claimed = true;
-									} else {
-										e.getPlayer().sendMessage("Your inventory is too full for a lamp!");
-										npc.claimed = true;
-									}
-									npc.ticks = 152;
-								});
-								option("Don't take it", () -> {
-									npc.claimed = true;
-									npc.ticks = 152;
-								});
-							}
-						}));
+	public static NPCClickHandler handleTalkTo = new NPCClickHandler(new Object[] { 3022 }, e -> {
+		if (e.getNPC() instanceof Genie) {
+			Genie npc = (Genie) e.getNPC();
+			if (npc.ticks >= 149)
+				return;
+			if (npc.getOwner() != e.getPlayer()) {
+				e.getPlayer().startConversation(new Conversation(new Dialogue()
+						.addNPC(3022, HeadE.CALM_TALK, "This wish is for " + npc.getOwner().getDisplayName() + ", not you!")));
+				return;
 			}
+			if (e.getPlayer().inCombat()) {
+				if(e.getPlayer().getInventory().hasFreeSlots()) {
+					e.getPlayer().sendMessage("The genie gives you a lamp!");
+					e.getPlayer().getInventory().addItem(2528, 1);
+					npc.forceTalk("Hope that satisfies you!");
+					npc.claimed = true;
+				} else {
+					e.getPlayer().sendMessage("Your inventory is too full for a lamp!");
+					npc.claimed = true;
+				}
+				npc.ticks = 152;
+				return;
+			}
+			e.getPlayer().startConversation(new Conversation(e.getPlayer())
+					.addNPC(3022, HeadE.HAPPY_TALKING, "Ah, so you are there master. I'm so glad you summoned me. Please take this lamp and make your with!")
+					.addOptions(new Options() {
+						@Override
+						public void create() {
+							option("Take the lamp", () -> {
+								if(e.getPlayer().getInventory().hasFreeSlots()) {
+									e.getPlayer().sendMessage("The genie gives you a lamp!");
+									e.getPlayer().getInventory().addItem(2528, 1);
+									npc.forceTalk("I hope you're happy with your wish.");
+									npc.claimed = true;
+								} else {
+									e.getPlayer().sendMessage("Your inventory is too full for a lamp!");
+									npc.claimed = true;
+								}
+								npc.ticks = 152;
+							});
+							option("Don't take it", () -> {
+								npc.claimed = true;
+								npc.ticks = 152;
+							});
+						}
+					}));
 		}
-	};
+	});
 }

@@ -15,9 +15,9 @@
 //  This file is part of project: Darkan
 //
 package com.rs.game.content.skills.dungeoneering.dialogues;
-import com.rs.game.content.dialogue.Conversation;
-import com.rs.game.content.dialogue.Dialogue;
-import com.rs.game.content.dialogue.Options;
+import com.rs.engine.dialogue.Conversation;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.Options;
 import com.rs.game.model.entity.player.Player;
 
 public class DungeonDifficulty extends Conversation {

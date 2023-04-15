@@ -19,7 +19,7 @@ package com.rs.game.content.minigames.wguild;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.game.Item;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
@@ -27,7 +27,7 @@ import com.rs.plugin.handlers.NPCInstanceHandler;
 @PluginEventHandler
 public class WGCyclops extends NPC {
 
-	public WGCyclops(int id, WorldTile tile) {
+	public WGCyclops(int id, Tile tile) {
 		super(id, tile);
 	}
 
@@ -43,10 +43,5 @@ public class WGCyclops extends NPC {
 				killer.sendMessage("Your time has expired and the cyclops will no longer drop defenders.");
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(4291, 4292, 6078, 6079, 6080, 6081) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new WGCyclops(npcId, tile);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 4291, 4292, 6078, 6079, 6080, 6081 }, (npcId, tile) -> new WGCyclops(npcId, tile));
 }

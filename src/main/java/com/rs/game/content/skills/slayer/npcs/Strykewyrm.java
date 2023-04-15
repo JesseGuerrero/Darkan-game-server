@@ -24,9 +24,8 @@ import com.rs.game.model.entity.player.Player;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.NPCClickEvent;
 import com.rs.plugin.handlers.NPCClickHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
 
@@ -35,7 +34,7 @@ public class Strykewyrm extends NPC {
 
 	private int stompId;
 
-	public Strykewyrm(int id, WorldTile tile) {
+	public Strykewyrm(int id, Tile tile) {
 		super(id, tile, false);
 		stompId = id;
 	}
@@ -174,18 +173,10 @@ public class Strykewyrm extends NPC {
 		});
 	}
 	
-	public static NPCClickHandler handleStomp = new NPCClickHandler(new Object[] { 9462, 9464, 9466 }) {
-		@Override
-		public void handle(NPCClickEvent e) {
-			if (e.getNPC() instanceof Strykewyrm s)
-				handleStomping(e.getPlayer(), s);
-		}
-	};
+	public static NPCClickHandler handleStomp = new NPCClickHandler(new Object[] { 9462, 9464, 9466 }, e -> {
+		if (e.getNPC() instanceof Strykewyrm s)
+			handleStomping(e.getPlayer(), s);
+	});
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(9462, 9463, 9464, 9465, 9466, 9467) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new Strykewyrm(npcId, tile);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 9462, 9463, 9464, 9465, 9466, 9467 }, (npcId, tile) -> new Strykewyrm(npcId, tile));
 }

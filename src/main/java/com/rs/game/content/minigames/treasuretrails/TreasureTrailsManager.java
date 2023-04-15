@@ -21,9 +21,9 @@ import java.util.List;
 
 import com.rs.cache.loaders.NPCDefinitions;
 import com.rs.game.World;
-import com.rs.game.content.dialogue.Dialogue;
-import com.rs.game.content.dialogue.HeadE;
 import com.rs.game.content.world.areas.wilderness.WildernessController;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Equipment;
@@ -33,10 +33,9 @@ import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Item;
 import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ButtonClickEvent;
 import com.rs.plugin.handlers.ButtonClickHandler;
 import com.rs.utils.DropSets;
 import com.rs.utils.drop.DropTable;
@@ -64,20 +63,12 @@ public class TreasureTrailsManager {
 	private transient Player player;
 	private transient List<Item> pieces;
 
-	public static ButtonClickHandler handlePuzzleButtons = new ButtonClickHandler(363) {
-		@Override
-		public void handle(ButtonClickEvent e) {
-			if (e.getComponentId() == 4)
-				e.getPlayer().getTreasureTrailsManager().movePuzzlePeice(e.getSlotId());
-		}
-	};
+	public static ButtonClickHandler handlePuzzleButtons = new ButtonClickHandler(363, e -> {
+		if (e.getComponentId() == 4)
+			e.getPlayer().getTreasureTrailsManager().movePuzzlePeice(e.getSlotId());
+	});
 
-	public static ButtonClickHandler handleSextantButtons = new ButtonClickHandler(365) {
-		@Override
-		public void handle(ButtonClickEvent e) {
-			e.getPlayer().getTreasureTrailsManager().handleSextant(e.getComponentId());
-		}
-	};
+	public static ButtonClickHandler handleSextantButtons = new ButtonClickHandler(365, e -> e.getPlayer().getTreasureTrailsManager().handleSextant(e.getComponentId()));
 
 	public void setPlayer(Player player) {
 		this.player = player;
@@ -208,9 +199,9 @@ public class TreasureTrailsManager {
 			if (!meerkat) {
 				boolean inWilderness = player.getControllerManager().getController() instanceof WildernessController;
 				boolean isCoordinateClue = currentClue.details.type == COORDINATE;
-				WorldTile tile = player.getNearestTeleTile(1);
+				Tile tile = player.getNearestTeleTile(1);
 				if (tile == null)
-					tile = WorldTile.of(player.getTile());
+					tile = Tile.of(player.getTile());
 				final ClueNPC npc = new ClueNPC(player, inWilderness ? isCoordinateClue ? 1007 : 5144 : isCoordinateClue ? 1264 : 5145, tile);
 				npc.setNextSpotAnim(new SpotAnim(74));
 				WorldTasks.schedule(() -> {
@@ -314,8 +305,8 @@ public class TreasureTrailsManager {
 			return;
 		if (!hasCurrentClue())
 			return;
-		else if (!player.withinDistance(WorldTile.of(currentClue.details.getId()), 8)) {
-			player.sendMessage("Hint: " + WorldTile.of(currentClue.details.getId()).toString());
+		else if (!player.withinDistance(Tile.of(currentClue.details.getId()), 8)) {
+			player.sendMessage("Hint: " + Tile.of(currentClue.details.getId()).toString());
 			return;
 		} else if (emote != ((Emote[]) currentClue.details.parameters[0])[cluePhase == 3 ? 1 : 0])
 			return;
@@ -341,7 +332,7 @@ public class TreasureTrailsManager {
 		if ((currentClue.details.type == SIMPLE || currentClue.details.type == MAP) && currentClue.details.idType == TILE) {
 			if (!hasCurrentClue())
 				return false;
-			WorldTile tile = WorldTile.of(currentClue.details.getId());
+			Tile tile = Tile.of(currentClue.details.getId());
 			if (!player.withinDistance(tile, currentClue.details.type == MAP ? meerkat ? 12 : 6 : meerkat ? 32 : 16))
 				return false;
 			setNextClue(SOURCE_DIG, meerkat);
@@ -350,7 +341,7 @@ public class TreasureTrailsManager {
 		if (currentClue.details.type == COORDINATE /*&& hasSextantItems()*/) {
 			if (!hasCurrentClue())
 				return false;
-			WorldTile t = getTile((Integer) currentClue.details.parameters[0], (Integer) currentClue.details.parameters[1], (Integer) currentClue.details.parameters[2], (Integer) currentClue.details.parameters[3],
+			Tile t = getTile((Integer) currentClue.details.parameters[0], (Integer) currentClue.details.parameters[1], (Integer) currentClue.details.parameters[2], (Integer) currentClue.details.parameters[3],
 					(Integer) currentClue.details.parameters[4], (Integer) currentClue.details.parameters[5]);
 			if (!player.withinDistance(t, meerkat ? 12 : 6)) // setted distance cuz the getTile
 				// method may miss 3-5 tiles on rs
@@ -540,13 +531,13 @@ public class TreasureTrailsManager {
 		player.getInterfaceManager().sendInterface(365);
 	}
 
-	public static WorldTile getTile(int degreeY, int minY, int dirY, int degreeX, int minX, int dirX) {
+	public static Tile getTile(int degreeY, int minY, int dirY, int degreeX, int minX, int dirX) {
 		double offsetY = degreeY * 60 / 1.875 + minY / 1.875;
 		double offsetX = degreeX * 60 / 1.875 + minX / 1.875;
-		return WorldTile.of(2440 + (dirX == EAST ? (int) offsetX : (int) -offsetX), 3162 + (dirY == NORTH ? (int) offsetY : (int) -offsetY), 0);
+		return Tile.of(2440 + (dirX == EAST ? (int) offsetX : (int) -offsetX), 3162 + (dirY == NORTH ? (int) offsetY : (int) -offsetY), 0);
 	}
 
-	private int[] getCoordinates(WorldTile tile) {
+	private int[] getCoordinates(Tile tile) {
 		int dirX = tile.getX() > 2440 ? EAST : WEST;
 		int dirY = tile.getY() > 3162 ? NORTH : SOUTH;
 		int x = dirX == EAST ? (tile.getX() - 2440) : (2440 - tile.getX());
@@ -607,7 +598,7 @@ public class TreasureTrailsManager {
 		SIMPLE_D_1(MEDIUM, SIMPLE, OBJECT, 24911, "A town with a different sort of", "night-life is your destination.", "Search for some crates", "in one of the houses."),
 		SIMPLE_G_1(EASY, SIMPLE, TILE, 40275377, "Dig near some giant mushrooms behind", "the Grand Tree."),
 		SIMPLE_L_1(EASY, SIMPLE, OBJECT, 37011, "Go to the village being", "attacked by trolls, search the", "drawers in one of the houses."),
-		SIMPLE_N_1(MEDIUM, SIMPLE, OBJECT, 10159, "North of the best monkey restaurant on Karamja,", "look for the centre of the triangle of boats and", "search there."),
+		SIMPLE_N_1(MEDIUM, SIMPLE, OBJECT, 10159, "North of the best monkey restaurant on", "Karamja, look for the centre of the", "triangle of boats and search there."),
 		SIMPLE_O_1(EASY, SIMPLE, NPC, 376, "One of the sailors in Port Sarim is your", "next destination."),
 		SIMPLE_S_1(EASY, SIMPLE, OBJECT, 66875, "Search a barrel near the Combat.", "Skill SlayerMasterD at the combat", "training area, in Burthorpe."),
 		SIMPLE_S_2(EASY, SIMPLE, OBJECT, 66875, "Search a barrel outside the Pick", "and Lute inn, in Taverley."),

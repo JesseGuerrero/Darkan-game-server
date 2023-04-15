@@ -18,11 +18,11 @@ package com.rs.game.content.skills.construction;
 
 import com.rs.cache.loaders.ItemDefinitions;
 import com.rs.game.World;
-import com.rs.game.content.dialogue.HeadE;
 import com.rs.game.content.skills.construction.House.RoomReference;
 import com.rs.game.content.skills.construction.HouseConstants.Builds;
 import com.rs.game.content.skills.construction.HouseConstants.Room;
 import com.rs.game.content.skills.construction.HouseConstants.Servant;
+import com.rs.engine.dialogue.HeadE;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Bank;
@@ -33,7 +33,7 @@ import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Item;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.utils.WorldUtil;
 
 public class ServantNPC extends NPC {
@@ -103,8 +103,8 @@ public class ServantNPC extends NPC {
 			return;
 		}
 
-		final WorldTile kitchenTile = house.getCenterTile(kitchen);
-		final WorldTile diningRoomTile = house.getCenterTile(diningRoom);
+		final Tile kitchenTile = house.getCenterTile(kitchen);
+		final Tile diningRoomTile = house.getCenterTile(diningRoom);
 
 		setCantInteract(true);
 		house.incrementPaymentStage();
@@ -125,7 +125,7 @@ public class ServantNPC extends NPC {
 					setNextAnimation(new Animation(858));
 					totalCount = (builds.length * 3) + count;
 				} else if (count == 2)
-					setNextWorldTile(WorldTile.of(World.getFreeTile(kitchenTile, 2)));
+					setNextTile(Tile.of(World.getFreeTile(kitchenTile, 2)));
 				else if (totalCount > 0 && index < builds.length) {
 					int calculatedCount = totalCount - count;
 					Builds build = builds[index];
@@ -135,7 +135,7 @@ public class ServantNPC extends NPC {
 					} else if (calculatedCount % 1 == 0)
 						calcFollow(house.getWorldObjectForBuild(kitchen, build), true);
 				} else if (count == totalCount + 3)
-					setNextWorldTile(World.getFreeTile(diningRoomTile, 2));
+					setNextTile(World.getFreeTile(diningRoomTile, 2));
 				else if (count == totalCount + 4 || count == totalCount + 5) {
 					GameObject diningTable = house.getWorldObjectForBuild(diningRoom, Builds.DINING_TABLE);
 					if (count == totalCount + 4)
@@ -184,7 +184,7 @@ public class ServantNPC extends NPC {
 		final int[] plank = SawmillOperator.getPlankForLog(item);
 		if (plank != null && type == RequestType.SAWMILL) {
 			final int cost = (int) ((plank[1] * 0.7) * quantity);
-			if (owner.getInventory().getAmountOf(995) < cost) {
+			if (!owner.getInventory().hasCoins(cost)) {
 				owner.npcDialogue(getId(), servant == Servant.DEMON_BUTLER ? HeadE.CAT_CALM_TALK2 : HeadE.CALM_TALK, "You do not have enough coins to cover the costs of the sawmill.");
 				return;
 			}
@@ -196,7 +196,7 @@ public class ServantNPC extends NPC {
 				if (quantity > freeSlots)
 					quantity = freeSlots;
 			} else if (type == RequestType.SAWMILL)
-				owner.getInventory().removeItems(new Item(995, (int) (quantity * (plank[1] * 0.7))));
+				owner.getInventory().removeCoins((int) (quantity * (plank[1] * 0.7)));
 			if (type != RequestType.WITHDRAW)
 				owner.getInventory().deleteItem(item, quantity);
 		}
@@ -236,9 +236,9 @@ public class ServantNPC extends NPC {
 	}
 
 	public void call() {
-		WorldTile teleTile = owner.getNearestTeleTile(this);
+		Tile teleTile = owner.getNearestTeleTile(this);
 		if (teleTile != null)
-			setNextWorldTile(teleTile);
+			setNextTile(teleTile);
 	}
 
 	private void sendFollow() {

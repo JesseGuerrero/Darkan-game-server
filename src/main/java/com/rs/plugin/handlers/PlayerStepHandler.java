@@ -18,17 +18,22 @@ package com.rs.plugin.handlers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.events.PlayerStepEvent;
 
-public abstract class PlayerStepHandler extends PluginHandler<PlayerStepEvent> {
+public class PlayerStepHandler extends PluginHandler<PlayerStepEvent> {
 
-	public PlayerStepHandler(WorldTile... tiles) {
-		super(null);
+	public PlayerStepHandler(Tile[] tiles, Consumer<PlayerStepEvent> handler) {
+		super(null, handler);
 		List<Integer> tileHashes = new ArrayList<>();
-		for (WorldTile tile : tiles)
+		for (Tile tile : tiles)
 			tileHashes.add(tile.getTileHash());
 		keys = tileHashes.toArray();
+	}
+	
+	public PlayerStepHandler(Tile tile, Consumer<PlayerStepEvent> handler) {
+		this(new Tile[] { tile }, handler);
 	}
 }

@@ -22,10 +22,9 @@ import com.rs.game.model.entity.player.Player;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Item;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.NPCClickEvent;
 import com.rs.plugin.handlers.NPCClickHandler;
 import com.rs.utils.Ticks;
 
@@ -34,7 +33,7 @@ public class FireSpirit extends OwnedNPC {
 
 	private int life;
 
-	public FireSpirit(WorldTile tile, Player target) {
+	public FireSpirit(Tile tile, Player target) {
 		super(target, 15451, tile, true);
 		life = Ticks.fromMinutes(1);
 		getNextHitBars().add(new TimerBar(life * 30));
@@ -69,11 +68,8 @@ public class FireSpirit extends OwnedNPC {
 		});
 	}
 	
-	public static NPCClickHandler claim = new NPCClickHandler(new Object[] { 15451 }) {
-		@Override
-		public void handle(NPCClickEvent e) {
-			if (e.getNPC() instanceof FireSpirit spirit)
-				spirit.giveReward(e.getPlayer());
-		}
-	};
+	public static NPCClickHandler claim = new NPCClickHandler(new Object[] { 15451 }, e -> {
+		if (e.getNPC() instanceof FireSpirit spirit)
+			spirit.giveReward(e.getPlayer());
+	});
 }

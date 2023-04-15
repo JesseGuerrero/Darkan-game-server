@@ -21,7 +21,7 @@ import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.pathing.ClipType;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.game.Animation;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
@@ -32,7 +32,7 @@ public class Shade extends NPC {
 	private int baseId;
 	private int attack;
 
-	public Shade(int id, WorldTile tile) {
+	public Shade(int id, Tile tile) {
 		super(id, tile);
 		baseId = id;
 		setForceAggroDistance(15);
@@ -41,12 +41,7 @@ public class Shade extends NPC {
 		attack = 0;
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(1240, 1241, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new Shade(npcId, tile);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 1240, 1241, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250 }, (npcId, tile) -> new Shade(npcId, tile));
 
 	@Override
 	public void onRespawn() {
@@ -74,7 +69,7 @@ public class Shade extends NPC {
 					resetWalkSteps();
 					if (attack-- <= 0) {
 						attack = 5;
-						faceTile(WorldTile.of(3506, 3316, 0));
+						faceTile(Tile.of(3506, 3316, 0));
 						setNextAnimation(new Animation(1284));
 						TempleWall wall = ShadesOfMortton.getRandomWall();
 						if (wall != null)
@@ -84,7 +79,7 @@ public class Shade extends NPC {
 				return;
 			}
 			if (Utils.random(10) == 0)
-				calcFollow(WorldTile.of(WorldTile.of(3506, 3316, 0), 4), false);
+				calcFollow(Tile.of(Tile.of(3506, 3316, 0), 4), false);
 		}
 		if (getId() == baseId && inCombat(10000)) {
 			transformIntoNPC(baseId + 1);

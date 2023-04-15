@@ -21,9 +21,8 @@ import com.rs.game.model.entity.player.actions.PlayerAction;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.InterfaceOnObjectEvent;
 import com.rs.plugin.handlers.InterfaceOnObjectHandler;
 
 @PluginEventHandler
@@ -87,9 +86,9 @@ public class OrbImbuing {
 	static class OrbChargingAction extends PlayerAction {
 
 		private Orbs orb;
-		private WorldTile tile;
+		private Tile tile;
 
-		public OrbChargingAction(Orbs orb, WorldTile tile) {
+		public OrbChargingAction(Orbs orb, Tile tile) {
 			this.orb = orb;
 			this.tile = tile;
 		}
@@ -132,7 +131,7 @@ public class OrbImbuing {
 			player.getSkills().addXp(Constants.MAGIC, orb.getXp());
 			player.setNextSpotAnim(new SpotAnim(orb.getGfx(), 0, 100));
 			player.setNextAnimation(new Animation(726));
-			player.setNextFaceWorldTile(tile);
+			player.setNextFaceTile(tile);
 			return 3;
 		}
 
@@ -142,22 +141,19 @@ public class OrbImbuing {
 		}
 	}
 
-	public static InterfaceOnObjectHandler handle = new InterfaceOnObjectHandler(true, new int[] { 192 }, new int[] { 60, 64, 71, 74 }) {
-		@Override
-		public void handle(InterfaceOnObjectEvent e) {
-			if (e.isAtObject()) {
-				Orbs orb = null;
-				for (Orbs o : Orbs.values())
-					if (e.getObjectId() == o.getObjectId() && e.getComponentId() == o.getComponentId()) {
-						orb = o;
-						break;
-					}
-				if (orb == null) {
-					e.getPlayer().sendMessage("Try using this spell on the correct obelisk.");
-					return;
+	public static InterfaceOnObjectHandler handle = new InterfaceOnObjectHandler(true, new int[] { 192 }, new int[] { 60, 64, 71, 74 }, e -> {
+		if (e.isAtObject()) {
+			Orbs orb = null;
+			for (Orbs o : Orbs.values())
+				if (e.getObjectId() == o.getObjectId() && e.getComponentId() == o.getComponentId()) {
+					orb = o;
+					break;
 				}
-				e.getPlayer().getActionManager().setAction(new OrbChargingAction(orb, e.getObject().getTile()));
+			if (orb == null) {
+				e.getPlayer().sendMessage("Try using this spell on the correct obelisk.");
+				return;
 			}
+			e.getPlayer().getActionManager().setAction(new OrbChargingAction(orb, e.getObject().getTile()));
 		}
-	};
+	});
 }

@@ -24,37 +24,33 @@ import com.rs.game.model.entity.player.Controller;
 import com.rs.game.model.entity.player.Equipment;
 import com.rs.game.model.object.GameObject;
 import com.rs.lib.game.Item;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ItemClickEvent;
 import com.rs.plugin.handlers.ItemClickHandler;
 
 @PluginEventHandler
 public class KuradalDungeonController extends Controller {
 
-	public static ItemClickHandler handleFerociousRings = new ItemClickHandler(Utils.range(15398, 15402), new String[] { "Rub", "Kuradal" }) {
-		@Override
-		public void handle(ItemClickEvent e) {
-			if (Magic.sendItemTeleportSpell(e.getPlayer(), true, 9603, 1684, 3, WorldTile.of(1739, 5312, 1)))
-				if (e.getItem().getId() == 15402) {
-					if (e.isEquipped())
-						e.getPlayer().getEquipment().deleteSlot(Equipment.RING);
-					else
-						e.getPlayer().getInventory().deleteItem(e.getItem().getId(), 1);
-				} else {
-					e.getItem().setId(e.getItem().getId()+1);
-					e.getPlayer().getInventory().refresh();
-					e.getPlayer().getEquipment().refresh(Equipment.RING);
-				}
-		}
-	};
+	public static ItemClickHandler handleFerociousRings = new ItemClickHandler(new Object[] { Utils.range(15398, 15402) }, new String[] { "Rub", "Kuradal" }, e -> {
+		if (Magic.sendItemTeleportSpell(e.getPlayer(), true, 9603, 1684, 3, Tile.of(1739, 5312, 1)))
+			if (e.getItem().getId() == 15402) {
+				if (e.isEquipped())
+					e.getPlayer().getEquipment().deleteSlot(Equipment.RING);
+				else
+					e.getPlayer().getInventory().deleteItem(e.getItem().getId(), 1);
+			} else {
+				e.getItem().setId(e.getItem().getId()+1);
+				e.getPlayer().getInventory().refresh();
+				e.getPlayer().getEquipment().refresh(Equipment.RING);
+			}
+	});
 
 	public KuradalDungeonController() {}
 
 	@Override
 	public void start() {
-		player.setNextWorldTile(WorldTile.of(1661, 5257, 0));
+		player.setNextTile(Tile.of(1661, 5257, 0));
 	}
 
 	@Override
@@ -76,7 +72,7 @@ public class KuradalDungeonController extends Controller {
 	@Override
 	public boolean processObjectClick1(GameObject object) {
 		if (object.getId() == 47231) {
-			player.setNextWorldTile(WorldTile.of(1735, 5313, 1));
+			player.setNextTile(Tile.of(1735, 5313, 1));
 			removeController();
 		}
 		return true;

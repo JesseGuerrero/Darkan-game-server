@@ -20,14 +20,14 @@ import com.rs.game.content.bosses.godwars.zaros.ZarosFactionNPC;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.game.Item;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
 
 @PluginEventHandler
 public class ZamorakFactionNPC extends NPC {
 
-	public ZamorakFactionNPC(int id, WorldTile tile, boolean spawned) {
+	public ZamorakFactionNPC(int id, Tile tile, boolean spawned) {
 		super(id, tile, spawned);
 		setIgnoreDocile(true);
 		setCanAggroNPCs(true);
@@ -54,10 +54,6 @@ public class ZamorakFactionNPC extends NPC {
 		return false;
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(6210, 6211, 6212, 6213, 6214, 6215, 6216, 6217, 6218, 6219, 6220, 6221) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new ZamorakFactionNPC(npcId, tile, false);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 6210, 6211, 6212, 6213, 6214, 6215, 6216, 6217, 6218, 6219, 6220, 6221 }, 
+			(npcId, tile) -> new ZamorakFactionNPC(npcId, tile, false));
 }

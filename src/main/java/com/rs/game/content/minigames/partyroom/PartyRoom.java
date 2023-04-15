@@ -21,7 +21,6 @@ import java.util.Collections;
 
 import com.rs.cache.loaders.ObjectType;
 import com.rs.cache.loaders.interfaces.IFEvents;
-import com.rs.cores.CoresManager;
 import com.rs.game.World;
 import com.rs.game.content.ItemConstants;
 import com.rs.game.model.entity.ForceTalk;
@@ -35,13 +34,12 @@ import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Item;
 import com.rs.lib.game.Rights;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.net.ClientPacket;
 import com.rs.lib.util.Logger;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ButtonClickEvent;
-import com.rs.plugin.events.ObjectClickEvent;
+import com.rs.plugin.annotations.ServerStartupEvent;
 import com.rs.plugin.handlers.ButtonClickHandler;
 import com.rs.plugin.handlers.ObjectClickHandler;
 import com.rs.utils.ItemConfig;
@@ -60,6 +58,23 @@ public class PartyRoom {
 	private static final int[] BALLOON_IDS = { 115, 116, 117, 118, 119, 120, 121, 122 };
 	private static String[] SONG = { "We're the knights of the party room", "We dance round and round like a loon", "Quite often we like to sing", "Unfortunately we make a din", "We're the knights of the party room",
 			"Do you like our helmet plumes?", "Everyone's happy now we can move", "Like a party animal in the groove" };
+	
+	@ServerStartupEvent
+	public static void scheduleTimers() {
+		WorldTasks.schedule(2, 2, () -> {
+			try {
+				if (PartyRoom.isDropping && PartyRoom.timer > 0) {
+					if (PartyRoom.getTimeLeft() % 5 == 0)
+						PartyRoom.yellNpcs();
+					PartyRoom.timer--;
+					if (PartyRoom.timer <= 0)
+						PartyRoom.spawnBalloons();
+				}
+			} catch (Throwable e) {
+				Logger.handle(World.class, "processPartyRoom", e);
+			}
+		});
+	}
 
 	public static void openChest(Player player) {
 		if (!player.getBank().checkPin())
@@ -113,7 +128,7 @@ public class PartyRoom {
 		isDancing = true;
 		final NPC[] npcs = new NPC[6];
 		for (int i = 0; i < 6; i++) {
-			npcs[i] = new NPC(660, WorldTile.of(3043 + i, 3378, 0));
+			npcs[i] = new NPC(660, Tile.of(3043 + i, 3378, 0));
 			npcs[i].setFaceAngle(0);
 		}
 		WorldTasks.schedule(new WorldTask() {
@@ -155,46 +170,40 @@ public class PartyRoom {
 		return item;
 	}
 
-	public static ObjectClickHandler handleLever = new ObjectClickHandler(false, new Object[] { 26194 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			e.getPlayer().setRouteEvent(new RouteEvent(WorldTile.of(e.getObject().getTile()), () -> {
-				e.getPlayer().sendOptionDialogue(ops -> {
-					ops.add("Balloon Bonanza (1000 coins).", () -> purchase(e.getPlayer(), true));
-					ops.add("Nightly Dance (500 coins).", () -> purchase(e.getPlayer(), false));
-					ops.add("No action.");
-				});
-			}));
-		}
-	};
+	public static ObjectClickHandler handleLever = new ObjectClickHandler(false, new Object[] { 26194 }, e -> {
+		e.getPlayer().setRouteEvent(new RouteEvent(Tile.of(e.getObject().getTile()), () -> {
+			e.getPlayer().sendOptionDialogue(ops -> {
+				ops.add("Balloon Bonanza (1000 coins).", () -> purchase(e.getPlayer(), true));
+				ops.add("Nightly Dance (500 coins).", () -> purchase(e.getPlayer(), false));
+				ops.add("No action.");
+			});
+		}));
+	});
 	
-	public static ObjectClickHandler handleBalloons = new ObjectClickHandler(new Object[] { 115, 116, 117, 118, 119, 120, 121, 122 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			if (e.getObject() instanceof Balloon balloon) {
-				if (e.getPlayer().isIronMan()) {
-					e.getPlayer().sendMessage("You can't pop a party balloon as an ironman.");
-					if (balloon.getItem() != null)
-						e.getPlayer().sendMessage("You would have gotten " + balloon.getItem().getDefinitions().getName() + " though.");
-					return;
-				}
-				balloon.handlePop(e.getPlayer());
-			} else {
-				e.getPlayer().setNextAnimation(new Animation(794));
-				e.getPlayer().lock();
-				World.removeObject(e.getObject());
-				final GameObject poppedBalloon = new GameObject(e.getObject().getId() + 8, ObjectType.SCENERY_INTERACT, e.getObject().getRotation(), e.getObject().getX(), e.getObject().getY(), e.getObject().getPlane());
-				World.spawnObject(poppedBalloon);
-				WorldTasks.schedule(new WorldTask() {
-					@Override
-					public void run() {
-						World.removeObject(poppedBalloon);
-						e.getPlayer().unlock();
-					}
-				}, 1);
+	public static ObjectClickHandler handleBalloons = new ObjectClickHandler(new Object[] { 115, 116, 117, 118, 119, 120, 121, 122 }, e -> {
+		if (e.getObject() instanceof Balloon balloon) {
+			if (e.getPlayer().isIronMan()) {
+				e.getPlayer().sendMessage("You can't pop a party balloon as an ironman.");
+				if (balloon.getItem() != null)
+					e.getPlayer().sendMessage("You would have gotten " + balloon.getItem().getDefinitions().getName() + " though.");
+				return;
 			}
+			balloon.handlePop(e.getPlayer());
+		} else {
+			e.getPlayer().setNextAnimation(new Animation(794));
+			e.getPlayer().lock();
+			World.removeObject(e.getObject());
+			final GameObject poppedBalloon = new GameObject(e.getObject().getId() + 8, ObjectType.SCENERY_INTERACT, e.getObject().getRotation(), e.getObject().getX(), e.getObject().getY(), e.getObject().getPlane());
+			World.spawnObject(poppedBalloon);
+			WorldTasks.schedule(new WorldTask() {
+				@Override
+				public void run() {
+					World.removeObject(poppedBalloon);
+					e.getPlayer().unlock();
+				}
+			}, 1);
 		}
-	};
+	});
 
 	public static void spawnBalloons() {
 		ArrayList<Balloon> balloons = new ArrayList<>();
@@ -202,21 +211,21 @@ public class PartyRoom {
 			for (int y = 3373; y < 3384; y++) {
 				if (x <= 3049 && x >= 3042 && y == 3378)
 					continue;
-				if (World.floorAndWallsFree(0, x, y, 1) && World.getObject(WorldTile.of(x, y, 0)) == null)
+				if (World.floorAndWallsFree(0, x, y, 1) && World.getObject(Tile.of(x, y, 0)) == null)
 					balloons.add(new Balloon(getRandomBalloon(), 0, x, y, 0));
 			}
 		Collections.shuffle(balloons);
 		for (Balloon balloon : balloons)
 			if (balloon != null)
 				World.spawnObjectTemporary(balloon.setItem(getNextItem()), Ticks.fromMinutes(2));
-		CoresManager.schedule(() -> {
+		WorldTasks.schedule(Ticks.fromMinutes(2), () -> {
 			try {
 				isDropping = false;
 				timer = -1;
 			} catch (Throwable e) {
 				Logger.handle(PartyRoom.class, "spawnBalloons", e);
 			}
-		}, Ticks.fromMinutes(2));
+		});
 	}
 
 	public static void startBalloonTimer() {
@@ -289,58 +298,55 @@ public class PartyRoom {
 		refreshItems(player);
 	}
 
-	public static ButtonClickHandler handleButtons = new ButtonClickHandler(CHEST_INTERFACE, INVENTORY_INTERFACE) {
-		@Override
-		public void handle(ButtonClickEvent e) {
-			if (e.getInterfaceId() == CHEST_INTERFACE) {
-				if (e.getComponentId() == 25) {
-					Item item = e.getPlayer().partyDeposit.get(e.getSlotId());
-					if (item == null)
-						return;
-					if (e.getPacket() == ClientPacket.IF_OP1)
-						removeDeposit(e.getPlayer(), e.getSlotId());
-					else
-						e.getPlayer().sendMessage(ItemConfig.get(item.getId()).getExamine(item));
-				} else if (e.getComponentId() == 21)
-					addToChest(e.getPlayer());
-				else if (e.getComponentId() == 23) {
-					Item item = World.getData().getPartyRoomStorage().get(e.getSlotId());
-					if (item == null)
-						return;
-					if (e.getPacket() == ClientPacket.IF_OP1)
-						e.getPlayer().sendMessage("Item valued at: " + item.getDefinitions().getValue());
-					else
-						e.getPlayer().sendMessage(ItemConfig.get(item.getId()).getExamine(item));
-				}
-			} else if (e.getInterfaceId() == INVENTORY_INTERFACE) {
-				final Item item = e.getPlayer().getInventory().getItem(e.getSlotId());
+	public static ButtonClickHandler handleButtons = new ButtonClickHandler(new Object[] { CHEST_INTERFACE, INVENTORY_INTERFACE }, e -> {
+		if (e.getInterfaceId() == CHEST_INTERFACE) {
+			if (e.getComponentId() == 25) {
+				Item item = e.getPlayer().partyDeposit.get(e.getSlotId());
 				if (item == null)
 					return;
-				switch (e.getPacket()) {
-				case IF_OP1:
-					addDeposit(e.getPlayer(), item, 1);
-					break;
-				case IF_OP2:
-					addDeposit(e.getPlayer(), item, 5);
-					break;
-				case IF_OP3:
-					addDeposit(e.getPlayer(), item, 10);
-					break;
-				case IF_OP4:
-					addDeposit(e.getPlayer(), item, e.getPlayer().getInventory().getAmountOf(item.getId()));
-					break;
-				case IF_OP5:
-					e.getPlayer().sendInputInteger("How many would you like to deposit?", amount -> addDeposit(e.getPlayer(), item, amount));
-					break;
-				case IF_OP10:
+				if (e.getPacket() == ClientPacket.IF_OP1)
+					removeDeposit(e.getPlayer(), e.getSlotId());
+				else
 					e.getPlayer().sendMessage(ItemConfig.get(item.getId()).getExamine(item));
-					break;
-				default:
-					break;
-				}
+			} else if (e.getComponentId() == 21)
+				addToChest(e.getPlayer());
+			else if (e.getComponentId() == 23) {
+				Item item = World.getData().getPartyRoomStorage().get(e.getSlotId());
+				if (item == null)
+					return;
+				if (e.getPacket() == ClientPacket.IF_OP1)
+					e.getPlayer().sendMessage("Item valued at: " + item.getDefinitions().getValue());
+				else
+					e.getPlayer().sendMessage(ItemConfig.get(item.getId()).getExamine(item));
+			}
+		} else if (e.getInterfaceId() == INVENTORY_INTERFACE) {
+			final Item item = e.getPlayer().getInventory().getItem(e.getSlotId());
+			if (item == null)
+				return;
+			switch (e.getPacket()) {
+			case IF_OP1:
+				addDeposit(e.getPlayer(), item, 1);
+				break;
+			case IF_OP2:
+				addDeposit(e.getPlayer(), item, 5);
+				break;
+			case IF_OP3:
+				addDeposit(e.getPlayer(), item, 10);
+				break;
+			case IF_OP4:
+				addDeposit(e.getPlayer(), item, e.getPlayer().getInventory().getAmountOf(item.getId()));
+				break;
+			case IF_OP5:
+				e.getPlayer().sendInputInteger("How many would you like to deposit?", amount -> addDeposit(e.getPlayer(), item, amount));
+				break;
+			case IF_OP10:
+				e.getPlayer().sendMessage(ItemConfig.get(item.getId()).getExamine(item));
+				break;
+			default:
+				break;
 			}
 		}
-	};
+	});
 
 	public static long getTotalCoins() {
 		long total = 0;

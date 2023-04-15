@@ -28,21 +28,17 @@ import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.annotations.ServerStartupEvent;
-import com.rs.plugin.events.EnterChunkEvent;
-import com.rs.plugin.events.ItemClickEvent;
-import com.rs.plugin.events.ItemOnItemEvent;
-import com.rs.plugin.events.ItemOnObjectEvent;
-import com.rs.plugin.events.ObjectClickEvent;
 import com.rs.plugin.handlers.EnterChunkHandler;
 import com.rs.plugin.handlers.ItemClickHandler;
 import com.rs.plugin.handlers.ItemOnItemHandler;
 import com.rs.plugin.handlers.ItemOnObjectHandler;
 import com.rs.plugin.handlers.ObjectClickHandler;
 import com.rs.utils.Areas;
+import com.rs.utils.Ticks;
 
 @PluginEventHandler
 public class ShadesOfMortton {
@@ -79,30 +75,27 @@ public class ShadesOfMortton {
 
 	@ServerStartupEvent
 	public static void initUpdateTask() {
-		WorldTasks.schedule(new WorldTask() {
-			@Override
-			public void run() {
-				updateRepairState();
-				for (Player player : World.getPlayersInRegion(13875)) {
-					if (!player.hasStarted() || player.hasFinished())
-						continue;
-					removeSanctity(player, 1);
-				}
-				GameObject altar = World.getObject(WorldTile.of(3506, 3316, 0));
-				if (REPAIR_STATE >= 99) {
-					if (altar != null && altar.getId() == 4092) {
-						World.spawnObject(new GameObject(altar).setId(4091));
-						World.sendSpotAnim(null, new SpotAnim(1605), altar.getTile());
-					} else if (altar != null && altar.getId() == 4090 && Utils.random(2) == 0) {
-						altar.setId(4091);
-						World.sendSpotAnim(null, new SpotAnim(1605), altar.getTile());
-					}
-				} else if (altar != null && altar.getId() != 4092) {
-					World.removeObject(altar);
-					World.sendSpotAnim(null, new SpotAnim(1605), altar.getTile());
-				}
+		WorldTasks.schedule(Ticks.fromSeconds(30), Ticks.fromSeconds(30), () -> {
+			updateRepairState();
+			for (Player player : World.getPlayersInChunkRange(Tile.of(3497, 3298, 0).getChunkId(), 4)) {
+				if (!player.hasStarted() || player.hasFinished())
+					continue;
+				removeSanctity(player, 1);
 			}
-		}, 50, 50);
+			GameObject altar = World.getObject(Tile.of(3506, 3316, 0));
+			if (REPAIR_STATE >= 99) {
+				if (altar != null && altar.getId() == 4092) {
+					World.spawnObject(new GameObject(altar).setId(4091));
+					World.sendSpotAnim(altar.getTile(), new SpotAnim(1605));
+				} else if (altar != null && altar.getId() == 4090 && Utils.random(2) == 0) {
+					altar.setId(4091);
+					World.sendSpotAnim(altar.getTile(), new SpotAnim(1605));
+				}
+			} else if (altar != null && altar.getId() != 4092) {
+				World.removeObject(altar);
+				World.sendSpotAnim(altar.getTile(), new SpotAnim(1605));
+			}
+		});
 	}
 
 	protected static void updateRepairState() {
@@ -138,40 +131,35 @@ public class ShadesOfMortton {
 		updateVars(player);
 	}
 
-	public static EnterChunkHandler handleTempleChunks = new EnterChunkHandler() {
-		@Override
-		public void handle(EnterChunkEvent e) {
-			if (!(e.getEntity() instanceof Player))
-				return;
-			boolean wasIn = e.getEntity().getTempAttribs().getB("inShadeTemple");
-			if (wasIn) {
-				if (!Areas.withinArea("shades_temple", e.getChunkId())) {
-					Player player = e.getPlayer();
-					if (player != null && player.hasStarted()) {
-						player.getInterfaceManager().removeOverlay();
-						e.getEntity().getTempAttribs().setB("inShadeTemple", false);
-						updateVars(player);
-					}
-				}
-			} else if (Areas.withinArea("shades_temple", e.getChunkId())) {
+	public static EnterChunkHandler handleTempleChunks = new EnterChunkHandler(e -> {
+		if (!(e.getEntity() instanceof Player))
+			return;
+		boolean wasIn = e.getEntity().getTempAttribs().getB("inShadeTemple");
+		if (wasIn) {
+			if (!Areas.withinArea("shades_temple", e.getChunkId())) {
 				Player player = e.getPlayer();
 				if (player != null && player.hasStarted()) {
-					player.getInterfaceManager().sendOverlay(328);
-					e.getEntity().getTempAttribs().setB("inShadeTemple", true);
+					player.getInterfaceManager().removeOverlay();
+					e.getEntity().getTempAttribs().setB("inShadeTemple", false);
 					updateVars(player);
 				}
 			}
-		}
-	};
-
-	public static ItemOnObjectHandler handleOilOnAltar = new ItemOnObjectHandler(new Object[] { 4090 }) {
-		@Override
-		public void handle(ItemOnObjectEvent e) {
-			if (e.getPlayer().getTempAttribs().getD("shadeSanctity") < 10) {
-				e.getPlayer().sendMessage("You need more sanctity to bless an item.");
-				return;
+		} else if (Areas.withinArea("shades_temple", e.getChunkId())) {
+			Player player = e.getPlayer();
+			if (player != null && player.hasStarted()) {
+				player.getInterfaceManager().sendOverlay(328);
+				e.getEntity().getTempAttribs().setB("inShadeTemple", true);
+				updateVars(player);
 			}
-			switch(e.getItem().getId()) {
+		}
+	});
+
+	public static ItemOnObjectHandler handleOilOnAltar = new ItemOnObjectHandler(new Object[] { 4090 }, e -> {
+		if (e.getPlayer().getTempAttribs().getD("shadeSanctity") < 10) {
+			e.getPlayer().sendMessage("You need more sanctity to bless an item.");
+			return;
+		}
+		switch(e.getItem().getId()) {
 			//olive oils
 			case 3422:
 				e.getItem().setId(3430);
@@ -189,7 +177,7 @@ public class ShadesOfMortton {
 				e.getItem().setId(3436);
 				removeSanctity(e.getPlayer(), 0.9);
 				break;
-				//serums
+			//serums
 			case 3408:
 				e.getItem().setId(3416);
 				removeSanctity(e.getPlayer(), 3.6);
@@ -206,101 +194,91 @@ public class ShadesOfMortton {
 				e.getItem().setId(3419);
 				removeSanctity(e.getPlayer(), 0.9);
 				break;
-			}
-			updateVars(e.getPlayer());
-			e.getPlayer().getInventory().refresh(e.getItem().getSlot());
 		}
-	};
+		updateVars(e.getPlayer());
+		e.getPlayer().getInventory().refresh(e.getItem().getSlot());
+	});
 
-	public static ObjectClickHandler handleLightAltar = new ObjectClickHandler(new Object[] { 4091 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			if (e.getPlayer().getTempAttribs().getD("shadeSanctity") < 10) {
-				e.getPlayer().sendMessage("You don't have enough sanctity to light the altar!");
-				return;
-			}
-			if (!e.getPlayer().getInventory().containsItem(590)) {
-				e.getPlayer().sendMessage("You need a tinderbox to do that.");
-				return;
-			}
-			GameObject altar = World.getObject(WorldTile.of(3506, 3316, 0));
-			if (altar.getId() == 4091) {
-				altar.setId(4090);
-				e.getPlayer().setNextAnimation(new Animation(3687));
-				e.getPlayer().getSkills().addXp(Constants.FIREMAKING, 100);
-			}
+	public static ObjectClickHandler handleLightAltar = new ObjectClickHandler(new Object[] { 4091 }, e -> {
+		if (e.getPlayer().getTempAttribs().getD("shadeSanctity") < 10) {
+			e.getPlayer().sendMessage("You don't have enough sanctity to light the altar!");
+			return;
 		}
-	};
+		if (!e.getPlayer().getInventory().containsItem(590)) {
+			e.getPlayer().sendMessage("You need a tinderbox to do that.");
+			return;
+		}
+		GameObject altar = World.getObject(Tile.of(3506, 3316, 0));
+		if (altar.getId() == 4091) {
+			altar.setId(4090);
+			e.getPlayer().setNextAnimation(new Animation(3687));
+			e.getPlayer().getSkills().addXp(Constants.FIREMAKING, 100);
+		}
+	});
 
-	public static ObjectClickHandler handleWallRepairs = new ObjectClickHandler(new Object[] { 4068, 4069, 4070, 4071, 4072, 4073, 4074, 4075, 4076, 4077, 4078, 4079, 4080, 4081, 4082, 4083, 4084, 4085, 4086, 4087, 4088, 4089 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			e.getPlayer().getActionManager().setAction(new PlayerAction() {
+	public static ObjectClickHandler handleWallRepairs = new ObjectClickHandler(new Object[] { 4068, 4069, 4070, 4071, 4072, 4073, 4074, 4075, 4076, 4077, 4078, 4079, 4080, 4081, 4082, 4083, 4084, 4085, 4086, 4087, 4088, 4089 }, e -> {
+		e.getPlayer().getActionManager().setAction(new PlayerAction() {
 
-				@Override
-				public boolean start(Player player) {
-					player.getActionManager().setActionDelay(4);
-					return true;
+			@Override
+			public boolean start(Player player) {
+				player.getActionManager().setActionDelay(4);
+				return true;
+			}
+
+			@Override
+			public boolean process(Player player) {
+				boolean inside = player.getX() >= 3505 && player.getX() <= 3507 && player.getY() >= 3315 && player.getY() <= 3317;
+				int anim = player.getInventory().containsItem(3678) ? inside ? 8861 : 8890 : inside ? 8865 : 8888;
+				if (getWall(e.getObject()).getRepairPerc() > 50)
+					anim = player.getInventory().containsItem(3678) ? 8950 : 8893;
+				player.setNextAnimation(new Animation(anim));
+				return true;
+			}
+
+			@Override
+			public int processWithDelay(Player player) {
+				player.faceTile(e.getObject().getTile());
+				if (player.getI("shadeResources", 0) <= 95 && player.getInventory().containsItem(8837) && player.getInventory().containsItem(3420) && player.getInventory().containsItem(1941, 5)) {
+					player.getInventory().deleteItem(8837, 1);
+					player.getInventory().deleteItem(3420, 1);
+					player.getInventory().deleteItem(1941, 5);
+					addResources(player, 5);
 				}
-
-				@Override
-				public boolean process(Player player) {
-					boolean inside = player.getX() >= 3505 && player.getX() <= 3507 && player.getY() >= 3315 && player.getY() <= 3317;
-					int anim = player.getInventory().containsItem(3678) ? inside ? 8861 : 8890 : inside ? 8865 : 8888;
-					if (getWall(e.getObject()).getRepairPerc() > 50)
-						anim = player.getInventory().containsItem(3678) ? 8950 : 8893;
-					player.setNextAnimation(new Animation(anim));
-					return true;
+				if (player.getI("shadeResources", 0) <= 0) {
+					player.sendMessage("You have run out of resources!");
+					return -1;
 				}
-
-				@Override
-				public int processWithDelay(Player player) {
-					player.faceTile(e.getObject().getTile());
-					if (player.getI("shadeResources", 0) <= 95 && player.getInventory().containsItem(8837) && player.getInventory().containsItem(3420) && player.getInventory().containsItem(1941, 5)) {
-						player.getInventory().deleteItem(8837, 1);
-						player.getInventory().deleteItem(3420, 1);
-						player.getInventory().deleteItem(1941, 5);
-						addResources(player, 5);
-					}
-					if (player.getI("shadeResources", 0) <= 0) {
-						player.sendMessage("You have run out of resources!");
-						return -1;
-					}
-					if (Utils.random(player.getInventory().containsItem(3678) ? 2 : 6) != 0) {
-						player.getSkills().addXp(Constants.CRAFTING, Utils.random(5, 9));
-						return 4;
-					}
-					TempleWall wall = WALLS.get(e.getObject().getTile().getTileHash());
-					if (wall == null)
-						wall = new TempleWall(e.getObject());
-					wall.increaseProgress();
-					removeResources(player, 1);
-					addSanctity(player, 5);
-					player.getSkills().addXp(Constants.CRAFTING, Utils.random(20, 35));
+				if (Utils.random(player.getInventory().containsItem(3678) ? 2 : 6) != 0) {
+					player.getSkills().addXp(Constants.CRAFTING, Utils.random(5, 9));
 					return 4;
 				}
+				TempleWall wall = WALLS.get(e.getObject().getTile().getTileHash());
+				if (wall == null)
+					wall = new TempleWall(e.getObject());
+				wall.increaseProgress();
+				removeResources(player, 1);
+				addSanctity(player, 5);
+				player.getSkills().addXp(Constants.CRAFTING, Utils.random(20, 35));
+				return 4;
+			}
 
-				@Override
-				public void stop(Player player) {
-					player.setNextAnimation(new Animation(-1));
-				}
+			@Override
+			public void stop(Player player) {
+				player.setNextAnimation(new Animation(-1));
+			}
+		});
+	});
 
-			});
+	public static ItemOnItemHandler handleNecromancerKits = new ItemOnItemHandler(new int[] { 21489 }, new int[] { 14497, 14499, 14501 }, e -> {
+		if (e.getPlayer().getSkills().getLevel(Constants.CRAFTING) < 85) {
+			e.getPlayer().sendMessage("You need a Crafting level of 85 to attach the necromancer kit.");
+			return;
 		}
-	};
-
-	public static ItemOnItemHandler handleNecromancerKits = new ItemOnItemHandler(new int[] { 21489 }, new int[] { 14497, 14499, 14501 }) {
-		@Override
-		public void handle(ItemOnItemEvent e) {
-			if (e.getPlayer().getSkills().getLevel(Constants.CRAFTING) < 85) {
-				e.getPlayer().sendMessage("You need a Crafting level of 85 to attach the necromancer kit.");
-				return;
-			}
-			if (!e.getPlayer().getInventory().containsItem(3470, 10)) {
-				e.getPlayer().sendMessage("You need 10 fine cloth to attach the necromancer kit.");
-				return;
-			}
-			switch(e.getUsedWith(21489).getId()) {
+		if (!e.getPlayer().getInventory().containsItem(3470, 10)) {
+			e.getPlayer().sendMessage("You need 10 fine cloth to attach the necromancer kit.");
+			return;
+		}
+		switch(e.getUsedWith(21489).getId()) {
 			case 14497:
 				e.getUsedWith(21489).setId(21477);
 				break;
@@ -310,24 +288,21 @@ public class ShadesOfMortton {
 			case 14501:
 				e.getUsedWith(21489).setId(21479);
 				break;
-			}
-			e.getPlayer().getInventory().deleteItem(21489, 1);
-			e.getPlayer().getInventory().deleteItem(3470, 10);
-			e.getPlayer().getSkills().addXp(Constants.CRAFTING, 150);
-			e.getPlayer().getInventory().refresh();
 		}
-	};
+		e.getPlayer().getInventory().deleteItem(21489, 1);
+		e.getPlayer().getInventory().deleteItem(3470, 10);
+		e.getPlayer().getSkills().addXp(Constants.CRAFTING, 150);
+		e.getPlayer().getInventory().refresh();
+	});
 
-	public static ItemClickHandler handleRemoveNecromancerKits = new ItemClickHandler(new Object[] { 21477, 21478, 21479 }, new String[] { "Remove-kit" }) {
-		@Override
-		public void handle(ItemClickEvent e) {
-			if (!e.getPlayer().getInventory().hasFreeSlots()) {
-				e.getPlayer().sendMessage("You don't have enough inventory space!");
-				return;
-			}
-			e.getPlayer().sendOptionDialogue("Would you like to remove the kit? You will not recover the fine cloth.", ops -> {
-				ops.add("Yes", () -> {
-					switch(e.getItem().getId()) {
+	public static ItemClickHandler handleRemoveNecromancerKits = new ItemClickHandler(new Object[] { 21477, 21478, 21479 }, new String[] { "Remove-kit" }, e -> {
+		if (!e.getPlayer().getInventory().hasFreeSlots()) {
+			e.getPlayer().sendMessage("You don't have enough inventory space!");
+			return;
+		}
+		e.getPlayer().sendOptionDialogue("Would you like to remove the kit? You will not recover the fine cloth.", ops -> {
+			ops.add("Yes", () -> {
+				switch(e.getItem().getId()) {
 					case 21477:
 						e.getItem().setId(14497);
 						break;
@@ -337,23 +312,20 @@ public class ShadesOfMortton {
 					case 21479:
 						e.getItem().setId(14501);
 						break;
-					}
-					e.getPlayer().getInventory().addItemDrop(21489, 1);
-					e.getPlayer().getInventory().refresh();
-				});
-				ops.add("Nevermind");
+				}
+				e.getPlayer().getInventory().addItemDrop(21489, 1);
+				e.getPlayer().getInventory().refresh();
 			});
-		}
-	};
+			ops.add("Nevermind");
+		});
+	});
 
-	public static ItemOnItemHandler handleShadeSkulls = new ItemOnItemHandler(21488, new int[] { 1381, 1383, 1385, 1387, 1393, 1395, 1397, 1399, 1401, 1403, 1405, 1407, 3053, 3054, 6562, 6563, 11736, 11738 }) {
-		@Override
-		public void handle(ItemOnItemEvent e) {
-			if (e.getPlayer().getSkills().getLevel(Constants.CRAFTING) < 85) {
-				e.getPlayer().sendMessage("You need a Crafting level of 85 to attach the skull.");
-				return;
-			}
-			switch(e.getUsedWith(21488).getId()) {
+	public static ItemOnItemHandler handleShadeSkulls = new ItemOnItemHandler(21488, new int[] { 1381, 1383, 1385, 1387, 1393, 1395, 1397, 1399, 1401, 1403, 1405, 1407, 3053, 3054, 6562, 6563, 11736, 11738 }, e -> {
+		if (e.getPlayer().getSkills().getLevel(Constants.CRAFTING) < 85) {
+			e.getPlayer().sendMessage("You need a Crafting level of 85 to attach the skull.");
+			return;
+		}
+		switch(e.getUsedWith(21488).getId()) {
 			case 1381: //Skeletal staff of air
 				e.getUsedWith(21488).setId(21490);
 				break;
@@ -408,22 +380,19 @@ public class ShadesOfMortton {
 			case 11738: //Necromancer's steam staff
 				e.getUsedWith(21488).setId(21507);
 				break;
-			}
-			e.getPlayer().getInventory().deleteItem(21488, 1);
-			e.getPlayer().getInventory().refresh();
 		}
-	};
+		e.getPlayer().getInventory().deleteItem(21488, 1);
+		e.getPlayer().getInventory().refresh();
+	});
 
-	public static ItemClickHandler handleRemoveShadeSkulls = new ItemClickHandler(Utils.range(21490, 21507), new String[] { "Remove-skull" }) {
-		@Override
-		public void handle(ItemClickEvent e) {
-			if (!e.getPlayer().getInventory().hasFreeSlots()) {
-				e.getPlayer().sendMessage("You don't have enough inventory space!");
-				return;
-			}
-			e.getPlayer().sendOptionDialogue("Would you like to remove the skull?", ops -> {
-				ops.add("Yes", () -> {
-					switch(e.getItem().getId()) {
+	public static ItemClickHandler handleRemoveShadeSkulls = new ItemClickHandler(new Object[] { Utils.range(21490, 21507) }, new String[] { "Remove-skull" }, e -> {
+		if (!e.getPlayer().getInventory().hasFreeSlots()) {
+			e.getPlayer().sendMessage("You don't have enough inventory space!");
+			return;
+		}
+		e.getPlayer().sendOptionDialogue("Would you like to remove the skull?", ops -> {
+			ops.add("Yes", () -> {
+				switch(e.getItem().getId()) {
 					case 21490: //Skeletal staff of air
 						e.getItem().setId(1381);
 						break;
@@ -478,12 +447,11 @@ public class ShadesOfMortton {
 					case 21507: //Necromancer's steam staff
 						e.getItem().setId(11738);
 						break;
-					}
-					e.getPlayer().getInventory().addItemDrop(21488, 1);
-					e.getPlayer().getInventory().refresh();
-				});
-				ops.add("Nevermind");
+				}
+				e.getPlayer().getInventory().addItemDrop(21488, 1);
+				e.getPlayer().getInventory().refresh();
 			});
-		}
-	};
+			ops.add("Nevermind");
+		});
+	});
 }

@@ -18,7 +18,7 @@ package com.rs.game.content.world;
 
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.npc.NPC;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
@@ -26,7 +26,7 @@ import com.rs.plugin.handlers.NPCInstanceHandler;
 @PluginEventHandler
 public class Duck extends NPC {
 
-	public Duck(int id, WorldTile tile) {
+	public Duck(int id, Tile tile) {
 		super(id, tile);
 	}
 
@@ -37,10 +37,5 @@ public class Duck extends NPC {
 			setNextForceTalk(new ForceTalk("Quack!"));
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler("Duck", "Drake") {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new Duck(npcId, tile);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { "Duck", "Drake" }, (npcId, tile) -> new Duck(npcId, tile));
 }

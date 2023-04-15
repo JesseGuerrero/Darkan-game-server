@@ -29,10 +29,9 @@ import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ObjectClickEvent;
 import com.rs.plugin.handlers.ObjectClickHandler;
 import com.rs.utils.Ticks;
 
@@ -49,43 +48,36 @@ public class Abyss {
 			{ 3063, 4820 }, { 3028, 4806 }
 	};
 
-	public static ObjectClickHandler handleAltarEntries = new ObjectClickHandler(new Object[] { 7137, 7139, 7140, 7131, 7130, 7129, 7136, 7135, 7133, 7132, 7141, 7134, 7138 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			switch(e.getObjectId()) {
-				case 7137 -> RunecraftingAltar.Altar.WATER.canEnter(e.getPlayer(), true);
-				case 7139 -> RunecraftingAltar.Altar.AIR.canEnter(e.getPlayer(), true);
-				case 7140 -> RunecraftingAltar.Altar.MIND.canEnter(e.getPlayer(), true);
-				case 7131 -> RunecraftingAltar.Altar.BODY.canEnter(e.getPlayer(), true);
-				case 7130 -> RunecraftingAltar.Altar.EARTH.canEnter(e.getPlayer(), true);
-				case 7129 -> RunecraftingAltar.Altar.FIRE.canEnter(e.getPlayer(), true);
-				case 7136 -> RunecraftingAltar.Altar.DEATH.canEnter(e.getPlayer(), true);
-				case 7135 -> RunecraftingAltar.Altar.LAW.canEnter(e.getPlayer(), true);
-				case 7133 -> RunecraftingAltar.Altar.NATURE.canEnter(e.getPlayer(), true);
-				case 7132 -> RunecraftingAltar.Altar.COSMIC.canEnter(e.getPlayer(), true);
-				case 7141 -> RunecraftingAltar.Altar.BLOOD.canEnter(e.getPlayer(), true);
-				case 7134 -> RunecraftingAltar.Altar.CHAOS.canEnter(e.getPlayer(), true);
-				case 7138 -> e.getPlayer().sendMessage("A strange power blocks your exit..");
-
-			}
+	public static ObjectClickHandler handleAltarEntries = new ObjectClickHandler(new Object[] { 7137, 7139, 7140, 7131, 7130, 7129, 7136, 7135, 7133, 7132, 7141, 7134, 7138 }, e -> {
+		switch(e.getObjectId()) {
+		case 7137 -> RunecraftingAltar.Altar.WATER.canEnter(e.getPlayer(), true);
+		case 7139 -> RunecraftingAltar.Altar.AIR.canEnter(e.getPlayer(), true);
+		case 7140 -> RunecraftingAltar.Altar.MIND.canEnter(e.getPlayer(), true);
+		case 7131 -> RunecraftingAltar.Altar.BODY.canEnter(e.getPlayer(), true);
+		case 7130 -> RunecraftingAltar.Altar.EARTH.canEnter(e.getPlayer(), true);
+		case 7129 -> RunecraftingAltar.Altar.FIRE.canEnter(e.getPlayer(), true);
+		case 7136 -> RunecraftingAltar.Altar.DEATH.canEnter(e.getPlayer(), true);
+		case 7135 -> RunecraftingAltar.Altar.LAW.canEnter(e.getPlayer(), true);
+		case 7133 -> RunecraftingAltar.Altar.NATURE.canEnter(e.getPlayer(), true);
+		case 7132 -> RunecraftingAltar.Altar.COSMIC.canEnter(e.getPlayer(), true);
+		case 7141 -> RunecraftingAltar.Altar.BLOOD.canEnter(e.getPlayer(), true);
+		case 7134 -> RunecraftingAltar.Altar.CHAOS.canEnter(e.getPlayer(), true);
+		case 7138 -> e.getPlayer().sendMessage("A strange power blocks your exit..");
 		}
-	};
+	});
 
-	public static ObjectClickHandler handleShortcuts = new ObjectClickHandler(new Object[] { 7143, 7153, 7152, 7144, 7150, 7146, 7147, 7148, 7149, 7151, 7145 }) {
-		@Override
-		public void handle(ObjectClickEvent e) {
-			switch(e.getObjectId()) {
-				case 7143, 7153 -> clearRocks(e.getPlayer(), e.getObject());
-				case 7152, 7144 -> clearTendrils(e.getPlayer(), e.getObject(), WorldTile.of(e.getObjectId() == 7144 ? 3028 : 3051, 4824, 0));
-				case 7150, 7146 -> clearEyes(e.getPlayer(), e.getObject(), WorldTile.of(e.getObject().getX() == 3021 ? 3028 : 3050, 4839, 0));
-				case 7147 -> clearGap(e.getPlayer(), e.getObject(), WorldTile.of(3030, 4843, 0), false);
-				case 7148 -> clearGap(e.getPlayer(), e.getObject(), WorldTile.of(3040, 4845, 0), true);
-				case 7149 -> clearGap(e.getPlayer(), e.getObject(), WorldTile.of(3048, 4842, 0), false);
-				case 7151 -> burnGout(e.getPlayer(), e.getObject(), WorldTile.of(3053, 4831, 0));
-				case 7145 -> burnGout(e.getPlayer(), e.getObject(), WorldTile.of(3024, 4834, 0));
-			}
+	public static ObjectClickHandler handleShortcuts = new ObjectClickHandler(new Object[] { 7143, 7153, 7152, 7144, 7150, 7146, 7147, 7148, 7149, 7151, 7145 }, e -> {
+		switch(e.getObjectId()) {
+		case 7143, 7153 -> clearRocks(e.getPlayer(), e.getObject());
+		case 7152, 7144 -> clearTendrils(e.getPlayer(), e.getObject(), Tile.of(e.getObjectId() == 7144 ? 3028 : 3051, 4824, 0));
+		case 7150, 7146 -> clearEyes(e.getPlayer(), e.getObject(), Tile.of(e.getObject().getX() == 3021 ? 3028 : 3050, 4839, 0));
+		case 7147 -> clearGap(e.getPlayer(), e.getObject(), Tile.of(3030, 4843, 0), false);
+		case 7148 -> clearGap(e.getPlayer(), e.getObject(), Tile.of(3040, 4845, 0), true);
+		case 7149 -> clearGap(e.getPlayer(), e.getObject(), Tile.of(3048, 4842, 0), false);
+		case 7151 -> burnGout(e.getPlayer(), e.getObject(), Tile.of(3053, 4831, 0));
+		case 7145 -> burnGout(e.getPlayer(), e.getObject(), Tile.of(3024, 4834, 0));
 		}
-	};
+	});
 
 	public static void clearRocks(final Player player, final GameObject object) {
 		Pickaxe pick = Pickaxe.getBest(player);
@@ -108,7 +100,7 @@ public class Abyss {
 			} else if (ticks >= 5 && ticks <= 7)
 				demolish(7158 + (ticks - 5), object);
 			else if (ticks == 9) {
-				player.setNextWorldTile(WorldTile.of(object.getX(), object.getY() + 13, 0));
+				player.setNextTile(Tile.of(object.getX(), object.getY() + 13, 0));
 				player.resetReceivedHits();
 				player.unlock();
 				return false;
@@ -117,7 +109,7 @@ public class Abyss {
 		});
 	}
 
-	public static void clearTendrils(final Player player, final GameObject object, final WorldTile tile) {
+	public static void clearTendrils(final Player player, final GameObject object, final Tile tile) {
 		Hatchet hatchet = Hatchet.getBest(player);
 		if (hatchet == null) {
 			player.sendMessage("You need a hatchet in order to clear this obstacle.");
@@ -144,7 +136,7 @@ public class Abyss {
 				} else if (ticks >= 4 && ticks <= 6)
 					demolish(7161 + (ticks - 4), object);
 				else if (ticks == 7) {
-					player.setNextWorldTile(tile);
+					player.setNextTile(tile);
 					player.unlock();
 					stop();
 					return;
@@ -154,7 +146,7 @@ public class Abyss {
 		return;
 	}
 
-	public static void clearEyes(final Player player, final GameObject object, final WorldTile tile) {
+	public static void clearEyes(final Player player, final GameObject object, final Tile tile) {
 		player.lock();
 		WorldTasks.schedule(new WorldTask() {
 			int ticks = 0;
@@ -176,7 +168,7 @@ public class Abyss {
 				} else if (ticks >= 4 && ticks <= 6)
 					demolish(7168 + (ticks - 4), object);
 				else if (ticks == 7) {
-					player.setNextWorldTile(tile);
+					player.setNextTile(tile);
 					player.unlock();
 					stop();
 					return;
@@ -186,7 +178,7 @@ public class Abyss {
 		return;
 	}
 
-	public static void clearGap(final Player player, final GameObject object, final WorldTile tile, final boolean quick) {
+	public static void clearGap(final Player player, final GameObject object, final Tile tile, final boolean quick) {
 		player.lock();
 		WorldTasks.schedule(new WorldTask() {
 			int ticks = 0;
@@ -207,7 +199,7 @@ public class Abyss {
 							return;
 						}
 				} else if (ticks == 4) {
-					player.setNextWorldTile(tile);
+					player.setNextTile(tile);
 					player.unlock();
 					stop();
 					return;
@@ -217,7 +209,7 @@ public class Abyss {
 		return;
 	}
 
-	public static void burnGout(final Player player, final GameObject object, final WorldTile tile) {
+	public static void burnGout(final Player player, final GameObject object, final Tile tile) {
 		if (!player.getInventory().containsItem(590, 1)) {
 			player.sendMessage("You need a tinderbox in order to burn the boil.");
 			return;
@@ -243,7 +235,7 @@ public class Abyss {
 				} else if (ticks >= 4 && ticks <= 6)
 					demolish(7165 + (ticks - 4), object);
 				else if (ticks == 7) {
-					player.setNextWorldTile(tile);
+					player.setNextTile(tile);
 					player.unlock();
 					stop();
 					return;
@@ -274,8 +266,8 @@ public class Abyss {
 			@Override
 			public void run() {
 				int index = Utils.random(ABYSS_TELEPORT_OUTER.length);
-				player.useStairs(-1, WorldTile.of(ABYSS_TELEPORT_OUTER[index][0], ABYSS_TELEPORT_OUTER[index][1], 0), 0, 1);
-				Magic.teleControllersCheck(player, WorldTile.of(ABYSS_TELEPORT_OUTER[index][0], ABYSS_TELEPORT_OUTER[index][1], 0));
+				player.useStairs(-1, Tile.of(ABYSS_TELEPORT_OUTER[index][0], ABYSS_TELEPORT_OUTER[index][1], 0), 0, 1);
+				Magic.teleControllersCheck(player, Tile.of(ABYSS_TELEPORT_OUTER[index][0], ABYSS_TELEPORT_OUTER[index][1], 0));
 				player.getPrayer().drainPrayer(player.getPrayer().getPoints());
 				player.setWildernessSkull();
 			}

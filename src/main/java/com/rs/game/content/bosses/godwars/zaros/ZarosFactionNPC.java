@@ -24,7 +24,7 @@ import com.rs.game.content.skills.summoning.Familiar;
 import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
 
@@ -35,7 +35,7 @@ public class ZarosFactionNPC extends NPC {
 
 	private static final Bonus[][] BONUSES = { { Bonus.STAB_DEF, Bonus.SLASH_DEF, Bonus.CRUSH_DEF }, { Bonus.RANGE_DEF }, {}, { Bonus.MAGIC_DEF } };
 
-	public ZarosFactionNPC(int id, WorldTile tile) {
+	public ZarosFactionNPC(int id, Tile tile) {
 		super(id, tile);
 	}
 
@@ -64,10 +64,5 @@ public class ZarosFactionNPC extends NPC {
 		return name.contains("pernix") || name.contains("torva") || name.contains("virtus") || name.contains("zaryte");
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(13456, 13457, 13458, 13459) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new ZarosFactionNPC(npcId, tile);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 13456, 13457, 13458, 13459 }, (npcId, tile) -> new ZarosFactionNPC(npcId, tile));
 }

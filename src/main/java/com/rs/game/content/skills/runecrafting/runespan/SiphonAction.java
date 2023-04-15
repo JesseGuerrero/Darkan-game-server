@@ -46,8 +46,12 @@ public class SiphonAction extends PlayerAction {
 			player.simpleDialogue("This creature requires level " + creatures.levelRequired + " to siphon.");
 			return false;
 		}
-		if ((!creatures.rune.isPureEss() && !player.getInventory().containsOneItem(Runecrafting.PURE_ESS, Runecrafting.RUNE_ESS)) || (creatures.rune.isPureEss() && !player.getInventory().containsItem(Runecrafting.PURE_ESS))) {
+		if (!creatures.rune.isPureEss() && !player.getInventory().containsOneItem(Runecrafting.PURE_ESS, Runecrafting.RUNE_ESS)) {
 			player.sendMessage("You don't have any rune essence to siphon from that creature.");
+			return false;
+		}
+		if (creatures.rune.isPureEss() && !player.getInventory().containsItem(Runecrafting.PURE_ESS)) {
+			player.sendMessage("You don't have any pure essence to siphon from that creature.");
 			return false;
 		}
 		if (!started) {
@@ -80,9 +84,9 @@ public class SiphonAction extends PlayerAction {
 
 			player.setNextAnimation(new Animation(16596));
 			creature.setNextAnimation(new Animation(creatures.npcEmoteId));
-			creature.setNextFaceWorldTile(player.getTile());
+			creature.setNextFaceTile(player.getTile());
 			creature.freeze(4);
-			player.setNextFaceWorldTile(creature.getTile());
+			player.setNextFaceTile(creature.getTile());
 			WorldProjectile p = World.sendProjectile(creature, player, 3060, 31, 40, 35, 1, 2, 0);
 			boolean finalSuccess = success;
 			WorldTasks.schedule(Utils.clampI(p.getTaskDelay()-1, 0, 100), () -> player.setNextSpotAnim(new SpotAnim(finalSuccess ? 3062 : 3071)));

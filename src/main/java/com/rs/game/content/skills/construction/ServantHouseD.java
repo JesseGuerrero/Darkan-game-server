@@ -17,11 +17,11 @@
 package com.rs.game.content.skills.construction;
 
 import com.rs.cache.loaders.ItemDefinitions;
-import com.rs.game.content.dialogue.Conversation;
-import com.rs.game.content.dialogue.Dialogue;
-import com.rs.game.content.dialogue.HeadE;
 import com.rs.game.content.skills.construction.HouseConstants.Servant;
 import com.rs.game.content.skills.construction.ServantNPC.RequestType;
+import com.rs.engine.dialogue.Conversation;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
 import com.rs.game.model.entity.player.Player;
 
 public class ServantHouseD extends Conversation {
@@ -34,11 +34,11 @@ public class ServantHouseD extends Conversation {
 			addOptions("Would you you like to pay the fee of " + servant.getServantData().getCost() + "?", ops -> {
 				ops.add("Yes.", () -> {
 					int cost = servant.getServantData().getCost();
-					if (player.getInventory().getNumberOf(995) < cost) {
+					if (!player.getInventory().hasCoins(cost)) {
 						player.npcDialogue(servant.getId(), servant.getServantData() == Servant.DEMON_BUTLER ? HeadE.CAT_CALM_TALK2 : HeadE.UPSET, "You do not have enough coins to cover up my cost.");
 						return;
 					}
-					player.getInventory().deleteItem(995, cost);
+					player.getInventory().removeCoins(cost);
 					player.getHouse().resetPaymentStage();
 					player.npcDialogue(servant.getId(), servant.getServantData() == Servant.DEMON_BUTLER ? HeadE.CAT_CALM_TALK2 : HeadE.CHEERFUL, "Thank you!");
 				});
@@ -74,7 +74,7 @@ public class ServantHouseD extends Conversation {
 						.addNext(() -> {
 							servant.setGreetGuests(true);
 							servant.setFollowing(false);
-							servant.setNextWorldTile(servant.getRespawnTile());
+							servant.setNextTile(servant.getRespawnTile());
 						});
 				});
 			

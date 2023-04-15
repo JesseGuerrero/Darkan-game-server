@@ -36,8 +36,6 @@ import com.rs.lib.game.Item;
 import com.rs.lib.game.SpotAnim;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.events.ItemClickEvent;
-import com.rs.plugin.events.ItemOnItemEvent;
 import com.rs.plugin.handlers.ItemClickHandler;
 import com.rs.plugin.handlers.ItemOnItemHandler;
 import com.rs.utils.Ticks;
@@ -49,8 +47,45 @@ public class Potions {
 	public static final int JUJU_VIAL = 19996;
 	public static final int BEER_GLASS = 1919;
 	public static final int EMPTY_KEG = 5769;
+	private static int EMPTY_CUP = 4244;
+	private static int BOWL = 1923;
 
 	public enum Potion {
+		CUP_OF_TEA_CLAY(7728, 7730, p -> {
+			p.getSkills().adjustStat(1, 0, Constants.CONSTRUCTION);
+		}),
+		CUP_OF_TEA_CLAY_MILK(7728, 7731, p -> {
+			p.getSkills().adjustStat(1, 0, Constants.CONSTRUCTION);
+		}),
+		CUP_OF_TEA_PORCELAIN(7732, 7733, p -> {
+			p.getSkills().adjustStat(2, 0, Constants.CONSTRUCTION);
+		}),
+		CUP_OF_TEA_PORCELAIN_MILK(7732, 7734, p -> {
+			p.getSkills().adjustStat(2, 0, Constants.CONSTRUCTION);
+		}),
+		CUP_OF_TEA_GOLD(7735, 7736, p -> {
+			p.getSkills().adjustStat(3, 0, Constants.CONSTRUCTION);
+		}),
+		CUP_OF_TEA_GOLD_MILK(7735, 7737, p -> {
+			p.getSkills().adjustStat(3, 0, Constants.CONSTRUCTION);
+		}),
+		NETTLE_TEA_CUP(EMPTY_CUP, 4245, p -> {
+			p.restoreRunEnergy(5);
+			p.heal(30);
+		}),
+		NETTLE_TEA_CUP_MILK(EMPTY_CUP, 4246, p -> {
+			p.restoreRunEnergy(5);
+			p.heal(30);
+		}),
+		NETTLE_TEA_BOWL(BOWL, 4239, p -> {
+			p.restoreRunEnergy(5);
+			p.heal(30);
+		}),
+		NETTLE_TEA_BOWL_MILK(BOWL, 4240, p -> {
+			p.restoreRunEnergy(5);
+			p.heal(30);
+		}),
+		NETTLE_WATER(BOWL, 4237, p -> p.heal(10)),
 		ATTACK_POTION(VIAL, new int[] { 2428, 121, 123, 125 }, p -> p.getSkills().adjustStat(3, 0.1, Constants.ATTACK)),
 		ATTACK_FLASK(-1, new int[] { 23195, 23197, 23199, 23201, 23203, 23205 }, p -> p.getSkills().adjustStat(3, 0.1, Constants.ATTACK)),
 		ATTACK_MIX(VIAL, new int[] { 11429, 11431 }, p -> {
@@ -761,7 +796,6 @@ public class Potions {
 			p.getSkills().adjustStat(-2, 0, Constants.ATTACK, Constants.STRENGTH);
 			p.heal(20);
 		}),
-
 		SERUM_207(VIAL, new int[] { 3408, 3410, 3412, 3414 }),
 		SERUM_208(VIAL, new int[] { 3416, 3417, 3418, 3419 }),
 		OLIVE_OIL(VIAL, new int[] { 3422, 3424, 3426, 3428 }),
@@ -858,20 +892,17 @@ public class Potions {
 		}
 	}
 
-	public static ItemClickHandler clickOps = new ItemClickHandler(Potion.POTS.keySet().toArray(), new String[] { "Drink", "Empty" }) {
-		@Override
-		public void handle(ItemClickEvent e) {
-			Potion pot = Potion.forId(e.getItem().getId());
-			if (pot == null)
-				return;
-			if (e.getOption().equals("Drink"))
-				pot.drink(e.getPlayer(), e.getItem().getId(), e.getItem().getSlot());
-			else if (e.getOption().equals("Empty") && pot.emptyId != -1) {
-				e.getItem().setId(pot.emptyId);
-				e.getPlayer().getInventory().refresh(e.getItem().getSlot());
-			}
+	public static ItemClickHandler clickOps = new ItemClickHandler(Potion.POTS.keySet().toArray(), new String[] { "Drink", "Empty" }, e -> {
+		Potion pot = Potion.forId(e.getItem().getId());
+		if (pot == null)
+			return;
+		if (e.getOption().equals("Drink"))
+			pot.drink(e.getPlayer(), e.getItem().getId(), e.getItem().getSlot());
+		else if (e.getOption().equals("Empty") && pot.emptyId != -1) {
+			e.getItem().setId(pot.emptyId);
+			e.getPlayer().getInventory().refresh(e.getItem().getSlot());
 		}
-	};
+	});
 
 	public static int getDoses(Potion pot, Item item) {
 		for (int i = pot.ids.length - 1; i >= 0; i--)
@@ -880,53 +911,50 @@ public class Potions {
 		return 0;
 	}
 
-	public static ItemOnItemHandler mixPotions = new ItemOnItemHandler(Potion.POTS.keySet().stream().mapToInt(i->i).toArray()) {
-		@Override
-		public void handle(ItemOnItemEvent e) {
-			Item fromItem = e.getItem1();
-			Item toItem = e.getItem2();
-			int fromSlot = fromItem.getSlot();
-			int toSlot = toItem.getSlot();
-			if (fromItem.getId() == VIAL || toItem.getId() == VIAL) {
-				Potion pot = Potion.forId(fromItem.getId() == VIAL ? toItem.getId() : fromItem.getId());
-				if (pot == null || pot.emptyId == -1)
-					return;
-				int doses = getDoses(pot, fromItem.getId() == VIAL ? toItem : fromItem);
-				if (doses == 1) {
-					e.getPlayer().getInventory().switchItem(fromSlot, toSlot);
-					e.getPlayer().sendMessage("You combine the potions.", true);
-					return;
-				}
-				int vialDoses = doses / 2;
-				doses -= vialDoses;
-				e.getPlayer().getInventory().getItems().set(fromItem.getId() == VIAL ? toSlot : fromSlot, new Item(pot.getIdForDoses(doses), 1));
-				e.getPlayer().getInventory().getItems().set(fromItem.getId() == VIAL ? fromSlot : toSlot, new Item(pot.getIdForDoses(vialDoses), 1));
-				e.getPlayer().getInventory().refresh(fromSlot);
-				e.getPlayer().getInventory().refresh(toSlot);
-				e.getPlayer().sendMessage("You split the potion between the two vials.", true);
+	public static ItemOnItemHandler mixPotions = new ItemOnItemHandler(Potion.POTS.keySet().stream().mapToInt(i->i).toArray(), e -> {
+		Item fromItem = e.getItem1();
+		Item toItem = e.getItem2();
+		int fromSlot = fromItem.getSlot();
+		int toSlot = toItem.getSlot();
+		if (fromItem.getId() == VIAL || toItem.getId() == VIAL) {
+			Potion pot = Potion.forId(fromItem.getId() == VIAL ? toItem.getId() : fromItem.getId());
+			if (pot == null || pot.emptyId == -1)
+				return;
+			int doses = getDoses(pot, fromItem.getId() == VIAL ? toItem : fromItem);
+			if (doses == 1) {
+				e.getPlayer().getInventory().switchItem(fromSlot, toSlot);
+				e.getPlayer().sendMessage("You combine the potions.", true);
 				return;
 			}
-			Potion pot = Potion.forId(fromItem.getId());
-			if (pot == null)
-				return;
-			int doses2 = getDoses(pot, toItem);
-			if (doses2 == 0 || doses2 == pot.getMaxDoses())
-				return;
-			int doses1 = getDoses(pot, fromItem);
-			doses2 += doses1;
-			doses1 = doses2 > pot.getMaxDoses() ? doses2 - pot.getMaxDoses() : 0;
-			doses2 -= doses1;
-			if (doses1 == 0 && pot.emptyId == -1)
-				e.getPlayer().getInventory().deleteItem(fromSlot, fromItem);
-			else {
-				e.getPlayer().getInventory().getItems().set(fromSlot, new Item(doses1 > 0 ? pot.getIdForDoses(doses1) : pot.emptyId, 1));
-				e.getPlayer().getInventory().refresh(fromSlot);
-			}
-			e.getPlayer().getInventory().getItems().set(toSlot, new Item(pot.getIdForDoses(doses2), 1));
+			int vialDoses = doses / 2;
+			doses -= vialDoses;
+			e.getPlayer().getInventory().getItems().set(fromItem.getId() == VIAL ? toSlot : fromSlot, new Item(pot.getIdForDoses(doses), 1));
+			e.getPlayer().getInventory().getItems().set(fromItem.getId() == VIAL ? fromSlot : toSlot, new Item(pot.getIdForDoses(vialDoses), 1));
+			e.getPlayer().getInventory().refresh(fromSlot);
 			e.getPlayer().getInventory().refresh(toSlot);
-			e.getPlayer().sendMessage("You pour from one container into the other" + (pot.emptyId == -1 && doses1 == 0 ? " and the flask shatters to pieces." : "."));
+			e.getPlayer().sendMessage("You split the potion between the two vials.", true);
+			return;
 		}
-	};
+		Potion pot = Potion.forId(fromItem.getId());
+		if (pot == null)
+			return;
+		int doses2 = getDoses(pot, toItem);
+		if (doses2 == 0 || doses2 == pot.getMaxDoses())
+			return;
+		int doses1 = getDoses(pot, fromItem);
+		doses2 += doses1;
+		doses1 = doses2 > pot.getMaxDoses() ? doses2 - pot.getMaxDoses() : 0;
+		doses2 -= doses1;
+		if (doses1 == 0 && pot.emptyId == -1)
+			e.getPlayer().getInventory().deleteItem(fromSlot, fromItem);
+		else {
+			e.getPlayer().getInventory().getItems().set(fromSlot, new Item(doses1 > 0 ? pot.getIdForDoses(doses1) : pot.emptyId, 1));
+			e.getPlayer().getInventory().refresh(fromSlot);
+		}
+		e.getPlayer().getInventory().getItems().set(toSlot, new Item(pot.getIdForDoses(doses2), 1));
+		e.getPlayer().getInventory().refresh(toSlot);
+		e.getPlayer().sendMessage("You pour from one container into the other" + (pot.emptyId == -1 && doses1 == 0 ? " and the flask shatters to pieces." : "."));
+	});
 	
 	public static void checkOverloads(Player player) {
 		boolean changed = false;

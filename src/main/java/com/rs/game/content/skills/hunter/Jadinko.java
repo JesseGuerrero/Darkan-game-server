@@ -19,14 +19,14 @@ package com.rs.game.content.skills.hunter;
 import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
-import com.rs.lib.game.WorldTile;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
 
 @PluginEventHandler
 public class Jadinko extends NPC {
 
-	public Jadinko(int id, WorldTile tile) {
+	public Jadinko(int id, Tile tile) {
 		super(id, tile);
 	}
 
@@ -37,10 +37,5 @@ public class Jadinko extends NPC {
 			player.addJadinkoFavor((getId() == 13820 ? 3 : getId() == 13821 ? 7 : 10));
 	}
 
-	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(13820, 13821, 13822) {
-		@Override
-		public NPC getNPC(int npcId, WorldTile tile) {
-			return new Jadinko(npcId, tile);
-		}
-	};
+	public static NPCInstanceHandler toFunc = new NPCInstanceHandler(new Object[] { 13820, 13821, 13822 }, (npcId, tile) -> new Jadinko(npcId, tile));
 }
