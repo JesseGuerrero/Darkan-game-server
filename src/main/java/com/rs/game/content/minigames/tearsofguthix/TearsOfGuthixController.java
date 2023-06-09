@@ -19,10 +19,14 @@ package com.rs.game.content.minigames.tearsofguthix;
 import com.rs.engine.dialogue.Dialogue;
 import com.rs.engine.dialogue.HeadE;
 import com.rs.engine.dialogue.Options;
+import com.rs.engine.quest.QuestManager;
+import com.rs.engine.quest.data.QuestInformation;
 import com.rs.game.content.minigames.pyramidplunder.PyramidPlunder;
 import com.rs.game.model.entity.player.Controller;
+import com.rs.game.model.entity.player.Equipment;
 import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTasks;
+import com.rs.lib.game.Item;
 import com.rs.lib.game.Rights;
 import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
@@ -34,22 +38,43 @@ import java.util.Map;
 
 public class TearsOfGuthixController extends Controller {
 	final static int TOG_INTERFACE = 4;
+	private float TICK_DURATION = 156; //4 minutes 22 seconds -> 30 seconds(18 ticks)
+	private float TICKS_LEFT = 0;
+	private float TEARS_GATHERED = 0;
 	@Override
 	public void start() {
-		player.getInterfaceManager().sendInventoryInterface(TOG_INTERFACE);
+		player.getEquipment().setSlot(Equipment.WEAPON, new Item(4704));
+		player.getAppearance().generateAppearanceData();
+		float qpratio = player.getQuestManager().getQuestPoints() / QuestManager.MAX_QUESTPOINTS;
+		TICK_DURATION = (float)Math.ceil(TICK_DURATION * qpratio);
+		TICKS_LEFT = TICK_DURATION;
+//		player.save("TimeLastTOG", System.currentTimeMillis());
 	}
 
 	@Override
 	public void process() {
+		TICKS_LEFT--;
+		if (TICKS_LEFT <= 0) {
+			player.save("TimeLastTOG", System.currentTimeMillis());
+			stopMinigame();
+			return;
+		}
+		updateTOGInterface();
+	}
 
+	private void stopMinigame() {
+		player.setNextTile(Tile.of(3251, 9516, 2));
+		forceClose();
 	}
 
 	private void updateTOGInterface() {
-
+		player.getInterfaceManager().sendInventoryInterface(TOG_INTERFACE);
+		player.getVars().setVar(449, (int)(1280 * (TICKS_LEFT / TICK_DURATION)));
 	}
 
 	@Override
 	public boolean login() {
+		forceClose();
 		return false;
 	}
 
@@ -72,6 +97,8 @@ public class TearsOfGuthixController extends Controller {
 	@Override
 	public void forceClose() {
 		player.getInterfaceManager().removeInventoryInterface();
+		player.getEquipment().deleteSlot(Equipment.WEAPON);
+		player.getAppearance().generateAppearanceData();
 		removeController();
 	}
 }

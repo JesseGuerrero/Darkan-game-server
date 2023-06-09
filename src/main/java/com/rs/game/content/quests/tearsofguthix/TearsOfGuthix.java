@@ -19,9 +19,14 @@ package com.rs.game.content.quests.tearsofguthix;
 import com.rs.engine.quest.Quest;
 import com.rs.engine.quest.QuestHandler;
 import com.rs.engine.quest.QuestOutline;
+import com.rs.game.content.minigames.tearsofguthix.TearsOfGuthixController;
 import com.rs.game.model.entity.player.Player;
+import com.rs.game.model.object.GameObject;
+import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
+import com.rs.lib.game.Animation;
 import com.rs.lib.game.Item;
+import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.events.ItemClickEvent;
 import com.rs.plugin.events.ItemOnItemEvent;
@@ -82,9 +87,17 @@ public class TearsOfGuthix extends QuestOutline {
 		e.getPlayer().getInventory().addItem(4546, 1);
 	});
 
-	public static void tearsOfGuthix(Player p) {
-		p.sendMessage("you are doing it...");
-		p.save("TimeLastTOG", System.currentTimeMillis());
+	public static void tearsOfGuthix(Player p, GameObject juna) {
+		p.lock(3);
+		p.walkToAndExecute(Tile.of(3251, 9516, 2), () ->{
+			juna.animate(new Animation(2055));
+			p.blockRun();
+			p.addWalkSteps(3253, 9516, -1, false);
+			WorldTasks.schedule(2, () -> {
+				p.unblockRun();
+				p.getControllerManager().startController(new TearsOfGuthixController());
+			});
+		});
 	}
 
 	@Override

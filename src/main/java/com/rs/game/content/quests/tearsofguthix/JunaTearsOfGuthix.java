@@ -6,6 +6,7 @@ import com.rs.engine.dialogue.Dialogue;
 import com.rs.engine.dialogue.HeadE;
 import com.rs.engine.quest.Quest;
 import com.rs.game.model.entity.player.Player;
+import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.plugin.annotations.PluginEventHandler;
@@ -18,7 +19,7 @@ import static com.rs.game.content.quests.tearsofguthix.TearsOfGuthix.tearsOfGuth
 @PluginEventHandler
 public class JunaTearsOfGuthix extends Conversation {
 	private static final int NPC = 2023;
-	public JunaTearsOfGuthix(Player p, boolean tellingStory) {
+	public JunaTearsOfGuthix(Player p, GameObject juna, boolean tellingStory) {
 		super(p);
 		switch(p.getQuestManager().getStage(Quest.TEARS_OF_GUTHIX)) {
 			case NOT_STARTED -> {
@@ -60,7 +61,7 @@ public class JunaTearsOfGuthix extends Conversation {
 								WorldTasks.delay(3,()->{
 									p.getInterfaceManager().fadeOut();
 									p.getQuestManager().setStage(Quest.TEARS_OF_GUTHIX, GET_BOWL);
-									WorldTasks.delay(2,()->{p.startConversation(new JunaTearsOfGuthix(p, true).getStart());});
+									WorldTasks.delay(2,()->{p.startConversation(new JunaTearsOfGuthix(p, juna, true).getStart());});
 								});
 							})
 					);
@@ -98,7 +99,7 @@ public class JunaTearsOfGuthix extends Conversation {
 			case QUEST_COMPLETE ->  {
 				addNPC(NPC, HeadE.CAT_CALM_TALK, "Tell me... a story...");
 				if(p.get("TimeLastTOG") instanceof Boolean || ((double)p.get("TimeLastTOG")) - System.currentTimeMillis() > 7*24*60*60*1000) {//1 week
-					addNext(()->{tearsOfGuthix(p);});
+					addNext(()->{tearsOfGuthix(p, juna);});
 					return;
 				}
 				if(p.getEquipment().hasTwoHandedWeapon() || p.getEquipment().hasShield() || p.getEquipment().getWeaponId() != -1) {
@@ -113,7 +114,6 @@ public class JunaTearsOfGuthix extends Conversation {
 
 
     public static ObjectClickHandler handleDialogue = new ObjectClickHandler(new Object[]{6657}, e-> {
-		e.getObject().animate(new Animation(2055));
-		e.getPlayer().startConversation(new JunaTearsOfGuthix(e.getPlayer(), false).getStart());
+		e.getPlayer().startConversation(new JunaTearsOfGuthix(e.getPlayer(), e.getObject(), false).getStart());
 	});
 }
