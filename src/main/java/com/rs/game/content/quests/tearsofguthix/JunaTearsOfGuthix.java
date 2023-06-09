@@ -96,7 +96,7 @@ public class JunaTearsOfGuthix extends Conversation {
 				addPlayer(HeadE.HAPPY_TALKING, "Okay, I'll do it!");
 			}
 			case QUEST_COMPLETE ->  {
-				addNPC(HeadE.CAT_CALM_TALK, "Tell me... a story...");
+				addNPC(NPC, HeadE.CAT_CALM_TALK, "Tell me... a story...");
 				if(p.get("TimeLastTOG") instanceof Boolean || ((double)p.get("TimeLastTOG")) - System.currentTimeMillis() > 7*24*60*60*1000) {//1 week
 					addNext(()->{tearsOfGuthix(p);});
 					return;
