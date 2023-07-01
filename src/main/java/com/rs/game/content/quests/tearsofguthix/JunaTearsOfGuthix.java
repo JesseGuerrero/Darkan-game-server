@@ -4,11 +4,13 @@ package com.rs.game.content.quests.tearsofguthix;
 import com.rs.engine.dialogue.Conversation;
 import com.rs.engine.dialogue.Dialogue;
 import com.rs.engine.dialogue.HeadE;
+import com.rs.engine.dialogue.Options;
 import com.rs.engine.quest.Quest;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
+import com.rs.lib.game.Item;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.events.ObjectClickEvent;
 import com.rs.plugin.handlers.ObjectClickHandler;
@@ -21,88 +23,88 @@ public class JunaTearsOfGuthix extends Conversation {
 	private static final int NPC = 2023;
 	public JunaTearsOfGuthix(Player p, GameObject juna, boolean tellingStory) {
 		super(p);
-		switch(p.getQuestManager().getStage(Quest.TEARS_OF_GUTHIX)) {
+		switch (p.getQuestManager().getStage(Quest.TEARS_OF_GUTHIX)) {
+			case NOT_STARTED -> {
+				addPlayer(HeadE.CALM_TALK, "And, that's what happened...");
+				addPlayer(HeadE.HAPPY_TALKING, "Amazing right?");
+				addNPC(NPC, HeadE.CAT_CALM_TALK, "No, not really. Your adventures have been boring");
+				addNext(() -> {
+					player.getQuestManager().showQuestDetailInterface(Quest.TEARS_OF_GUTHIX);
+					player.sendMessage("You must meet the quest requirements for tears of guthic to continue");
+				});
+			}
+			case GET_BOWL -> {
+				addPlayer(HeadE.CALM_TALK, "And, that's what happened...");
+				addPlayer(HeadE.HAPPY_TALKING, "Amazing right?");
+				addNPC(NPC, HeadE.CAT_CALM_TALK, "Yes, you have entertained me");
+				junaAsksForBowl();
+			}
+			case QUEST_COMPLETE -> {
+				addNPC(NPC, HeadE.CAT_CALM_TALK, "Tell me... a story...");
+				if (p.get("TimeLastTOG") instanceof Boolean || ((double) p.get("TimeLastTOG")) - System.currentTimeMillis() > 7 * 24 * 60 * 60 * 1000) {//1 week
+					addNext(() -> {
+						tearsOfGuthix(p, juna);
+					});
+					return;
+				}
+				if (p.getEquipment().hasTwoHandedWeapon() || p.getEquipment().hasShield() || p.getEquipment().getWeaponId() != -1) {
+					addSimple("If you want to collect the Tears of Guthix, you should have both hands free to hold the bowl.");
+					return;
+				}
+				addNPC(NPC, HeadE.CAT_CALM_TALK, "It seems we have already collected tears this week...");
+				addPlayer(HeadE.HAPPY_TALKING, "Oh Darn...");
+			}
+		}
+	}
+	public JunaTearsOfGuthix(Player p, GameObject juna) {
+		super(p);
+		switch (p.getQuestManager().getStage(Quest.TEARS_OF_GUTHIX)) {
 			case NOT_STARTED -> {
 				addNPC(NPC, HeadE.CAT_CALM_TALK, "Tell me... a story...");
 				addOptions("Choose an option:", ops -> {
 					ops.add("You tell me a story.", new Dialogue()
-							.addPlayer(HeadE.HAPPY_TALKING, "You tell me a story.")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "The Third Age of the world was a time of great conflict, of destruction never seen before or since, " +
-									"when all the gods save Guthix warred for control. The colossal wyrms, of whom today's dragons are a pale reflection, ")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "turned all the sky to fire, while on the ground armies of foot soldiers – goblins and trolls and " +
-									"humans – filled the valleys and plains with blood. In time, the noise of conflict woke Guthix from His deep slumber, and")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "He rose and stood in the centre of the battlefield so that the splendour of His wrath filled the world, " +
-									"and He called for the conflict to cease! Silence fell, for the gods knew that none could challenge the power of the mighty Guthix; ")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "for His power is that of nature itself, to which all other things are subject, in the end. Guthix " +
-									"reclaimed that which had been stolen from Him, and went back underground to His sleep and continue to draw the world's power into ")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "Himself. But on His way into the depths of the earth He sat and rested in this cave; and, thinking of " +
-									"the battle-scarred desert that now streched from one side of His world to the other, He wept. And so great was His sorrow, and so great")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "was His life-giving power, that the rocks themselves began to weep with Him. Later, Guthix noticed " +
-									"that the rocks continued to weep, and that their tears was infused with a small part of His power. So He set me, His servant, ")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "to guard the cave, and He entrusted me the task of judging who was and was not worthy to access the tears.")
-							.addPlayer(HeadE.CALM_TALK, "I see...")
-							.addPlayer(HeadE.HAPPY_TALKING, "Good story!")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "Thank you.")
+						.addPlayer(HeadE.HAPPY_TALKING, "You tell me a story.")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "The Third Age of the world was a time of great conflict, of destruction never seen before or since, " +
+								"when all the gods save Guthix warred for control. The colossal wyrms, of whom today's dragons are a pale reflection, ")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "turned all the sky to fire, while on the ground armies of foot soldiers – goblins and trolls and " +
+								"humans – filled the valleys and plains with blood. In time, the noise of conflict woke Guthix from His deep slumber, and")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "He rose and stood in the centre of the battlefield so that the splendour of His wrath filled the world, " +
+								"and He called for the conflict to cease! Silence fell, for the gods knew that none could challenge the power of the mighty Guthix; ")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "for His power is that of nature itself, to which all other things are subject, in the end. Guthix " +
+								"reclaimed that which had been stolen from Him, and went back underground to His sleep and continue to draw the world's power into ")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "Himself. But on His way into the depths of the earth He sat and rested in this cave; and, thinking of " +
+								"the battle-scarred desert that now streched from one side of His world to the other, He wept. And so great was His sorrow, and so great")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "was His life-giving power, that the rocks themselves began to weep with Him. Later, Guthix noticed " +
+								"that the rocks continued to weep, and that their tears was infused with a small part of His power. So He set me, His servant, ")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "to guard the cave, and He entrusted me the task of judging who was and was not worthy to access the tears.")
+						.addPlayer(HeadE.CALM_TALK, "I see...")
+						.addPlayer(HeadE.HAPPY_TALKING, "Good story!")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "Thank you.")
 					);
 					ops.add("A story?", new Dialogue()
-							.addPlayer(HeadE.HAPPY_TALKING, "A story?")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "I have been waiting here for three thousand years, guarding the Tears of Guthix. I serve my master " +
-									"faithfully, but I am bored. An adventurer such as yourself must have many tales to tell.")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "If you can entertain me, I will let you in the cave for a time. The more I enjoy your story, " +
-									"the more time I will give you in the cave. Then you can drink the power of balance, which will make you stronger in whatever area you are weakest.")
-							.addPlayer(HeadE.HAPPY_TALKING, "That sounds like a good deal!")
-							.addNPC(NPC, HeadE.CAT_CALM_TALK, "It is.")
+						.addPlayer(HeadE.HAPPY_TALKING, "A story?")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "I have been waiting here for three thousand years, guarding the Tears of Guthix. I serve my master " +
+								"faithfully, but I am bored. An adventurer such as yourself must have many tales to tell.")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "If you can entertain me, I will let you in the cave for a time. The more I enjoy your story, " +
+								"the more time I will give you in the cave. Then you can drink the power of balance, which will make you stronger in whatever area you are weakest.")
+						.addPlayer(HeadE.HAPPY_TALKING, "That sounds like a good deal!")
+						.addNPC(NPC, HeadE.CAT_CALM_TALK, "It is.")
 					);
-					ops.add("Okay...", new Dialogue()
-							.addSimple("You tell Juna about some stories...")
-							.addNext(()->{
-								p.lock(6);
-								p.getInterfaceManager().fadeIn();
-								WorldTasks.delay(3,()->{
-									p.getInterfaceManager().fadeOut();
-									p.getQuestManager().setStage(Quest.TEARS_OF_GUTHIX, GET_BOWL);
-									WorldTasks.delay(2,()->{p.startConversation(new JunaTearsOfGuthix(p, juna, true).getStart());});
-								});
-							})
-					);
-				});
-
-			}
-			case GET_BOWL -> {
-				if(tellingStory) {
-					addPlayer(HeadE.CALM_TALK, "And, that's what happened...");
-					addPlayer(HeadE.HAPPY_TALKING, "Amazing right?");
-					addNPC(NPC, HeadE.CAT_CALM_TALK, "Yes, you have entertained me");
+					ops.add("Okay...", tellJunaStories(juna));
+					});
 				}
-				if(p.getInventory().containsItem(4704)) {
-					addPlayer(HeadE.HAPPY_TALKING, "I have the bowl");
-					addNPC(NPC, HeadE.CAT_CALM_TALK, "I will keep your bowl for you, so that you may collect the tears many times in the future. I suggest you" +
-							" keep the lantern you used to attract the light creatures.");
-					addNPC(NPC, HeadE.CAT_CALM_TALK, "I foresee a time when you will need it again. Now, tell me another story, and I will let you collect " +
-							"the tears for the first time.");
-					addPlayer(HeadE.HAPPY_TALKING, "Okay...");
-					addNext(()->{
-						p.getQuestManager().completeQuest(Quest.TEARS_OF_GUTHIX);
+			case GET_BOWL -> {
+				junaAsksForBowl();
+			}
+			case QUEST_COMPLETE -> {
+				addNPC(NPC, HeadE.CAT_CALM_TALK, "Tell me... a story...");
+				if (p.get("TimeLastTOG") instanceof Boolean || ((double) p.get("TimeLastTOG")) - System.currentTimeMillis() > 7 * 24 * 60 * 60 * 1000) {//1 week
+					addNext(() -> {
+						tearsOfGuthix(p, juna);
 					});
 					return;
 				}
-				addNPC(NPC, HeadE.CAT_CALM_TALK, "Before you can collect the Tears of Guthix you must make a bowl out of the stone " +
-								"in the cave on the south of the chasm.");
-				addPlayer(HeadE.HAPPY_TALKING, "But, how do I get there?");
-				addNPC(NPC, HeadE.CAT_CALM_TALK, "Use the light creatures...");
-				addPlayer(HeadE.HAPPY_TALKING, "What?");
-				addNPC(NPC, HeadE.CAT_CALM_TALK, "Yes, the light creatures..");
-				addPlayer(HeadE.HAPPY_TALKING, "Umm...");
-				addNPC(NPC, HeadE.CAT_CALM_TALK, "Sssssst!");
-				addPlayer(HeadE.HAPPY_TALKING, "Okay, I'll do it!");
-			}
-			case QUEST_COMPLETE ->  {
-				addNPC(NPC, HeadE.CAT_CALM_TALK, "Tell me... a story...");
-				if(p.get("TimeLastTOG") instanceof Boolean || ((double)p.get("TimeLastTOG")) - System.currentTimeMillis() > 7*24*60*60*1000) {//1 week
-					addNext(()->{tearsOfGuthix(p, juna);});
-					return;
-				}
-				if(p.getEquipment().hasTwoHandedWeapon() || p.getEquipment().hasShield() || p.getEquipment().getWeaponId() != -1) {
+				if (p.getEquipment().hasTwoHandedWeapon() || p.getEquipment().hasShield() || p.getEquipment().getWeaponId() != -1) {
 					addSimple("If you want to collect the Tears of Guthix, you should have both hands free to hold the bowl.");
 					return;
 				}
@@ -112,8 +114,58 @@ public class JunaTearsOfGuthix extends Conversation {
 		}
 	}
 
+	private void junaAsksForBowl() {
+		if (player.getInventory().containsItem(4704)) {
+			addPlayer(HeadE.HAPPY_TALKING, "I have the bowl");
+			addNPC(NPC, HeadE.CAT_CALM_TALK, "I will keep your bowl for you, so that you may collect the tears many times in the future. I suggest you" +
+					" keep the lantern you used to attract the light creatures.");
+			addNPC(NPC, HeadE.CAT_CALM_TALK, "I foresee a time when you will need it again. Now, tell me another story, and I will let you collect " +
+					"the tears for the first time.");
+			addPlayer(HeadE.HAPPY_TALKING, "Okay...");
+			addNext(() -> {
+				player.getInventory().removeItems(new Item(4704, 1));
+				player.getQuestManager().completeQuest(Quest.TEARS_OF_GUTHIX);
+			});
+			return;
+		}
+		addNPC(NPC, HeadE.CAT_CALM_TALK, "Before you can collect the Tears of Guthix you must make a bowl out of the stone " +
+				"in the cave on the south of the chasm.");
+		addPlayer(HeadE.HAPPY_TALKING, "But, how do I get there?");
+		addNPC(NPC, HeadE.CAT_CALM_TALK, "Use the light creatures...");
+		addPlayer(HeadE.HAPPY_TALKING, "What?");
+		addNPC(NPC, HeadE.CAT_CALM_TALK, "Yes, the light creatures..");
+		addPlayer(HeadE.HAPPY_TALKING, "Umm...");
+		addNPC(NPC, HeadE.CAT_CALM_TALK, "Sssssst!");
+		addPlayer(HeadE.HAPPY_TALKING, "Okay, I'll do it!");
+	}
+
+	private Dialogue tellJunaStories(GameObject juna) {
+		return new Dialogue()
+				.addSimple("You tell Juna about some stories...")
+				.addNext(() -> {
+					player.lock(6);
+					player.getInterfaceManager().fadeIn();
+					if (TearsOfGuthix.meetsRequirements(player)) {
+						WorldTasks.delay(3, () -> {
+							player.getInterfaceManager().fadeOut();
+							player.getQuestManager().setStage(Quest.TEARS_OF_GUTHIX, GET_BOWL);
+							WorldTasks.delay(2, () -> {
+								player.startConversation(new JunaTearsOfGuthix(player, juna, true).getStart());
+							});
+						});
+						return;
+					}
+					WorldTasks.delay(3, () -> {
+						player.getInterfaceManager().fadeOut();
+						WorldTasks.delay(2, () -> {
+							player.startConversation(new JunaTearsOfGuthix(player, juna, true).getStart());
+						});
+					});
+				});
+	}
+
 
     public static ObjectClickHandler handleDialogue = new ObjectClickHandler(new Object[]{6657}, e-> {
-		e.getPlayer().startConversation(new JunaTearsOfGuthix(e.getPlayer(), e.getObject(), false).getStart());
+		e.getPlayer().startConversation(new JunaTearsOfGuthix(e.getPlayer(), e.getObject()).getStart());
 	});
 }

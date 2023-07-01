@@ -18,9 +18,11 @@ package com.rs.game.content.quests.tearsofguthix;
 
 import com.rs.engine.quest.Quest;
 import com.rs.engine.quest.QuestHandler;
+import com.rs.engine.quest.QuestManager;
 import com.rs.engine.quest.QuestOutline;
 import com.rs.game.content.minigames.tearsofguthix.TearsOfGuthixController;
 import com.rs.game.model.entity.player.Player;
+import com.rs.game.model.entity.player.Skills;
 import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
@@ -41,7 +43,7 @@ public class TearsOfGuthix extends QuestOutline {
 	public final static int NOT_STARTED = 0;
 	public final static int GET_BOWL = 1;
 	public final static int QUEST_COMPLETE = 2;
-
+	//4702, sapphire lantern
 	@Override
 	public int getCompletedStage() {
 		return QUEST_COMPLETE;
@@ -56,6 +58,18 @@ public class TearsOfGuthix extends QuestOutline {
 				lines.add("the tears shed by Guthix are said to have magical properties. However,");
 				lines.add("the cave is guarded by a loyal serpent named Juna...");
 				lines.add("");
+				lines.add("~~~Quest Requirements~~~");
+				lines.add((player.getQuestManager().getQuestPoints() >= 43 ? "<str>" : "") + "56 Quest Points");
+				lines.add("");
+				lines.add("~~~Skill Requirements~~~");
+				lines.add((player.getSkills().getLevel(Constants.FIREMAKING) >= 49 ? "<str>" : "") + "49 Firemaking");
+				lines.add((player.getSkills().getLevel(Constants.CRAFTING) >= 20 ? "<str>" : "") + "20 Craftng");
+				lines.add((player.getSkills().getLevel(Constants.MINING) >= 20 ? "<str>" : "") + "20 Mining");
+				lines.add("");
+				if (meetsRequirements(player)) {
+					lines.add("You meet the requirements for this quest!");
+					lines.add("");
+				}
 			}
 			case GET_BOWL -> {
 				lines.add("I must get a bowl to be able to fill with the tears.");
@@ -71,6 +85,21 @@ public class TearsOfGuthix extends QuestOutline {
 			}
 		}
 		return lines;
+	}
+
+	public static boolean meetsRequirements(Player p) {
+		QuestManager questManager = p.getQuestManager();
+		Skills skills = p.getSkills();
+		boolean[] requirements = new boolean[]{
+				questManager.getQuestPoints() >= 43,
+				skills.getLevel(Constants.MINING) >= 20,
+				skills.getLevel(Constants.CRAFTING) >= 20,
+				skills.getLevel(Constants.FIREMAKING) >= 49
+		};
+		for (boolean hasRequirement : requirements)
+			if (!hasRequirement)
+				return false;
+		return true;
 	}
 
 	public static ItemClickHandler handleMagicStone = new ItemClickHandler(new Object[]{4703}, new String[]{"Craft"}, e-> {
