@@ -44,7 +44,9 @@ public class TearsOfGuthix extends QuestOutline {
 	public final static int NOT_STARTED = 0;
 	public final static int GET_BOWL = 1;
 	public final static int QUEST_COMPLETE = 2;
-	//4702, sapphire lantern
+	//TODO: Do bowl creation
+	//TODO: Do tear gathering
+	//TODO: Finish tear interfaces
 	@Override
 	public int getCompletedStage() {
 		return QUEST_COMPLETE;
