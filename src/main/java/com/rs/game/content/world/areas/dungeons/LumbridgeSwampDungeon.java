@@ -56,7 +56,7 @@ public class LumbridgeSwampDungeon {
 		if(e.getPlayer().getX() < e.getObject().getX())
 			e.getPlayer().setNextTile(Tile.of(e.getPlayer().getX() + 2, e.getPlayer().getY(), e.getPlayer().getPlane()));
 		if(e.getPlayer().getX() > e.getObject().getX())
-			AgilityShortcuts.forceMovement(e.getPlayer(), Tile.of(e.getPlayer().getX()-2, e.getPlayer().getY(), e.getPlayer().getPlane()), 2049, 1, 1);
+			e.getPlayer().forceMove(Tile.of(e.getPlayer().getX()-2, e.getPlayer().getY(), e.getPlayer().getPlane()), 2049, 1, 1);
 	});
 
 	public static ObjectClickHandler handleSteppingStone1 = new ObjectClickHandler(false, new Object[] { 5948 }, e -> {

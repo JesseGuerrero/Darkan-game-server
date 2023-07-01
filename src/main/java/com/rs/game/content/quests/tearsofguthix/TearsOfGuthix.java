@@ -20,6 +20,7 @@ import com.rs.engine.quest.Quest;
 import com.rs.engine.quest.QuestHandler;
 import com.rs.engine.quest.QuestManager;
 import com.rs.engine.quest.QuestOutline;
+import com.rs.game.content.Toolbelt;
 import com.rs.game.content.minigames.tearsofguthix.TearsOfGuthixController;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
@@ -109,11 +110,34 @@ public class TearsOfGuthix extends QuestOutline {
 		e.getPlayer().getInventory().replace(new Item(4703, 1), new Item(4704, 1));
 	});
 
-
-	public static ItemOnItemHandler handleLensToBullsEye = new ItemOnItemHandler(4542, new int[]{4544}, e -> {
+	public static ItemOnItemHandler handleSapphireToBullseye = new ItemOnItemHandler(4544, new int[]{1607}, e -> {
 		e.getPlayer().getInventory().deleteItem(e.getItem1().getId(), 1);
 		e.getPlayer().getInventory().deleteItem(e.getItem2().getId(), 1);
-		e.getPlayer().getInventory().addItem(4546, 1);
+		e.getPlayer().getInventory().addItem(4700, 1);
+	});
+
+	public static ItemOnItemHandler handleLensToBullsEye = new ItemOnItemHandler(4700, new int[]{4542}, e -> {
+		e.getPlayer().getInventory().deleteItem(e.getItem1().getId(), 1);
+		e.getPlayer().getInventory().deleteItem(e.getItem2().getId(), 1);
+		e.getPlayer().getInventory().addItem(4701, 1);
+	});
+
+	public static ItemClickHandler handleSapphireLanternOn = new ItemClickHandler(new Object[]{4701}, new String[]{"Light"}, e-> {
+		if(e.getPlayer().getToolbelt().containsKey(Toolbelt.Tools.TINDERBOX) || e.getPlayer().getInventory().containsItem(590, 1)) {
+			e.getItem().setId(4702);
+			e.getPlayer().getInventory().refresh();
+			return;
+		}
+		e.getPlayer().sendMessage("You need a tinderbox to do this.");
+	});
+
+	public static ItemClickHandler handleSapphireLanternOff = new ItemClickHandler(new Object[]{4702}, new String[]{"Extinguish"}, e-> {
+		if(e.getPlayer().getToolbelt().containsKey(Toolbelt.Tools.TINDERBOX) || e.getPlayer().getInventory().containsItem(590, 1)) {
+			e.getItem().setId(4701);
+			e.getPlayer().getInventory().refresh();
+			return;
+		}
+		e.getPlayer().sendMessage("You need a tinderbox to do this.");
 	});
 
 	public static void tearsOfGuthix(Player p, GameObject juna) {

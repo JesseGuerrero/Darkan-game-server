@@ -1,8 +1,8 @@
 {
-  "name": "Inventory 511",
+  "name": "Miltog's Lamps",
   "generalStore": false,
   "buyOnly": false,
-  "currency": -1,
+  "currency": 995,
   "items": [
     {
       "item": {
@@ -64,5 +64,8 @@
         "amount": 0
       }
     }
+  ],
+  "npcIds": [
+    5781
   ]
 }
