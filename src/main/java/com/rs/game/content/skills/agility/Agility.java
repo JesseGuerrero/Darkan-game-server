@@ -16,10 +16,9 @@
 //
 package com.rs.game.content.skills.agility;
 
-import com.rs.game.World;
 import com.rs.engine.dialogue.Conversation;
 import com.rs.engine.dialogue.HeadE;
-import com.rs.game.model.entity.ForceMovement;
+import com.rs.game.World;
 import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
@@ -84,16 +83,12 @@ public class Agility {
 
 	public static void swingOnRopeSwing(final Player player, final Tile startTile, final Tile endTile, final GameObject object, final double xp) {
 		player.walkToAndExecute(startTile, () -> {
-			player.lock();
 			player.faceObject(object);
 			player.setNextAnimation(new Animation(751));
 			World.sendObjectAnimation(object, new Animation(497));
-			player.setNextForceMovement(new ForceMovement(player.getTile(), 1, endTile, 3, Utils.getAngleTo(endTile.getX()-player.getX(), endTile.getY()-player.getY())));
-			player.sendMessage("You skillfully swing across the rope.", true);
-			WorldTasks.schedule(1, () -> {
-				player.unlockNextTick();
+			player.forceMove(endTile, 30, 90, () -> {
+				player.sendMessage("You skillfully swing across the rope.", true);
 				player.getSkills().addXp(Constants.AGILITY, xp);
-				player.setNextTile(endTile);
 			});
 		});
 	}

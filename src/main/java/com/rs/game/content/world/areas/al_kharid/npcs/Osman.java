@@ -16,7 +16,6 @@
 //
 package com.rs.game.content.world.areas.al_kharid.npcs;
 
-import com.rs.game.content.quests.princealirescue.OsmanPrinceAliRescueD;
 import com.rs.engine.dialogue.Conversation;
 import com.rs.engine.dialogue.Dialogue;
 import com.rs.engine.dialogue.HeadE;
@@ -26,6 +25,7 @@ import com.rs.engine.dialogue.statements.OptionStatement;
 import com.rs.engine.dialogue.statements.PlayerStatement;
 import com.rs.engine.dialogue.statements.SimpleStatement;
 import com.rs.engine.quest.Quest;
+import com.rs.game.content.quests.princealirescue.OsmanPrinceAliRescueD;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.Constants;
 import com.rs.plugin.annotations.PluginEventHandler;
@@ -39,7 +39,7 @@ public class Osman extends Conversation {
 	public static NPCClickHandler Osman = new NPCClickHandler(new Object[]{npcId}, e -> {
 		int convoID = 1;
 		switch (e.getOption()) {
-			//Start Conversation
+			
 			case "Talk-to" -> e.getPlayer().startConversation(new Osman(e.getPlayer(), convoID));
 		}
 	});

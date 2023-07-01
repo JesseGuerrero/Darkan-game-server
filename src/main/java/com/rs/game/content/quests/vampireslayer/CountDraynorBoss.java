@@ -17,14 +17,12 @@
 package com.rs.game.content.quests.vampireslayer;
 
 import com.rs.cache.loaders.ObjectType;
-import com.rs.game.World;
 import com.rs.engine.dialogue.Conversation;
 import com.rs.engine.dialogue.HeadE;
 import com.rs.engine.quest.Quest;
+import com.rs.game.World;
 import com.rs.game.model.entity.Entity;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.npc.OwnedNPC;
-import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTask;
@@ -213,8 +211,7 @@ public class CountDraynorBoss extends OwnedNPC {
 					countDraynor.setNextAnimation(new Animation(AWAKEN));
 				}
 				if(tick == 9) {
-					p.setNextAnimation(new Animation(PUSHED_BACK));
-					p.setNextForceMovement(new ForceMovement(Tile.of(p.getX()-1, p.getY(), p.getPlane()), 1, Direction.EAST));
+					p.forceMove(Tile.of(p.getX()-1, p.getY(), p.getPlane()), PUSHED_BACK, 0, 30);
 				}
 				if(tick == 10) {
 					p.setNextAnimation(new Animation(ON_FLOOR));

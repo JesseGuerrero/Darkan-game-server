@@ -16,11 +16,11 @@
 //
 package com.rs.game.content.skills.farming;
 
+import com.rs.engine.dialogue.Dialogue;
 import com.rs.game.content.Effect;
 import com.rs.game.content.Potions;
 import com.rs.game.content.skills.woodcutting.TreeType;
 import com.rs.game.content.skills.woodcutting.Woodcutting;
-import com.rs.engine.dialogue.Dialogue;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTasks;
@@ -381,29 +381,30 @@ public class FarmPatch {
 		if (dead)
 			return;
 		totalGrowthTicks++;
-		if (fullyGrown())
-			switch(seed.type) {
-			case BUSH:
-			case CACTUS:
-			case VINE_BUSH:
-				if (totalGrowthTicks % 2 == 0 && checkedHealth && lives < (seed.type == PatchType.CACTUS ? 3 : 4))
-					lives++;
-				break;
-			case CALQUAT:
-			case FRUIT_TREE:
-				if (totalGrowthTicks % 9 == 0 && checkedHealth && lives < 6)
-					lives++;
-				break;
-			case TREE:
-				if (seed == ProduceType.Willow) {
-					if (checkedHealth && lives < 6)
+		if (fullyGrown()) {
+			switch (seed.type) {
+				case BUSH:
+				case CACTUS:
+				case VINE_BUSH:
+					if (totalGrowthTicks % 2 == 0 && checkedHealth && lives < (seed.type == PatchType.CACTUS ? 3 : 4))
 						lives++;
-				} else if (checkedHealth && lives < 0)
-					lives++;
-				break;
-			default:
-				break;
+					break;
+				case CALQUAT:
+				case FRUIT_TREE:
+					if (totalGrowthTicks % 9 == 0 && checkedHealth && lives < 6)
+						lives++;
+					break;
+				case TREE:
+					if (seed == ProduceType.Willow) {
+						if (checkedHealth && lives < 6)
+							lives++;
+					} else if (checkedHealth && lives < 0)
+						lives++;
+					break;
+				default:
+					break;
 			}
+		}
 		if (totalGrowthTicks % seed.type.getGrowthTicksPerStage() == 0) {
 			if (fullyGrown())
 				return;

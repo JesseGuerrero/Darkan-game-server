@@ -1,11 +1,11 @@
 package com.rs.game.content.world.areas.burthorpe.npcs;
 
-import com.rs.game.content.Skillcapes;
 import com.rs.engine.dialogue.Conversation;
 import com.rs.engine.dialogue.Dialogue;
 import com.rs.engine.dialogue.HeadE;
 import com.rs.engine.dialogue.Options;
 import com.rs.engine.quest.Quest;
+import com.rs.game.content.Skillcapes;
 import com.rs.game.model.entity.player.Player;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCClickHandler;
@@ -17,7 +17,7 @@ public class Kaqemeex extends Conversation {
 
     public static NPCClickHandler Kaqemeex = new NPCClickHandler(new Object[]{npcId}, e -> {
         switch (e.getOption()) {
-            //Start Conversation
+            
             case "Talk-to" -> e.getPlayer().startConversation(new Kaqemeex(e.getPlayer()));
         }
     });

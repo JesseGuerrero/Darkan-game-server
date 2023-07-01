@@ -16,46 +16,42 @@
 //
 package com.rs.game.content.world.areas.port_sarim;
 
-import com.rs.game.content.Skillcapes;
-import com.rs.game.content.quests.heroesquest.HeroesQuest;
-import com.rs.game.content.quests.knightssword.KnightsSword;
-import com.rs.game.content.quests.knightssword.ThurgoKnightsSwordD;
-import com.rs.game.content.world.unorganized_dialogue.skillmasters.GenericSkillcapeOwnerD;
 import com.rs.engine.dialogue.Conversation;
 import com.rs.engine.dialogue.Dialogue;
 import com.rs.engine.dialogue.HeadE;
 import com.rs.engine.dialogue.Options;
 import com.rs.engine.quest.Quest;
+import com.rs.game.content.Skillcapes;
+import com.rs.game.content.quests.heroesquest.HeroesQuest;
+import com.rs.game.content.quests.knightssword.KnightsSword;
+import com.rs.game.content.quests.knightssword.ThurgoKnightsSwordD;
+import com.rs.game.content.world.unorganized_dialogue.skillmasters.GenericSkillcapeOwnerD;
 import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
 import com.rs.lib.game.Item;
 import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
-import com.rs.plugin.handlers.ItemAddedToInventoryHandler;
-import com.rs.plugin.handlers.ItemOnNPCHandler;
-import com.rs.plugin.handlers.NPCClickHandler;
-import com.rs.plugin.handlers.ObjectClickHandler;
-import com.rs.plugin.handlers.PlayerStepHandler;
+import com.rs.plugin.handlers.*;
 import com.rs.utils.shop.ShopsHandler;
 
 @PluginEventHandler
 public class PortSarim {
 
-	public static PlayerStepHandler musicRustyAnchorInn = new PlayerStepHandler(new Tile[] { Tile.of(3053, 3255, 0), Tile.of(3053, 3254, 0), Tile.of(3053, 3259, 0), Tile.of(3053, 3260, 0) }, e -> {
-		if(e.getTile().getY() == 3255 && e.getStep().getDir() == Direction.NORTH) {
+	public static PlayerStepHandler musicRustyAnchorInn = new PlayerStepHandler(new Tile[]{Tile.of(3053, 3255, 0), Tile.of(3053, 3254, 0), Tile.of(3053, 3259, 0), Tile.of(3053, 3260, 0)}, e -> {
+		if (e.getTile().getY() == 3255 && e.getStep().getDir() == Direction.NORTH) {
 			e.getPlayer().getMusicsManager().playSpecificAmbientSong(719, true);
 			return;
 		}
-		if(e.getTile().getY() == 3259 && e.getStep().getDir() == Direction.SOUTH) {
+		if (e.getTile().getY() == 3259 && e.getStep().getDir() == Direction.SOUTH) {
 			e.getPlayer().getMusicsManager().playSpecificAmbientSong(719, true);
 			return;
 		}
-		if((e.getTile().getY() == 3260 || e.getTile().getY() == 3254) && e.getPlayer().getMusicsManager().isPlaying(719))
+		if ((e.getTile().getY() == 3260 || e.getTile().getY() == 3254) && e.getPlayer().getMusicsManager().isPlaying(719))
 			e.getPlayer().getMusicsManager().nextAmbientSong();
 	});
 
-	public static ItemOnNPCHandler handleThurgoItem = new ItemOnNPCHandler(new Object[] { 604 }, e -> {
+	public static ItemOnNPCHandler handleThurgoItem = new ItemOnNPCHandler(new Object[]{604}, e -> {
 		if (e.getItem().getId() == 24303 || e.getItem().getId() == 24339)
 			e.getPlayer().sendOptionDialogue("Would you like Thurgo to " + (e.getItem().getId() == 24339 ? "repair" : "forge") + " your Royal Crossbow?", ops -> {
 				ops.add("Yes, please (Requires a stabilizer, frame, sight, and spring)", () -> {
@@ -73,9 +69,9 @@ public class PortSarim {
 			});
 	});
 
-	public static ItemAddedToInventoryHandler handlePortSarimApron = new ItemAddedToInventoryHandler(new Object[] { 7957 }, e -> e.getItem().setId(1005));
+	public static ItemAddedToInventoryHandler handlePortSarimApron = new ItemAddedToInventoryHandler(new Object[]{7957}, e -> e.getItem().setId(1005));
 
-	public static NPCClickHandler handleThurgo = new NPCClickHandler(new Object[] { 604 }, e -> {
+	public static NPCClickHandler Thurgo = new NPCClickHandler(new Object[]{604}, e -> {
 		e.getPlayer().startConversation(new Conversation(e.getPlayer()) {
 			{
 				addOptions("What would you like to say?", new Options() {
@@ -98,7 +94,7 @@ public class PortSarim {
 		});
 	});
 
-	public static NPCClickHandler handleGerrantFishingShop = new NPCClickHandler(new Object[] { 558 }, e -> {
+	public static NPCClickHandler GerrantFishingShop = new NPCClickHandler(new Object[]{558}, e -> {
 		if (e.getOption().equalsIgnoreCase("Trade"))
 			ShopsHandler.openShop(e.getPlayer(), "gerrants_fishy_business");
 		if (e.getOption().equalsIgnoreCase("Talk-to"))
@@ -149,7 +145,7 @@ public class PortSarim {
 		e.getPlayer().setNextTile(Tile.of(3007, 9550, 0));
 	});
 
-	public static ObjectClickHandler handleExitIceDungeon = new ObjectClickHandler(new Object[]{32015}, new Tile[] { Tile.of(3008, 9550, 0) }, e -> {
+	public static ObjectClickHandler handleExitIceDungeon = new ObjectClickHandler(new Object[]{32015}, new Tile[]{Tile.of(3008, 9550, 0)}, e -> {
 		e.getPlayer().setNextTile(Tile.of(3008, 3149, 0));
 	});
 
@@ -185,5 +181,13 @@ public class PortSarim {
 			p.useStairs(828, Tile.of(obj.getX(), obj.getY() + 1, obj.getPlane() + 1), 1, 2);
 		if (obj.getRotation() == 3)
 			p.useStairs(828, Tile.of(obj.getX() + 1, obj.getY(), obj.getPlane() + 1), 1, 2);
+	});
+
+	public static PickupItemHandler handleAhabsBeer = new PickupItemHandler(new Object[]{ 6561 }, new Tile[]{Tile.of(3049, 3257, 0)}, e -> {
+		e.cancelPickup();
+		e.getPlayer().startConversation(new Dialogue()
+				.addNPC(2692, HeadE.ANGRY, "Oi matey, leave my beer alone!")
+				.addPlayer(HeadE.SKEPTICAL, "Sorry!")
+		);
 	});
 }

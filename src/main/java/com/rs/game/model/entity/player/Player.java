@@ -16,21 +16,6 @@
 //
 package com.rs.game.model.entity.player;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.time.Clock;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
-
 import com.rs.Settings;
 import com.rs.cache.loaders.Bonus;
 import com.rs.cache.loaders.EnumDefinitions;
@@ -38,15 +23,21 @@ import com.rs.cache.loaders.ItemDefinitions;
 import com.rs.cache.loaders.LoyaltyRewardDefinitions.Reward;
 import com.rs.cache.loaders.ObjectType;
 import com.rs.db.WorldDB;
+import com.rs.engine.book.Book;
+import com.rs.engine.cutscene.Cutscene;
+import com.rs.engine.dialogue.Conversation;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
+import com.rs.engine.dialogue.Options;
+import com.rs.engine.dialogue.statements.SimpleStatement;
+import com.rs.engine.miniquest.Miniquest;
+import com.rs.engine.miniquest.MiniquestManager;
+import com.rs.engine.quest.Quest;
+import com.rs.engine.quest.QuestManager;
 import com.rs.game.World;
 import com.rs.game.World.DropMethod;
-import com.rs.game.content.Effect;
-import com.rs.game.content.ItemConstants;
+import com.rs.game.content.*;
 import com.rs.game.content.ItemConstants.ItemDegrade;
-import com.rs.game.content.Notes;
-import com.rs.game.content.PlayerLook;
-import com.rs.game.content.SkillCapeCustomizer;
-import com.rs.game.content.Toolbelt;
 import com.rs.game.content.Toolbelt.Tools;
 import com.rs.game.content.achievements.AchievementInterface;
 import com.rs.game.content.bosses.godwars.GodwarsController;
@@ -66,8 +57,8 @@ import com.rs.game.content.pets.Pet;
 import com.rs.game.content.pets.PetManager;
 import com.rs.game.content.skills.construction.House;
 import com.rs.game.content.skills.cooking.Brewery;
+import com.rs.game.content.skills.cooking.Foods;
 import com.rs.game.content.skills.dungeoneering.DungManager;
-import com.rs.game.content.skills.dungeoneering.DungeonConstants;
 import com.rs.game.content.skills.dungeoneering.DungeonRewards.HerbicideSetting;
 import com.rs.game.content.skills.farming.FarmPatch;
 import com.rs.game.content.skills.farming.PatchLocation;
@@ -86,55 +77,27 @@ import com.rs.game.content.transportation.FadingScreen;
 import com.rs.game.content.tutorialisland.GamemodeSelection;
 import com.rs.game.content.tutorialisland.TutorialIslandController;
 import com.rs.game.content.world.Musician;
-import com.rs.engine.book.Book;
-import com.rs.engine.cutscene.Cutscene;
-import com.rs.engine.dialogue.Conversation;
-import com.rs.engine.dialogue.Dialogue;
-import com.rs.engine.dialogue.HeadE;
-import com.rs.engine.dialogue.Options;
-import com.rs.engine.dialogue.statements.SimpleStatement;
-import com.rs.engine.miniquest.Miniquest;
-import com.rs.engine.miniquest.MiniquestManager;
-import com.rs.engine.quest.Quest;
-import com.rs.engine.quest.QuestManager;
 import com.rs.game.ge.GE;
 import com.rs.game.ge.Offer;
 import com.rs.game.map.ChunkManager;
+import com.rs.game.map.instance.Instance;
 import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.interactions.PlayerCombatInteraction;
 import com.rs.game.model.entity.npc.NPC;
-import com.rs.game.model.entity.pathing.Direction;
-import com.rs.game.model.entity.pathing.FixedTileStrategy;
-import com.rs.game.model.entity.pathing.Route;
-import com.rs.game.model.entity.pathing.RouteEvent;
-import com.rs.game.model.entity.pathing.RouteFinder;
-import com.rs.game.model.entity.player.managers.AuraManager;
-import com.rs.game.model.entity.player.managers.ControllerManager;
-import com.rs.game.model.entity.player.managers.CutsceneManager;
-import com.rs.game.model.entity.player.managers.EmotesManager;
-import com.rs.game.model.entity.player.managers.HintIconsManager;
-import com.rs.game.model.entity.player.managers.InterfaceManager;
+import com.rs.game.model.entity.pathing.*;
+import com.rs.game.model.entity.player.managers.*;
 import com.rs.game.model.entity.player.managers.InterfaceManager.ScreenMode;
 import com.rs.game.model.entity.player.managers.InterfaceManager.Sub;
-import com.rs.game.model.entity.player.managers.MusicsManager;
-import com.rs.game.model.entity.player.managers.PrayerManager;
 import com.rs.game.model.entity.player.social.FCManager;
 import com.rs.game.model.item.ItemsContainer;
 import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
-import com.rs.lib.game.Animation;
-import com.rs.lib.game.GroundItem;
-import com.rs.lib.game.Item;
-import com.rs.lib.game.PublicChatMessage;
-import com.rs.lib.game.Rights;
-import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.VarManager;
-import com.rs.lib.game.Tile;
+import com.rs.lib.game.*;
 import com.rs.lib.model.Account;
 import com.rs.lib.model.Social;
 import com.rs.lib.model.clan.Clan;
@@ -157,12 +120,7 @@ import com.rs.net.LobbyCommunicator;
 import com.rs.net.decoders.handlers.PacketHandlers;
 import com.rs.net.encoders.WorldEncoder;
 import com.rs.plugin.PluginManager;
-import com.rs.plugin.events.EnterChunkEvent;
-import com.rs.plugin.events.InputHSLEvent;
-import com.rs.plugin.events.InputIntegerEvent;
-import com.rs.plugin.events.InputStringEvent;
-import com.rs.plugin.events.ItemEquipEvent;
-import com.rs.plugin.events.LoginEvent;
+import com.rs.plugin.events.*;
 import com.rs.utils.AccountLimiter;
 import com.rs.utils.MachineInformation;
 import com.rs.utils.Ticks;
@@ -170,6 +128,14 @@ import com.rs.utils.record.Recorder;
 import com.rs.utils.reflect.ReflectionAnalysis;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.time.Clock;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 public class Player extends Entity {
 
@@ -212,9 +178,10 @@ public class Player extends Entity {
 	private transient String[] playerOptions = new String[10];
 	private transient Set<Sound> sounds = new HashSet<Sound>();
 
-	private Tile lastNonDynamicTile;
+	private Instance instancedArea;
 
 	private int hw07Stage;
+	public transient Runnable onPacketCutsceneFinish;
 
 	public void refreshChargeTimer() {
 		addEffect(Effect.CHARGED, 600);
@@ -584,12 +551,6 @@ public class Player extends Entity {
 
 	private House house;
 
-	private transient boolean nextTickUnlock;
-
-	public void unlockNextTick() {
-		nextTickUnlock = true;
-	}
-
 	// creates Player and saved classes
 	public Player(Account account) {
 		super(Tile.of(Settings.getConfig().getPlayerStartTile()));
@@ -860,24 +821,6 @@ public class Player extends Entity {
 		started = true;
 		Logger.info(Player.class, "start", "Started player: " + account.getUsername());
 		run();
-
-		if (getBool("isLoggedOutInDungeon")) {
-			if (getDungManager().getParty() == null) {
-				setNextTile(Tile.of(DungeonConstants.OUTSIDE, 2));
-				this.reset();
-				getEquipment().reset();
-				getInventory().reset();
-				@SuppressWarnings("unchecked")
-				ArrayList<Double> itemsEnter = (ArrayList<Double>)savingAttributes.get("dungeoneering_enter_floor_inventory");
-				if(itemsEnter != null)
-					for(int i = 0; i < itemsEnter.size(); i++)
-						if ((i % 2) == 0)
-							getInventory().addItem(itemsEnter.get(i).intValue(), itemsEnter.get(i+1).intValue());
-			}
-			delete("isLoggedOutInDungeon");
-			delete("dungeoneering_enter_floor_inventory");
-		}
-		checkWasInDynamicRegion();
 		if (isDead())
 			sendDeath(null);
 	}
@@ -972,6 +915,7 @@ public class Player extends Entity {
 			getPackets().sendMapRegion(!started);
 			if (wasAtDynamicRegion)
 				localNPCUpdate.reset();
+			setInstancedArea(null);
 		}
 		forceNextMapLoadRefresh = false;
 	}
@@ -1168,11 +1112,6 @@ public class Player extends Entity {
 	@Override
 	public void processMovement() {
 		super.processMovement();
-		if (nextTickUnlock) {
-			unlock();
-			nextTickUnlock = false;
-		}
-		//Magic.teleControllersCheck(this, this);
 	}
 
 	@Override
@@ -1303,20 +1242,23 @@ public class Player extends Entity {
 		updateMovementType = true;
 		pvpCombatLevelThreshhold = -1;
 		appearence.generateAppearanceData();
+		checkWasInDynamicRegion();
 		controllerManager.login(); // checks what to do on login after welcome
 		//unlock robust glass
 		getVars().setVarBit(4322, 1);
+		//unlock ability to use elemental and catalytic runes
+		getVars().setVarBit(5493, 1);
 		// screen
 		if (machineInformation != null)
 			machineInformation.sendSuggestions(this);
 		notes.init();
 
-		long farmingTicksMissed = getTicksSinceLastLogout() / FarmPatch.FARMING_TICK;
-		if (farmingTicksMissed > 768)
-			farmingTicksMissed = 768;
-		if (farmingTicksMissed <= 0)
-			farmingTicksMissed = 0;
-		for (long i = 0;i < farmingTicksMissed;i++)
+		double farmingTicksMissed = Math.floor(getTicksSinceLastLogout() / FarmPatch.FARMING_TICK);
+		if (farmingTicksMissed > 768.0)
+			farmingTicksMissed = 768.0;
+		if (farmingTicksMissed < 1.0)
+			farmingTicksMissed = 0.0;
+		for (int i = 0;i < farmingTicksMissed;i++)
 			tickFarming();
 
 		for (FarmPatch p : getPatches().values())
@@ -1346,10 +1288,10 @@ public class Player extends Entity {
 		PluginManager.handle(new EnterChunkEvent(this, getChunkId()));
 	}
 
-	private int getTicksSinceLastLogout() {
+	private double getTicksSinceLastLogout() {
 		if (timeLoggedOut <= 0)
 			return 0;
-		return (int) ((System.currentTimeMillis() - timeLoggedOut) / 600L);
+		return (double) ((System.currentTimeMillis() - timeLoggedOut) / 600L);
 	}
 
 	public void processDailyTasks() {
@@ -2169,6 +2111,45 @@ public class Player extends Entity {
 
 	}
 
+	public void safeDeath(Tile respawnTile) {
+		safeDeath(null, respawnTile, "Oh dear, you are dead!", null);
+	}
+
+	public void safeDeath(Tile respawnTile, String message, Consumer<Player> onFall) {
+		safeDeath(null, respawnTile, message, onFall);
+	}
+
+	public void safeDeath(Tile respawnTile, Consumer<Player> onFall) {
+		safeDeath(null, respawnTile, "Oh dear, you are dead!", onFall);
+	}
+
+	public void safeDeath(Entity source, Tile respawnTile, String message, Consumer<Player> onFall) {
+		lock();
+		stopAll();
+		if (prayer.active(Prayer.RETRIBUTION))
+			retribution(source);
+		if (prayer.active(Prayer.WRATH))
+			wrath(source);
+		WorldTasks.scheduleTimer(0, 1, tick -> {
+			switch(tick) {
+				case 0 -> setNextAnimation(new Animation(836));
+				case 1 -> sendMessage(message);
+				case 3 -> {
+					reset();
+					setNextTile(respawnTile);
+					setNextAnimation(new Animation(-1));
+					if (onFall != null)
+						onFall.accept(this);
+				}
+				case 4 ->  {
+					jingle(90);
+					unlock();
+					return false;
+				}
+			}
+			return true;
+		});
+	}
 	@Override
 	public void sendDeath(final Entity source) {
 		incrementCount("Deaths");
@@ -2200,7 +2181,7 @@ public class Player extends Entity {
 				if (loop == 0)
 					setNextAnimation(new Animation(836));
 				else if (loop == 1)
-					sendMessage("Oh dear, you have died.");
+					sendMessage("Oh dear, you are dead!");
 				else if (loop == 2) {
 					reset();
 					if (source instanceof Player opp && opp.hasRights(Rights.ADMIN))
@@ -2252,12 +2233,12 @@ public class Player extends Entity {
 		return Tile.of(Tile.of(2745, 3474, 0), 4);
 	}
 
-	public void sendItemsOnDeath(Player killer, boolean dropItems) {
+	public void sendPVEItemsOnDeath(Player killer, boolean dropItems) {
 		Integer[][] slots = GraveStone.getItemSlotsKeptOnDeath(this, true, dropItems, prayer.isProtectingItem());
-		sendItemsOnDeath(killer, Tile.of(getTile()), Tile.of(getTile()), true, slots);
+		sendPVEItemsOnDeath(killer, Tile.of(getTile()), Tile.of(getTile()), true, slots);
 	}
 
-	public void sendItemsOnDeath(Player killer, Tile deathTile, Tile respawnTile, boolean noGravestone, Integer[][] slots) {
+	public void sendPVEItemsOnDeath(Player killer, Tile deathTile, Tile respawnTile, boolean noGravestone, Integer[][] slots) {
 		if (hasRights(Rights.ADMIN) || Settings.getConfig().isDebug())
 			return;
 		auraManager.removeAura();
@@ -2295,9 +2276,9 @@ public class Player extends Entity {
 				new GraveStone(this, deathTile, items[1]);
 	}
 
-	public void sendItemsOnDeath(Player killer) {
-		if (hasRights(Rights.ADMIN) || Settings.getConfig().isDebug())
-			return;
+	public void sendPVPItemsOnDeath(Player killer) {
+//		if (hasRights(Rights.ADMIN) || Settings.getConfig().isDebug())
+//			return;
 		if (killer != null && !killer.getUsername().equals(getUsername()) && killer.isIronMan())
 			killer = null;
 		auraManager.removeAura();
@@ -2331,73 +2312,44 @@ public class Player extends Entity {
 		for (Item item : keptItems)
 			if (item.getId() != 1)
 				getInventory().addItem(item);
-		for (Item item : containedItems)
-			if (ItemConstants.isTradeable(item))
-				World.addGroundItem(item, getLastTile(), killer == null ? this : killer, true, 60);
+		List<Item> droppedItems = new ArrayList<>();
+		for (Item item : containedItems) {
+			if (ItemConstants.isTradeable(item) || item.getId() == 24444)
+				droppedItems.add(item);
+				//World.addGroundItem(item, getLastTile(), killer == null ? this : killer, true, 60);
 			else {
 				ItemDegrade deg = null;
-				for(ItemDegrade d : ItemDegrade.values())
+				for (ItemDegrade d : ItemDegrade.values()) {
 					if (d.getDegradedId() == item.getId() || d.getItemId() == item.getId()) {
 						deg = d;
 						break;
 					}
+				}
 				if (deg != null && deg.getBrokenId() != -1) {
 					Item broken = new Item(deg.getBrokenId(), item.getAmount());
-					if (!ItemConstants.isTradeable(broken) && (killer != null && killer != this)) {
-						Item money = new Item(995, 1);
-						money.setAmount(item.getDefinitions().getValue());
-						World.addGroundItem(money, getLastTile(), killer == null ? this : killer, true, 60);
-					} else
-						World.addGroundItem(broken, getLastTile(), killer == null ? this : killer, true, 60);
-				} else {
-					Item money = new Item(995, 1);
-					money.setAmount(item.getDefinitions().getValue());
-					World.addGroundItem(money, getLastTile(), killer == null ? this : killer, true, 60);
-				}
+					droppedItems.add((!ItemConstants.isTradeable(broken) && (killer != null && killer != this)) ? new Item(995, item.getDefinitions().getValue()) : broken);
+				} else
+					droppedItems.add(new Item(995, item.getDefinitions().getValue()));
 			}
-		getAppearance().generateAppearanceData();
-	}
-
-
-	public void sendOSItemsOnDeath(Player killer) {
-		if (hasRights(Rights.ADMIN) || Settings.getConfig().isDebug())
-			return;
-		auraManager.removeAura();
-		CopyOnWriteArrayList<Item> containedItems = new CopyOnWriteArrayList<>();
-		for (int i = 0; i < 14; i++)
-			if (equipment.getItem(i) != null && equipment.getItem(i).getId() != -1 && equipment.getItem(i).getAmount() != -1)
-				containedItems.add(new Item(equipment.getItem(i).getId(), equipment.getItem(i).getAmount()));
-		for (int i = 0; i < 28; i++)
-			if (inventory.getItem(i) != null && inventory.getItem(i).getId() != -1 && inventory.getItem(i).getAmount() != -1)
-				containedItems.add(new Item(getInventory().getItem(i).getId(), getInventory().getItem(i).getAmount()));
-		if (containedItems.isEmpty())
-			return;
-		int keptAmount = 0;
-
-		keptAmount = hasSkull() ? 0 : 3;
-		if (prayer.isProtectingItem())
-			keptAmount++;
-
-		CopyOnWriteArrayList<Item> keptItems = new CopyOnWriteArrayList<>();
-		Item lastItem = new Item(1, 1);
-		for (int i = 0; i < keptAmount; i++) {
-			for (Item item : containedItems) {
-				int price = item.getDefinitions().getValue();
-				if (price >= lastItem.getDefinitions().getValue())
-					lastItem = item;
-			}
-			this.sendMessage(lastItem.getDefinitions().getName() + ": " + lastItem.getDefinitions().getValue());
-			keptItems.add(lastItem);
-			containedItems.remove(lastItem);
-			lastItem = new Item(1, 1);
 		}
-		inventory.reset();
-		equipment.reset();
-		for (Item item : keptItems)
-			if (item.getId() != 1)
-				getInventory().addItem(item);
-		for (Item item : containedItems)
-			World.addGroundItem(item, getLastTile(), this, false, 60);
+		if (killer == null) {
+			for (Item item : droppedItems)
+				World.addGroundItem(item, getLastTile(), this, true, 60);
+		} else {
+			List<Item> foodItems = new ArrayList<>();
+			List<Item> trophyItems = new ArrayList<>();
+			for (Item item : droppedItems) {
+				if (Foods.isConsumable(item) || Potions.Potion.POTS.keySet().contains(item.getId()) || item.getId() == 24444)
+					foodItems.add(item);
+				else
+					trophyItems.add(item);
+			}
+			if (!trophyItems.isEmpty())
+				World.addGroundItem(new Item(24444, 1).addMetaData("trophyBoneOriginator", getDisplayName()).addMetaData("trophyBoneItems", trophyItems), getLastTile(), killer, true, 60);
+			for (Item item : foodItems)
+				World.addGroundItem(item, getLastTile(), killer, true, 60);
+		}
+		getAppearance().generateAppearanceData();
 	}
 
 	public void increaseKillCount(Player killed) {
@@ -4273,19 +4225,16 @@ public class Player extends Entity {
 	}
 
 	private void checkWasInDynamicRegion() {
-		if (!getBool("dontTeleFromInstanceOnLogin") && lastNonDynamicTile != null && (getControllerManager().getController() == null || !getControllerManager().getController().reenableDynamicRegion())) {
-			setNextTile(Tile.of(lastNonDynamicTile));
-			clearLastNonDynamicTile();
+		if (instancedArea != null) {
+			Instance prevInstance = Instance.get(instancedArea.getId());
+			if (prevInstance != null && prevInstance.isPersistent()) {
+				prevInstance.teleportTo(this);
+				setForceNextMapLoadRefresh(true);
+				return;
+			}
+			setNextTile(instancedArea.getReturnTo());
+			instancedArea = null;
 		}
-		getSavingAttributes().remove("dontTeleFromInstanceOnLogin");
-	}
-
-	public void clearLastNonDynamicTile() {
-		lastNonDynamicTile = null;
-	}
-
-	public void setLastNonDynamicTile(Tile lastNonDynamicTile) {
-		this.lastNonDynamicTile = lastNonDynamicTile;
 	}
 
 	public Recorder getRecorder() {
@@ -4314,6 +4263,10 @@ public class Player extends Entity {
 		WorldTasks.delay(ticks+1, () -> unlock());
 	}
 
+	public void playPacketCutscene(int id, Runnable onFinish) {
+		getPackets().sendCutscene(id);
+		onPacketCutsceneFinish = onFinish;
+	}
 	public void playCutscene(Consumer<Cutscene> constructor) {
 		getCutsceneManager().play(new Cutscene() {
 			@Override
@@ -4330,6 +4283,14 @@ public class Player extends Entity {
 	public void setBasNoReset(int bas) {
 		super.setBasNoReset(bas);
 		getAppearance().generateAppearanceData();
+	}
+
+	public void setInstancedArea(Instance instancedArea) {
+		this.instancedArea = instancedArea;
+	}
+
+	public Instance getInstancedArea() {
+		return instancedArea;
 	}
 
 	public Set<Integer> getMapChunksNeedInit() {

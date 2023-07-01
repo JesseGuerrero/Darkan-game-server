@@ -16,9 +16,6 @@
 //
 package com.rs.game.model.entity.player;
 
-import java.security.MessageDigest;
-import java.util.Arrays;
-
 import com.rs.Settings;
 import com.rs.game.World;
 import com.rs.game.model.entity.Hit;
@@ -26,6 +23,8 @@ import com.rs.game.model.entity.HitBar;
 import com.rs.lib.Constants;
 import com.rs.lib.io.OutputStream;
 import com.rs.lib.util.Utils;
+
+import java.security.MessageDigest;
 
 public final class LocalPlayerUpdate {
 
@@ -521,12 +520,12 @@ public final class LocalPlayerUpdate {
 	}
 
 	private void applyForceMovementMask(Player p, OutputStream data) {
-		data.writeByteC(p.getNextForceMovement().getToFirstTile().getX() - p.getX());
-		data.write128Byte(p.getNextForceMovement().getToFirstTile().getY() - p.getY());
-		data.writeByte128(p.getNextForceMovement().getToSecondTile() == null ? 0 : p.getNextForceMovement().getToSecondTile().getX() - p.getX());
-		data.writeByteC(p.getNextForceMovement().getToSecondTile() == null ? 0 : p.getNextForceMovement().getToSecondTile().getY() - p.getY());
-		data.writeShortLE128(p.getNextForceMovement().getFirstTileTicketDelay() * 30); //30 = client frames per game tick
-		data.writeShortLE(p.getNextForceMovement().getToSecondTile() == null ? 0 : p.getNextForceMovement().getSecondTileTicketDelay() * 30);
+		data.writeByteC(p.getNextForceMovement().getDiffX1());
+		data.write128Byte(p.getNextForceMovement().getDiffY1());
+		data.writeByte128(p.getNextForceMovement().getDiffX2());
+		data.writeByteC(p.getNextForceMovement().getDiffY2());
+		data.writeShortLE128(p.getNextForceMovement().getStartClientCycles());
+		data.writeShortLE(p.getNextForceMovement().getSpeedClientCycles());
 		data.writeShort128(p.getNextForceMovement().getDirection());
 	}
 

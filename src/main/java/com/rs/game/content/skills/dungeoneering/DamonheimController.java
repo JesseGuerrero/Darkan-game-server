@@ -16,9 +16,7 @@
 //
 package com.rs.game.content.skills.dungeoneering;
 
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.npc.NPC;
-import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Controller;
 import com.rs.game.model.entity.player.Player;
 import com.rs.lib.game.Tile;
@@ -33,7 +31,7 @@ public class DamonheimController extends Controller {
 	public static ObjectClickHandler handleJumpDownExit = new ObjectClickHandler(new Object[] { 50552 }, e -> {
 		if (e.getPlayer().getControllerManager().getController() instanceof DungeonController)
 			e.getPlayer().getControllerManager().removeControllerWithoutCheck();
-		e.getPlayer().setNextForceMovement(new ForceMovement(e.getObject().getTile(), 1, Direction.NORTH));
+		e.getPlayer().forceMove(e.getObject().getTile(), 5, 35);
 		e.getPlayer().getPackets().sendVarc(234, 0);// Party Config Interface
 		e.getPlayer().getControllerManager().startController(new DamonheimController());
 		e.getPlayer().useStairs(13760, Tile.of(3454, 3725, 0), 2, 3);

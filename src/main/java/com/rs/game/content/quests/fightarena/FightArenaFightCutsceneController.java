@@ -16,17 +16,14 @@
 //
 package com.rs.game.content.quests.fightarena;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.rs.game.World;
 import com.rs.engine.dialogue.Dialogue;
 import com.rs.engine.dialogue.HeadE;
 import com.rs.engine.quest.Quest;
+import com.rs.game.World;
+import com.rs.game.map.instance.Instance;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Controller;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.map.instance.Instance;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
@@ -34,8 +31,11 @@ import com.rs.lib.game.Tile;
 import com.rs.utils.music.Genre;
 import com.rs.utils.music.Music;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class FightArenaFightCutsceneController extends Controller {
-	public Instance instance;
+	public transient Instance instance;
 	List<NPC> dynamicNPCs = new ArrayList<>();
 	Tile locationOnFail = Tile.of(2617, 3167, 0);
 	Tile locationOnVictory = Tile.of(2617, 3172, 0);
@@ -65,7 +65,7 @@ public class FightArenaFightCutsceneController extends Controller {
 
 	private void playCutscene() {
 		player.lock();
-		instance = new Instance(10, 10);
+		instance = Instance.of(locationOnFail, 10, 10);
 		instance.copyMapAllPlanes(320, 391).thenAccept(e -> {
 			spawn = instance.getLocalTile(57, 39);
 
@@ -361,6 +361,8 @@ public class FightArenaFightCutsceneController extends Controller {
 	}
 
 	private void removeInstance() {
+		if(instance == null)
+			return;
 		removeDynamicNPCs();
 		instance.destroy();
 	}

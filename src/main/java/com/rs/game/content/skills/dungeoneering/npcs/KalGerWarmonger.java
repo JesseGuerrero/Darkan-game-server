@@ -16,8 +16,6 @@
 //
 package com.rs.game.content.skills.dungeoneering.npcs;
 
-import java.util.List;
-
 import com.rs.cache.loaders.ObjectType;
 import com.rs.game.World;
 import com.rs.game.content.skills.dungeoneering.DungeonManager;
@@ -27,7 +25,6 @@ import com.rs.game.content.skills.dungeoneering.npcs.bosses.DungeonBoss;
 import com.rs.game.content.skills.dungeoneering.npcs.combat.YkLagorThunderousCombat;
 import com.rs.game.content.skills.prayer.Prayer;
 import com.rs.game.model.entity.Entity;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
@@ -41,6 +38,8 @@ import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
 import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
+
+import java.util.List;
 
 public class KalGerWarmonger extends DungeonBoss {
 
@@ -183,14 +182,10 @@ public class KalGerWarmonger extends DungeonBoss {
 			return;
 
 		if (typeTicks == 1) {
-			setNextAnimation(new Animation(14995));
 			setNextSpotAnim(new SpotAnim(2870));
 			final int[] FLY_LOCATION = FLY_COORDINATES[type - 1];
 			nextFlyTile = getManager().getTile(getReference(), FLY_LOCATION[0], FLY_LOCATION[1], SIZE, SIZE);
-			setNextForceMovement(new ForceMovement(getTile(), 1, nextFlyTile, 5, Utils.getAngleTo(nextFlyTile.getX() - getX(), nextFlyTile.getY() - getY())));
-		} else if (typeTicks == 6) {
-			setNextSpotAnim(new SpotAnim(2870));
-			setNextTile(nextFlyTile);
+			forceMove(nextFlyTile, 14995, 25, 150, () -> spotAnim(2870));
 		} else if (typeTicks == 9) {
 			if (type == 1) {
 				typeTicks = 16;

@@ -21,14 +21,11 @@ import com.rs.game.content.Effect;
 import com.rs.game.content.Potions;
 import com.rs.game.content.skills.thieving.Thieving;
 import com.rs.game.model.entity.Entity;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.npc.NPC;
-import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Controller;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Tile;
@@ -140,23 +137,13 @@ public class WildernessController extends Controller {
 	@Override
 	public boolean processObjectClick1(final GameObject object) {
 		if (isDitch(object.getId())) {
-			player.lock();
-			player.setNextAnimation(new Animation(6132));
-			final Tile toTile = Tile.of(object.getRotation() == 1 || object.getRotation() == 3 ? object.getX() + 2 : player.getX(), object.getRotation() == 0 || object.getRotation() == 2 ? object.getY() - 1 : player.getY(),
-					object.getPlane());
-
-			player.setNextForceMovement(new ForceMovement(Tile.of(player.getTile()), 1, toTile, 2, object.getRotation() == 0 || object.getRotation() == 2 ? Direction.SOUTH : Direction.EAST));
-			WorldTasks.schedule(new WorldTask() {
-				@Override
-				public void run() {
-					player.setNextTile(toTile);
-					player.faceObject(object);
-					removeIcon();
-					removeController();
-					player.resetReceivedDamage();
-					player.unlock();
-				}
-			}, 2);
+			final Tile toTile = Tile.of(object.getRotation() == 1 || object.getRotation() == 3 ? object.getX() + 2 : player.getX(), object.getRotation() == 0 || object.getRotation() == 2 ? object.getY() - 1 : player.getY(), object.getPlane());
+			player.forceMove(toTile, 6132, 30, 60, () -> {
+				player.faceObject(object);
+				removeIcon();
+				removeController();
+				player.resetReceivedDamage();
+			});
 			return false;
 		}
 		if (object.getId() == 2557 || object.getId() == 65717) {
@@ -202,7 +189,7 @@ public class WildernessController extends Controller {
 					killer.removeDamage(player);
 					killer.increaseKillCount(player);
 				}
-				player.sendItemsOnDeath(killer);
+				player.sendPVPItemsOnDeath(killer);
 				player.getEquipment().init();
 				player.getInventory().init();
 				player.reset();

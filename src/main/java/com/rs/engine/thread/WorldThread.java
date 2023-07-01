@@ -16,10 +16,6 @@
 //
 package com.rs.engine.thread;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import com.rs.Launcher;
 import com.rs.Settings;
 import com.rs.game.World;
@@ -34,10 +30,14 @@ import com.rs.lib.util.Utils;
 import com.rs.lib.web.APIUtil;
 import com.rs.utils.Timer;
 import com.rs.web.Telemetry;
-import org.json.simple.JSONObject;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public final class WorldThread extends Thread {
 
+	public static long START_CYCLE;
 	public static volatile long WORLD_CYCLE;
 
 	protected WorldThread() {
@@ -47,7 +47,7 @@ public final class WorldThread extends Thread {
 	}
 
 	public static void init() {
-		WORLD_CYCLE = System.currentTimeMillis() / 600L;
+		WORLD_CYCLE = START_CYCLE = System.currentTimeMillis() / 600L;
 		LowPriorityTaskExecutor.getWorldExecutor().scheduleAtFixedRate(new WorldThread(), 0, Settings.WORLD_CYCLE_MS, TimeUnit.MILLISECONDS);
 	}
 
@@ -64,7 +64,7 @@ public final class WorldThread extends Thread {
 			Timer timerTask = new Timer().start();
 			WorldTasks.processTasks();
 			Logger.trace(WorldThread.class, "tick", "processTasks() - " + timerTask.stop());
-			OwnedObject.process();
+			OwnedObject.processAll();
 			NAMES.clear();
 			Timer timerPlayerProc = new Timer().start();
 			for (Player player : World.getPlayers()) {
@@ -153,9 +153,9 @@ public final class WorldThread extends Thread {
 			long time = (System.currentTimeMillis() - startTime);
 			Logger.trace(WorldThread.class, "tick", "Tick finished - Mem: " + (Utils.formatDouble(Launcher.getMemUsedPerc())) + "% - " + time + "ms - Players online: " + World.getPlayers().size());
 			Telemetry.queueTelemetryTick(time);
-			if (time > 250l && Settings.getConfig().getStaffWebhookUrl() != null) {
+			if (time > 500l && Settings.getConfig().getStaffWebhookUrl() != null) {
 				StringBuilder content = new StringBuilder();
-				content.append("Tick concern - " + time + "ms - " + Settings.getConfig().getServerName() + " - Players online: " + World.getPlayers().size());
+				content.append("Tick concern - " + time + "ms - " + Settings.getConfig().getServerName() + " - Players online: " + World.getPlayers().size() + " - Uptime: " + Utils.ticksToTime(WORLD_CYCLE - START_CYCLE));
 				content.append("```\n");
 				content.append("Chunk: " + timerChunk.getFormattedTime() + "\n");
 				content.append("Task: " + timerTask.getFormattedTime() + "\n");

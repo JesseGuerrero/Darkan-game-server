@@ -16,9 +16,7 @@
 //
 package com.rs.game.content.skills.magic;
 
-import java.util.List;
-import java.util.function.Consumer;
-
+import com.rs.engine.quest.Quest;
 import com.rs.game.World;
 import com.rs.game.content.bosses.godwars.GodwarsController;
 import com.rs.game.content.combat.CombatSpell;
@@ -32,16 +30,15 @@ import com.rs.game.model.entity.player.Player;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
-import com.rs.lib.game.Animation;
-import com.rs.lib.game.Item;
-import com.rs.lib.game.Rights;
-import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.Tile;
+import com.rs.lib.game.*;
 import com.rs.lib.net.ClientPacket;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.ButtonClickHandler;
 import com.rs.plugin.handlers.InterfaceOnNPCHandler;
 import com.rs.plugin.handlers.InterfaceOnPlayerHandler;
+
+import java.util.List;
+import java.util.function.Consumer;
 
 @PluginEventHandler
 public class Magic {
@@ -78,6 +75,8 @@ public class Magic {
 	}
 
 	public static final boolean checkCombatSpell(Player player, CombatSpell spell, int set, boolean delete) {
+		if (spell == CombatSpell.STORM_OF_ARMADYL && !player.isQuestComplete(Quest.RITUAL_OF_MAHJARRAT, "to cast Storm of Armadyl."))
+			return false;
 		if (set >= 0)
 			if (set == 0)
 				player.getCombatDefinitions().setAutoCastSpell(spell);

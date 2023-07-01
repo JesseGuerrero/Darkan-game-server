@@ -18,6 +18,10 @@ package com.rs.game.content.skills.construction;
 
 import com.rs.cache.loaders.ItemDefinitions;
 import com.rs.cache.loaders.ObjectDefinitions;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
+import com.rs.engine.dialogue.Options;
+import com.rs.engine.quest.Quest;
 import com.rs.game.content.PlayerLook;
 import com.rs.game.content.items.liquid_containers.FillAction;
 import com.rs.game.content.items.liquid_containers.FillAction.Filler;
@@ -25,7 +29,6 @@ import com.rs.game.content.skills.construction.House.ObjectReference;
 import com.rs.game.content.skills.construction.House.RoomReference;
 import com.rs.game.content.skills.construction.HouseConstants.Builds;
 import com.rs.game.content.skills.construction.HouseConstants.HObject;
-import com.rs.game.content.skills.construction.HouseConstants.POHLocation;
 import com.rs.game.content.skills.cooking.Cooking;
 import com.rs.game.content.skills.cooking.Cooking.Cookables;
 import com.rs.game.content.skills.cooking.CookingD;
@@ -34,11 +37,6 @@ import com.rs.game.content.skills.magic.Rune;
 import com.rs.game.content.skills.magic.RuneSet;
 import com.rs.game.content.transportation.ItemTeleports;
 import com.rs.game.content.world.unorganized_dialogue.FillingD;
-import com.rs.engine.dialogue.Dialogue;
-import com.rs.engine.dialogue.HeadE;
-import com.rs.engine.dialogue.Options;
-import com.rs.engine.quest.Quest;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Controller;
@@ -83,7 +81,7 @@ public class HouseController extends Controller {
 					player.sendMessage("Oh dear, you have died.");
 				else if (loop == 3) {
 					player.setNextAnimation(new Animation(-1));
-					player.setNextTile(house.getPortal());
+					house.teleportPlayer(player);
 					player.reset();
 					player.setCanPvp(false);
 					stop();
@@ -327,18 +325,7 @@ public class HouseController extends Controller {
 		}
 		if (target == null)
 			return;
-		player.lock(1);
-		player.setNextAnimation(new Animation(741));
-		final Tile toTile = target;
-		player.setNextForceMovement(new ForceMovement(player.getTile(), 0, toTile, 1, direction));
-		WorldTasks.schedule(new WorldTask() {
-
-			@Override
-			public void run() {
-				player.setNextTile(toTile);
-			}
-
-		}, 0);
+		player.forceMove(target, 741, 1, 35);
 	}
 
 	@Override
@@ -408,18 +395,7 @@ public class HouseController extends Controller {
 		}
 		if (target == null)
 			return;
-		player.lock(1);
-		player.setNextAnimation(new Animation(3688));
-		final Tile toTile = target;
-		player.setNextForceMovement(new ForceMovement(player.getTile(), 0, toTile, 1, direction));
-		WorldTasks.schedule(new WorldTask() {
-
-			@Override
-			public void run() {
-				player.setNextTile(toTile);
-			}
-
-		}, 0);
+		player.forceMove(target, 3688, 1, 30);
 	}
 
 	@Override
@@ -518,7 +494,7 @@ public class HouseController extends Controller {
 	@Override
 	public boolean login() {
 		removeController();
-		player.setNextTile(POHLocation.RIMMINGTON.getTile());
+		player.setNextTile(player.getHouse().getLocation().getTile());
 		return false;
 	}
 

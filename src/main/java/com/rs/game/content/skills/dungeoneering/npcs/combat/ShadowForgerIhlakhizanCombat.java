@@ -20,7 +20,6 @@ import com.rs.game.World;
 import com.rs.game.content.skills.dungeoneering.DungeonManager;
 import com.rs.game.content.skills.dungeoneering.npcs.ShadowForgerIhlakhizan;
 import com.rs.game.model.entity.Entity;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.npc.NPC;
@@ -113,12 +112,8 @@ public class ShadowForgerIhlakhizanCombat extends CombatScript {
 												tile = Tile.of(target.getTile());
 										}
 										target.faceEntity(forger);
-										target.setNextAnimation(new Animation(10070));
-										target.setNextForceMovement(new ForceMovement(target.getTile(), 0, tile, 2, target.getFaceAngle()));
-									} else if (ticks == 2) {
-										target.setNextTile(tile);
+										target.forceMove(tile, 10070, 5, 60);
 										stop();
-										return;
 									}
 								}
 							}, 0, 0);

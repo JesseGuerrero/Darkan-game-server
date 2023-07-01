@@ -16,18 +16,6 @@
 //
 package com.rs.game.model.entity;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import com.rs.Settings;
 import com.rs.cache.loaders.NPCDefinitions.MovementType;
 import com.rs.cache.loaders.ObjectType;
@@ -39,25 +27,16 @@ import com.rs.game.content.combat.PlayerCombat;
 import com.rs.game.content.skills.magic.Magic;
 import com.rs.game.content.skills.prayer.Prayer;
 import com.rs.game.content.skills.summoning.Familiar;
-import com.rs.game.content.world.npcs.max.Max;
 import com.rs.game.map.Chunk;
 import com.rs.game.map.ChunkManager;
 import com.rs.game.map.instance.InstancedChunk;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.actions.Action;
+import com.rs.game.model.entity.actions.EntityFollow;
 import com.rs.game.model.entity.interactions.InteractionManager;
 import com.rs.game.model.entity.interactions.PlayerCombatInteraction;
 import com.rs.game.model.entity.npc.NPC;
-import com.rs.game.model.entity.pathing.ClipType;
-import com.rs.game.model.entity.pathing.Direction;
-import com.rs.game.model.entity.pathing.DumbRouteFinder;
-import com.rs.game.model.entity.pathing.EntityStrategy;
-import com.rs.game.model.entity.pathing.FixedTileStrategy;
-import com.rs.game.model.entity.pathing.ObjectStrategy;
-import com.rs.game.model.entity.pathing.Route;
-import com.rs.game.model.entity.pathing.RouteEvent;
-import com.rs.game.model.entity.pathing.RouteFinder;
-import com.rs.game.model.entity.pathing.WalkStep;
+import com.rs.game.model.entity.pathing.*;
 import com.rs.game.model.entity.player.Equipment;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
@@ -82,6 +61,12 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 public abstract class Entity {
 	public enum MoveType {
 		WALK(1),
@@ -105,6 +90,7 @@ public abstract class Entity {
 	private transient int sceneBaseChunkId;
 	private transient int lastChunkId;
 	private transient boolean forceUpdateEntityRegion;
+	private transient boolean nextTickUnlock;
 	private transient Set<Integer> mapChunkIds;
 	protected transient GenericAttribMap temporaryAttributes;
 	protected transient GenericAttribMap nonsavingVars;
@@ -636,12 +622,6 @@ public abstract class Entity {
 			ChunkManager.updateChunks(this);
 			if (needMapUpdate())
 				loadMapRegions();
-			if (player != null) {
-				if (player.isHasNearbyInstancedChunks())
-					player.setLastNonDynamicTile(Tile.of(lastTile));
-				else
-					player.clearLastNonDynamicTile();
-			}
 			resetWalkSteps();
 			return;
 		}
@@ -781,6 +761,7 @@ public abstract class Entity {
 				case 14864: //Ayleth Beaststalker
 				case 14858: //Alison Elmshaper
 				case 14883: //Marcus Everburn
+				case 2290:
 					return true;
 			}
 			switch(npc.getName()) {
@@ -920,8 +901,11 @@ public abstract class Entity {
 
 	public void processEntity() {
 		tickCounter++;
-		if (routeEvent != null && routeEvent.processEvent(this))
-			routeEvent = null;
+		RouteEvent prevEvent = routeEvent;
+		if (routeEvent != null && routeEvent.processEvent(this)) {
+			if (routeEvent == prevEvent)
+				routeEvent = null;
+		}
 		poison.processPoison();
 		processReceivedHits();
 		processReceivedDamage();
@@ -931,6 +915,10 @@ public abstract class Entity {
 		processEffects();
 		interactionManager.process();
 		actionManager.process();
+		if (nextTickUnlock) {
+			unlock();
+			nextTickUnlock = false;
+		}
 	}
 
 	public void loadMapRegions() {
@@ -1263,31 +1251,92 @@ public abstract class Entity {
 		return nextForceMovement;
 	}
 
-	public void setNextForceMovement(ForceMovement nextForceMovement) {
-		this.nextForceMovement = nextForceMovement;
+	protected void setNextForceMovement(ForceMovement movement) {
+		this.nextForceMovement = movement;
 	}
 
-	public void forceMoveVis(Tile toTile, int delay, Direction dir) {
-		setNextForceMovement(new ForceMovement(toTile, delay, dir));
+	public void forceMoveVisually(Tile destination, int animation, int startClientCycles, int speedClientCycles) {
+		if (animation != -1)
+			anim(animation);
+		setNextForceMovement(new ForceMovement(getTile(), destination, startClientCycles, speedClientCycles));
 	}
 
-	public void forceMoveVis(Tile toFirstTile, int firstTileDelay, Tile toSecondTile, int secondTileDelay) {
-		setNextForceMovement(new ForceMovement(toFirstTile, firstTileDelay, toSecondTile, secondTileDelay));
+	public void forceMoveVisually(Direction dir, int distance, int animation, int startClientCycles, int speedClientCycles) {
+		if (animation != -1)
+			anim(animation);
+		setNextForceMovement(new ForceMovement(getTile(), transform(dir.getDx()*distance, dir.getDy()*distance), startClientCycles, speedClientCycles));
 	}
 
-	public void forceMoveVis(Tile toFirstTile, int firstTileDelay, Tile toSecondTile, int secondTileDelay, Direction direction) {
-		setNextForceMovement(new ForceMovement(toFirstTile, firstTileDelay, toSecondTile, secondTileDelay, direction));
+	public void forceMoveVisually(Tile destination, int startClientCycles, int speedClientCycles) {
+		forceMoveVisually(destination, -1, startClientCycles, speedClientCycles);
 	}
 
-	public void forceMoveVis(Tile toFirstTile, int firstTileDelay, Tile toSecondTile, int secondTileDelay, int direction) {
-		setNextForceMovement(new ForceMovement(toFirstTile, firstTileDelay, toSecondTile, secondTileDelay, direction));
+	public void forceMoveVisually(Direction dir, int distance, int startClientCycles, int speedClientCycles) {
+		forceMoveVisually(dir, distance, -1, startClientCycles, speedClientCycles);
 	}
 
-	public void forceMove(Direction dir, int distance, int delay, Runnable afterComplete) {
-		Tile toTile = transform(dir.getDx()*distance, dir.getDy()*distance);
-		forceMoveVis(toTile, delay, dir);
-		WorldTasks.schedule(delay, () -> setNextTile(toTile));
-		WorldTasks.schedule(delay+1, afterComplete);
+	public void forceMove(Tile destination, int animation, int startClientCycles, int speedClientCycles, boolean autoUnlock, Runnable afterComplete) {
+		ForceMovement movement = new ForceMovement(Tile.of(getTile()), destination, startClientCycles, speedClientCycles);
+		if (animation != -1)
+			anim(animation);
+		lock();
+		resetWalkSteps();
+		setNextForceMovement(movement);
+		WorldTasks.schedule(movement.getTickDuration()-1, () -> setNextTile(destination));
+		WorldTasks.schedule(movement.getTickDuration(), () -> {
+			if (autoUnlock)
+				unlock();
+			if (afterComplete != null)
+				afterComplete.run();
+		});
+	}
+
+	public void forceMove(Tile destination, int animation, int startClientCycles, int speedClientCycles, boolean autoUnlock) {
+		forceMove(destination, animation, startClientCycles, speedClientCycles, autoUnlock, null);
+	}
+
+	public void forceMove(Tile destination, int startClientCycles, int speedClientCycles, boolean autoUnlock, Runnable afterComplete) {
+		forceMove(destination, -1, startClientCycles, speedClientCycles, autoUnlock, afterComplete);
+	}
+
+	public void forceMove(Tile destination, int anim, int startClientCycles, int speedClientCycles, Runnable afterComplete) {
+		forceMove(destination, anim, startClientCycles, speedClientCycles, true, afterComplete);
+	}
+
+	public void forceMove(Tile destination, int anim, int startClientCycles, int speedClientCycles) {
+		forceMove(destination, anim, startClientCycles, speedClientCycles, true, null);
+	}
+
+	public void forceMove(Direction dir, int distance, int anim, int startClientCycles, int speedClientCycles, boolean autoUnlock, Runnable afterComplete) {
+		forceMove(transform(dir.getDx()*distance, dir.getDy()*distance), anim, startClientCycles, speedClientCycles, autoUnlock, afterComplete);
+	}
+
+	public void forceMove(Direction dir, int distance, int anim, int startClientCycles, int speedClientCycles, Runnable afterComplete) {
+		forceMove(dir, distance, anim, startClientCycles, speedClientCycles, true, afterComplete);
+	}
+
+	public void forceMove(Direction dir, int distance, int anim, int startClientCycles, int speedClientCycles) {
+		forceMove(dir, distance, anim, startClientCycles, speedClientCycles, true, null);
+	}
+
+	public void forceMove(Tile destination, int startClientCycles, int speedClientCycles, Runnable afterComplete) {
+		forceMove(destination, -1, startClientCycles, speedClientCycles, true, afterComplete);
+	}
+
+	public void forceMove(Tile destination, int startClientCycles, int speedClientCycles) {
+		forceMove(destination, -1, startClientCycles, speedClientCycles, true, null);
+	}
+
+	public void forceMove(Direction dir, int distance, int startClientCycles, int speedClientCycles, boolean autoUnlock, Runnable afterComplete) {
+		forceMove(transform(dir.getDx()*distance, dir.getDy()*distance), -1, startClientCycles, speedClientCycles, autoUnlock, afterComplete);
+	}
+
+	public void forceMove(Direction dir, int distance, int startClientCycles, int speedClientCycles, Runnable afterComplete) {
+		forceMove(dir, distance, -1, startClientCycles, speedClientCycles, true, afterComplete);
+	}
+
+	public void forceMove(Direction dir, int distance, int startClientCycles, int speedClientCycles) {
+		forceMove(dir, distance, -1, startClientCycles, speedClientCycles, true, null);
 	}
 
 	public Poison getPoison() {
@@ -1424,9 +1473,10 @@ public abstract class Entity {
 		return forceMultiArea;
 	}
 
-	public void setForceMultiArea(boolean forceMultiArea) {
+	public Entity setForceMultiArea(boolean forceMultiArea) {
 		this.forceMultiArea = forceMultiArea;
 		checkMultiArea();
+		return this;
 	}
 
 	public Tile getLastTile() {
@@ -1742,6 +1792,10 @@ public abstract class Entity {
 		return actionManager;
 	}
 
+	public void follow(Entity target) {
+		actionManager.setAction(new EntityFollow(target));
+	}
+
 	public boolean canLowerStat(int skillId, double perc, double maxDrain) {
 		if (this instanceof Player player) {
 			if (player.getSkills().getLevel(skillId) < (player.getSkills().getLevelForXp(skillId) * maxDrain))
@@ -1891,5 +1945,9 @@ public abstract class Entity {
 
 	public void unlock() {
 		lockDelay = 0;
+	}
+
+	public void unlockNextTick() {
+		nextTickUnlock = true;
 	}
 }

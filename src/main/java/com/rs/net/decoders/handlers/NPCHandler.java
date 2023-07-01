@@ -16,6 +16,7 @@
 //
 package com.rs.net.decoders.handlers;
 
+import com.rs.engine.quest.Quest;
 import com.rs.game.content.Effect;
 import com.rs.game.content.PlayerLook;
 import com.rs.game.content.Skillcapes;
@@ -36,11 +37,9 @@ import com.rs.game.content.skills.thieving.PickPocketableNPC;
 import com.rs.game.content.transportation.BoatingD;
 import com.rs.game.content.transportation.TravelMethods;
 import com.rs.game.content.transportation.TravelMethods.Carrier;
-import com.rs.game.content.world.unorganized_dialogue.ClanItemClaim;
 import com.rs.game.content.world.unorganized_dialogue.FremennikShipmaster;
 import com.rs.game.content.world.unorganized_dialogue.TanningD;
 import com.rs.game.content.world.unorganized_dialogue.skillmasters.GenericSkillcapeOwnerD;
-import com.rs.engine.quest.Quest;
 import com.rs.game.ge.GE;
 import com.rs.game.model.entity.interactions.StandardEntityInteraction;
 import com.rs.game.model.entity.npc.NPC;
@@ -165,10 +164,6 @@ public class NPCHandler {
 				MutatedZygomite.transform(player, npc);
 			else if (npc.getId() == 4236 || npc.getId() == 4238 || npc.getId() == 4240 || npc.getId() == 4242 || npc.getId() == 4244)
 				player.startConversation(new ServantDialogue(player, npc));
-			else if (npc.getId() == 13633)
-				player.startConversation(new ClanItemClaim(player, 20708));
-			else if (npc.getId() == 5915)
-				player.startConversation(new ClanItemClaim(player, 20709));
 			else if (npc.getId() == 2824 || npc.getId() == 1041 || npc.getId() == 804)
 				player.startConversation(new TanningD(player, npc.getId() == 1041, npc.getId()));
 			else if (PluginManager.handle(new NPCClickEvent(player, npc, 1, true))) {
@@ -283,10 +278,6 @@ public class NPCHandler {
 				StealingCreationShop.openInterface(player);
 			else if (npc.getId() == 14849 && npc instanceof ConditionalDeath cd)
 				cd.useHammer(player);
-			else if (npc.getId() == 13633)
-				player.startConversation(new ClanItemClaim(player, 20708));
-			else if (npc.getId() == 5915)
-				player.startConversation(new ClanItemClaim(player, 20709));
 			else if (npc.getId() == 2824 || npc.getId() == 1041)
 				player.startConversation(new TanningD(player, npc.getId() == 1041, npc.getId()));
 			else if (npc.getId() == 1843)
@@ -299,18 +290,11 @@ public class NPCHandler {
 				PlayerLook.openMageMakeOver(player);
 			else if (npc.getId() == 598)
 				PlayerLook.openHairdresserSalon(player);
-			else if (npc instanceof Pet) {
-				if (npc != player.getPet()) {
-					player.sendMessage("This isn't your pet!");
-					return;
-				}
-				Pet pet = player.getPet();
-				player.getPackets().sendDevConsoleMessage("Pet [id=" + pet.getId() + ", hunger=" + pet.getDetails().getHunger() + ", growth=" + pet.getDetails().getGrowth() + ", stage=" + pet.getDetails().getStage() + "].");
-			} else if (PluginManager.handle(new NPCClickEvent(player, npc, 3, true)))
-				return;
+			else if (PluginManager.handle(new NPCClickEvent(player, npc, 3, true)))
+				;
 			else {
 				player.sendMessage("Nothing interesting happens." + npc.getId());
-				Logger.debug(NPCHandler.class, "handleOption2", "NPC: " + npc.getId() + ", (" + npc.getX() + ", " + npc.getY() + ", " + npc.getPlane() + ")");
+				Logger.debug(NPCHandler.class, "handleOption2", "NPC: " + npc.getId() + ", (" + npc.getX() + ", " + npc.getY() + ", " + npc.getPlane() + ") op: " + npc.getDefinitions(player).getOption(2));
 			}
 		}));
 	}

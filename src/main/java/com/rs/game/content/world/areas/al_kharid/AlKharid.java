@@ -22,8 +22,8 @@ import com.rs.game.content.world.doors.Doors;
 import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.tasks.WorldTasks;
-import com.rs.lib.game.WorldObject;
 import com.rs.lib.game.Tile;
+import com.rs.lib.game.WorldObject;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.ObjectClickHandler;
 import com.rs.plugin.handlers.PlayerStepHandler;
@@ -70,9 +70,9 @@ public class AlKharid {
 		WorldObject obj = e.getObject();
 
 		if(obj.getTile().matches(Tile.of(3306, 3315, 0)))//above
-			AgilityShortcuts.forceMovementInstant(p, Tile.of(3303, 3315, 0), 2050, 1, 1, Direction.EAST);
+			p.forceMove(Tile.of(3303, 3315, 0), 2050, 10, 30);
 		if(obj.getTile().matches(Tile.of(3304, 3315, 0)))//below
-			AgilityShortcuts.forceMovementInstant(p, Tile.of(3307, 3315, 0), 2049, 1, 1, Direction.EAST);
+			p.forceMove(Tile.of(3307, 3315, 0), 2049, 10, 30);
 	});
 
 }

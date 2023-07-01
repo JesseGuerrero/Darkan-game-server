@@ -16,14 +16,9 @@
 //
 package com.rs.game.content.minigames.creations;
 
-import com.rs.game.model.entity.ForceMovement;
-import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Controller;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
-import com.rs.game.tasks.WorldTasks;
-import com.rs.lib.game.Animation;
 import com.rs.lib.game.GroundItem;
 import com.rs.lib.game.Tile;
 
@@ -62,15 +57,7 @@ public class StealingCreationLobbyController extends Controller {
 				return;
 		} else
 			StealingCreationLobby.removePlayer(player);
-		player.setNextAnimation(new Animation(1560));
-		final Tile toTile = Tile.of(enterance ? object.getX() : object.getX() + 2, object.getY(), object.getPlane());
-		player.setNextForceMovement(new ForceMovement(player.getTile(), 0, toTile, 2, enterance ? Direction.WEST : Direction.EAST));
-		WorldTasks.schedule(new WorldTask() {
-			@Override
-			public void run() {
-				player.setNextTile(toTile);
-			}
-		}, 1);
+		player.forceMove(Tile.of(enterance ? object.getX() : object.getX() + 2, object.getY(), object.getPlane()), 1560, 5, 60);
 	}
 
 	@Override

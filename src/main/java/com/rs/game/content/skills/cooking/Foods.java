@@ -16,12 +16,6 @@
 //
 package com.rs.game.content.skills.cooking;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
-
-import com.rs.Settings;
-import com.rs.cache.loaders.ItemDefinitions;
 import com.rs.game.content.Effect;
 import com.rs.game.content.ItemConstants;
 import com.rs.game.content.skills.dungeoneering.KinshipPerk;
@@ -37,12 +31,16 @@ import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.ItemClickHandler;
 import com.rs.utils.Ticks;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+
 @PluginEventHandler
 public class Foods {
 
     public static final Animation EAT_ANIM = new Animation(829);
 
-    public static ItemClickHandler eat = new ItemClickHandler(Food.foods.keySet().toArray(), new String[] { "Eat" }, e -> eat(e.getPlayer(), e.getItem(), e.getSlotId(), null));
+    public static ItemClickHandler eat = new ItemClickHandler(Food.foods.keySet().toArray(), new String[] { "Eat", "Heal" }, e -> eat(e.getPlayer(), e.getItem(), e.getSlotId(), null));
 
     public static boolean eat(final Player player, Item item, int slot, Player givenFrom) {
         Food food = Food.forId(item.getId());
@@ -342,6 +340,7 @@ public class Foods {
         ROAST_POTATOES(15429, 100),
         ROAST_RABBIT(7223, 70),
         ROCKTAIL(15272, 0, p -> p.heal(230, 100)),
+        BANDAGE(4049, 0, p -> p.heal(230, 100)),
         ROE(11324, 30),
         ROLL(6963, 20),
         ROTTEN_APPLE(1984, -1),

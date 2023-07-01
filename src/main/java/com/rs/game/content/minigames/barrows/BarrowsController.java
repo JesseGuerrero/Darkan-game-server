@@ -16,17 +16,15 @@
 //
 package com.rs.game.content.minigames.barrows;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.rs.cache.loaders.ItemDefinitions;
+import com.rs.engine.dialogue.Dialogue;
 import com.rs.game.World;
 import com.rs.game.content.achievements.AchievementDef.Area;
 import com.rs.game.content.achievements.AchievementDef.Difficulty;
 import com.rs.game.content.achievements.SetReward;
+import com.rs.game.content.items.LootInterface;
 import com.rs.game.content.minigames.barrows.npcs.BarrowsBrother;
 import com.rs.game.content.world.doors.Doors;
-import com.rs.engine.dialogue.Dialogue;
 import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.Hit;
@@ -46,6 +44,9 @@ import com.rs.lib.util.Utils;
 import com.rs.utils.drop.Drop;
 import com.rs.utils.drop.DropSet;
 import com.rs.utils.drop.DropTable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public final class BarrowsController extends Controller {
 
@@ -148,17 +149,6 @@ public final class BarrowsController extends Controller {
 
 	private static final Drop[][] BROTHERS_LOOT = { AHRIM, DHAROK, GUTHAN, KARIL, TORAG, VERAC, AKRISAE };
 
-	public void drop(Item... items) {
-		if (items == null || items.length <= 0)
-			return;
-		for (Item item : items) {
-			if (NPC.yellDrop(item.getId()))
-				World.sendWorldMessage("<img=4><shad=000000><col=00FF00>" + player.getDisplayName() + " has just recieved " + item.getName() + " as drop from Barrows!", false);
-			player.getInventory().addItem(item.getId(), item.getAmount(), true);
-			player.incrementCount(ItemDefinitions.getDefs(item.getId()).getName()+" drops earned", item.getAmount());
-		}
-	}
-
 	public static Item[] getSimulatedDrop(int brothersKilled, int points) {
 		ItemsContainer<Item> container = new ItemsContainer<>(points, false);
 		if (points > 1012)
@@ -245,11 +235,16 @@ public final class BarrowsController extends Controller {
 
 	public void sendReward() {
 		Item[] rewards = getRewards();
-		player.getInterfaceManager().sendInterface(1171);
-		player.getPackets().sendInterSetItemsOptionsScript(1171, 7, 100, 8, 3, "Examine");
-		player.getPackets().setIFRightClickOps(1171, 7, 0, 10, 0, 1, 2, 3);
-		player.getPackets().sendItems(100, rewards);
-		drop(rewards);
+		if (rewards == null || rewards.length <= 0)
+			return;
+		for (Item item : rewards) {
+			if (NPC.yellDrop(item.getId()))
+				World.sendWorldMessage("<img=4><shad=000000><col=00FF00>" + player.getDisplayName() + " has just recieved " + item.getName() + " as drop from Barrows!", false);
+			player.incrementCount(ItemDefinitions.getDefs(item.getId()).getName()+" drops earned", item.getAmount());
+		}
+		ItemsContainer<Item> container = new ItemsContainer<>(rewards.length, false);
+		container.addAll(rewards);
+		LootInterface.open("Barrows Chest", player, container);
 	}
 
 	@Override

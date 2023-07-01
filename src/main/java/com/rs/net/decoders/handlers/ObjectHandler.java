@@ -18,6 +18,12 @@ package com.rs.net.decoders.handlers;
 
 import com.rs.Settings;
 import com.rs.cache.loaders.ObjectDefinitions;
+import com.rs.engine.dialogue.Conversation;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
+import com.rs.engine.dialogue.statements.NPCStatement;
+import com.rs.engine.dialogue.statements.Statement;
+import com.rs.engine.quest.Quest;
 import com.rs.game.World;
 import com.rs.game.content.ItemConstants;
 import com.rs.game.content.combat.CombatDefinitions.Spellbook;
@@ -57,17 +63,9 @@ import com.rs.game.content.world.areas.dungeons.UndergroundDungeonController;
 import com.rs.game.content.world.areas.wilderness.WildernessController;
 import com.rs.game.content.world.doors.Doors;
 import com.rs.game.content.world.unorganized_dialogue.StrongholdRewardD;
-import com.rs.engine.dialogue.Conversation;
-import com.rs.engine.dialogue.Dialogue;
-import com.rs.engine.dialogue.HeadE;
-import com.rs.engine.dialogue.statements.NPCStatement;
-import com.rs.engine.dialogue.statements.Statement;
-import com.rs.engine.quest.Quest;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
-import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.pathing.RouteEvent;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.managers.EmotesManager.Emote;
@@ -75,11 +73,7 @@ import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
-import com.rs.lib.game.Animation;
-import com.rs.lib.game.Item;
-import com.rs.lib.game.Rights;
-import com.rs.lib.game.SpotAnim;
-import com.rs.lib.game.Tile;
+import com.rs.lib.game.*;
 import com.rs.lib.net.ClientPacket;
 import com.rs.lib.util.Logger;
 import com.rs.lib.util.Utils;
@@ -298,22 +292,14 @@ public final class ObjectHandler {
 				} else
 					player.sendMessage("You already have full prayer.");
 				return;
-			} else if (id == 65715) { // Armored zombie trapdoor
+			} else if (id == 65715) // Armored zombie trapdoor
 				player.setNextTile(Tile.of(3241, 9991, 0));
-				return;
-			} else if (id == 12328) { // Jadinko lair
+			else if (id == 12328) // Jadinko lair
 				player.setNextTile(Tile.of(3011, 9276, 0));
-				return;
-			} else if (id == 66533)
-				player.useStairs(-1, Tile.of(2208, 4364, 0), 0, 1);
-			else if (id == 66534)
-				player.useStairs(-1, Tile.of(2878, 3573, 0), 0, 1);
-
 			else if (id == 11209)
 				player.useStairs(-1, player.transform(3, 0, 1), 0, 1);
 			else if (id == 11210)
 				player.useStairs(-1, player.transform(-3, 0, -1), 0, 1);
-
 			else if (id == 11212)
 				player.useStairs(-1, player.transform(0, 3, -1), 0, 1);
 			else if (id == 11211)
@@ -370,21 +356,7 @@ public final class ObjectHandler {
 				player.useStairs(-1, Tile.of(3018, 3404, 0), 0, 1);
 			else if (object.getId() == 39508 || object.getId() == 39509)
 				StealingCreationLobbyController.climbOverStile(player, object, true);
-			else if (id == 29734) {
-				if (player.getEmotesManager().unlockedEmote(Emote.SAFETY_FIRST)) {
-					if (player.containsItem(12629))
-						player.sendMessage("You find nothing inside the chest.");
-					else
-						player.getInventory().addItem(12629, 1, true);
-					return;
-				}
-				player.save("sopsRew", true);
-				player.getInventory().addCoins(10000);
-				player.getInventory().addItem(12629, 1, true);
-				player.getInventory().addItem(12628, 2, true);
-				player.getEmotesManager().unlockEmote(Emote.SAFETY_FIRST);
-				player.simpleDialogue("You open the chest and find a large pile of gold, along with a pair", "of safety gloves and two antique lamps. Also in the chest is the", "secret of the 'Safety First' emote.");
-			} else if (id == 16135) {
+			else if (id == 16135) {
 				if (player.getEmotesManager().unlockedEmote(Emote.FLAP)) {
 					player.sendMessage("You have already claimed your reward from this level.");
 					return;
@@ -611,36 +583,7 @@ public final class ObjectHandler {
 			} else if (id == 22600) {
 				player.useStairs(-1, player.transform(5, 0, 3), 1, 1);
 				return;
-			} else if (id == 6087)
-				switch(object.getRotation()) {
-					case 0:
-						player.useStairs(-1, player.transform(0, -3, 1), 1, 1);
-						break;
-					case 1:
-						player.useStairs(-1, player.transform(3, 0, 1), 1, 1);
-						break;
-					case 2:
-						player.useStairs(-1, player.transform(0, 3, 1), 1, 1);
-						break;
-					case 3:
-						player.useStairs(-1, player.transform(-3, 0, 1), 1, 1);
-						break;
-				}
-			else if (id == 6088)
-				switch(object.getRotation()) {
-					case 0:
-						player.useStairs(-1, player.transform(0, 3, -1), 1, 1);
-						break;
-					case 1:
-						player.useStairs(-1, player.transform(-3, 0, -1), 1, 1);
-						break;
-					case 2:
-						player.useStairs(-1, player.transform(0, -3, -1), 1, 1);
-						break;
-					case 3:
-						player.useStairs(-1, player.transform(3, 0, -1), 1, 1);
-						break;
-				}
+			}
 			else if (id == 22937)
 				switch(object.getRotation()) {
 					case 0:
@@ -687,6 +630,21 @@ public final class ObjectHandler {
 						break;
 				}
 			else if (id == 22932)
+				switch(object.getRotation()) {
+					case 0:
+						player.useStairs(-1, player.transform(0, -3, -1), 1, 1);
+						break;
+					case 1:
+						player.useStairs(-1, player.transform(-3, 0, -1), 1, 1);
+						break;
+					case 2:
+						player.useStairs(-1, player.transform(0, 3, -1), 1, 1);
+						break;
+					case 3:
+						player.useStairs(-1, player.transform(3, 0, -1), 1, 1);
+						break;
+				}
+			else if (id == 22933)
 				switch(object.getRotation()) {
 					case 0:
 						player.useStairs(-1, player.transform(0, -3, -1), 1, 1);
@@ -904,40 +862,13 @@ public final class ObjectHandler {
 					return;
 				}
 				player.lock();
-				WorldTasks.schedule(new WorldTask() {
-					int count = 0;
-
-					@Override
-					public void run() {
-						if (count == 0) {
-							player.setNextAnimation(new Animation(2594));
-							Tile tile = Tile.of(object.getX() + (object.getRotation() == 2 ? -2 : +2), object.getY(), 0);
-							player.setNextForceMovement(new ForceMovement(tile, 4, Direction.forDelta(tile.getX() - player.getX(), tile.getY() - player.getY())));
-						} else if (count == 2) {
-							Tile tile = Tile.of(object.getX() + (object.getRotation() == 2 ? -2 : +2), object.getY(), 0);
-							player.setNextTile(tile);
-						} else if (count == 5) {
-							player.setNextAnimation(new Animation(2590));
-							Tile tile = Tile.of(object.getX() + (object.getRotation() == 2 ? -5 : +5), object.getY(), 0);
-							player.setNextForceMovement(new ForceMovement(tile, 4, Direction.forDelta(tile.getX() - player.getX(), tile.getY() - player.getY())));
-						} else if (count == 7) {
-							Tile tile = Tile.of(object.getX() + (object.getRotation() == 2 ? -5 : +5), object.getY(), 0);
-							player.setNextTile(tile);
-						} else if (count == 10) {
-							player.setNextAnimation(new Animation(2595));
-							Tile tile = Tile.of(object.getX() + (object.getRotation() == 2 ? -6 : +6), object.getY(), 0);
-							player.setNextForceMovement(new ForceMovement(tile, 4, Direction.forDelta(tile.getX() - player.getX(), tile.getY() - player.getY())));
-						} else if (count == 12) {
-							Tile tile = Tile.of(object.getX() + (object.getRotation() == 2 ? -6 : +6), object.getY(), 0);
-							player.setNextTile(tile);
-						} else if (count == 14) {
-							stop();
-							player.unlock();
-						}
-						count++;
-					}
-
-				}, 0, 0);
+				WorldTasks.schedule(0, () -> {
+					player.forceMove(Tile.of(object.getX() + (object.getRotation() == 2 ? -2 : +2), object.getY(), 0), 2594, 0, 120, false, () -> {
+						player.forceMove(Tile.of(object.getX() + (object.getRotation() == 2 ? -5 : +5), object.getY(), 0), 2590, 0, 120, false, () -> {
+							player.forceMove(Tile.of(object.getX() + (object.getRotation() == 2 ? -6 : +6), object.getY(), 0), 2595, 0, 75);
+						});
+					});
+				});
 
 				// rock living caverns
 			} else if (id == 45077) {
@@ -1030,12 +961,7 @@ public final class ObjectHandler {
 					}
 				}).addNext(() -> {
 					player.stopAll();
-					player.lock(4);
-					player.setNextAnimation(new Animation(6132));
-					final Tile toTile = Tile.of(object.getRotation() == 3 || object.getRotation() == 1 ? object.getX() - 1 : player.getX(), object.getRotation() == 0 || object.getRotation() == 2 ? object.getY() + 2 : player.getY(), object.getPlane());
-					player.setNextForceMovement(new ForceMovement(Tile.of(player.getTile()), 1, toTile, 2, object.getRotation() == 0 || object.getRotation() == 2 ? Direction.NORTH : Direction.WEST));
-					WorldTasks.schedule(2, () -> {
-						player.setNextTile(toTile);
+					player.forceMove(Tile.of(object.getRotation() == 3 || object.getRotation() == 1 ? object.getX() - 1 : player.getX(), object.getRotation() == 0 || object.getRotation() == 2 ? object.getY() + 2 : player.getY(), object.getPlane()), 6132, 25, 60, () -> {
 						player.faceObject(object);
 						player.getControllerManager().startController(new WildernessController());
 						player.resetReceivedDamage();
@@ -1156,25 +1082,10 @@ public final class ObjectHandler {
 
 			} else if (id == 2878 || id == 2879) {
 				player.simpleDialogue("You step into the pool of sparkling water. You feel the energy rush through your veins.");
-				final boolean isLeaving = id == 2879;
-				final Tile tile = isLeaving ? Tile.of(2509, 4687, 0) : Tile.of(2542, 4720, 0);
-				player.setNextForceMovement(new ForceMovement(player.getTile(), 1, tile, 2, isLeaving ? Direction.SOUTH : Direction.NORTH));
-				WorldTasks.schedule(new WorldTask() {
-
-					@Override
-					public void run() {
-						player.setNextAnimation(new Animation(13842));
-						WorldTasks.schedule(new WorldTask() {
-
-							@Override
-							public void run() {
-								player.setNextAnimation(new Animation(-1));
-								player.setNextTile(isLeaving ? Tile.of(2542, 4718, 0) : Tile.of(2509, 4689, 0));
-							}
-						}, 2);
-					}
+				player.forceMove(id == 2879 ? Tile.of(2509, 4687, 0) : Tile.of(2542, 4720, 0), 13842, 0, 60, () -> {
+					player.setNextAnimation(new Animation(-1));
+					player.setNextTile(id == 2879 ? Tile.of(2542, 4718, 0) : Tile.of(2509, 4689, 0));
 				});
-
 			} else if (id == 2873 || id == 2874 || id == 2875) {
 				player.sendMessage("You kneel and begin to chant to " + objectDef.getName().replace("Statue of ", "") + "...");
 				player.setNextAnimation(new Animation(645));
@@ -1372,39 +1283,8 @@ public final class ObjectHandler {
 				player.setNextTile(player.transform(object.getRotation() == 3 ? -3 : 3, 0, -1));
 			else if (id == 2347)
 				player.setNextTile(player.transform(object.getRotation() == 3 ? 3 : -3, 0, 1));
-				//start chaos tunnels
-			else if (id == 65203) {
-				if (player.inCombat(10000) || player.hasBeenHit(10000)) {
-					player.sendMessage("You cannot enter the rift while you're under attack.");
-					return;
-				}
-				if (x == 3058 && y == 3550)
-					player.setNextTile(player.transform(125, 1920, 0));
-				if (x == 3118 && y == 3570)
-					player.setNextTile(player.transform(130, 1920, 0));
-				if (x == 3129 && y == 3587)
-					player.setNextTile(player.transform(105, 1972, 0));
-				if (x == 3164 && y == 3561)
-					player.setNextTile(player.transform(128, 1918, 0));
-				if (x == 3176 && y == 3585)
-					player.setNextTile(Tile.of(3290, 5539, 0));
-			} else if (id == 28782) {
-				if (x == 3183 && y == 5470)
-					player.setNextTile(player.transform(-125, -1920, 0));
-				if (x == 3248 && y == 5490)
-					player.setNextTile(player.transform(-130, -1920, 0));
-				if (x == 3234 && y == 5559)
-					player.setNextTile(player.transform(-105, -1972, 0));
-				if (x == 3292 && y == 5479)
-					player.setNextTile(player.transform(-128, -1918, 0));
-				if (x == 3291 && y == 5538)
-					player.setNextTile(player.transform(-115, -1953, 0));
-			} else if (id == 26193)
+			else if (id == 26193)
 				PartyRoom.openChest(player);
-			else if (id == 67050 || id == 6282)
-				player.useStairs(-1, Tile.of(3359, 6110, 0), 0, 1);
-			else if (id == 67053)
-				player.useStairs(-1, Tile.of(3120, 3519, 0), 0, 1);
 			else if (PluginManager.handle(new ObjectClickEvent(player, object, ClientPacket.OBJECT_OP1, true)))
 				return;
 			else

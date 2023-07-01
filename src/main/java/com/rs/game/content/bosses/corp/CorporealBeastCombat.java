@@ -16,8 +16,6 @@
 //
 package com.rs.game.content.bosses.corp;
 
-import java.util.List;
-
 import com.rs.game.World;
 import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.npc.NPC;
@@ -33,6 +31,8 @@ import com.rs.lib.game.SpotAnim;
 import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
 
+import java.util.List;
+
 public class CorporealBeastCombat extends CombatScript {
 
 	@Override
@@ -43,10 +43,8 @@ public class CorporealBeastCombat extends CombatScript {
 	@Override
 	public int attack(final NPC npc, final Entity target) {
 		final NPCCombatDefinitions defs = npc.getCombatDefinitions();
-		if (Utils.getRandomInclusive(3) == 0 && npc.getHitpoints() < (npc.getMaxHitpoints()/2)) {
-			CorporealBeast beast = (CorporealBeast) npc;
+		if (Utils.getRandomInclusive(3) == 0 && npc.getHitpoints() < (npc.getMaxHitpoints()/2) && npc instanceof CorporealBeast beast)
 			beast.spawnDarkEnergyCore();
-		}
 		int size = npc.getSize();
 		final List<Entity> possibleTargets = npc.getPossibleTargets();
 		int attackStyle = Utils.getRandomInclusive(4);

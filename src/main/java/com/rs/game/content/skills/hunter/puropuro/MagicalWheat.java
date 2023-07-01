@@ -4,8 +4,6 @@ import com.rs.cache.loaders.ObjectType;
 import com.rs.game.World;
 import com.rs.game.content.Effect;
 import com.rs.game.map.ChunkManager;
-import com.rs.game.model.entity.ForceMovement;
-import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Skills;
 import com.rs.game.model.object.GameObject;
 import com.rs.game.tasks.WorldTasks;
@@ -139,7 +137,6 @@ public class MagicalWheat {
         if (e.isAtObject()) {
             e.getPlayer().faceObject(e.getObject());
 
-            Direction dir = e.getPlayer().getDirection();
             int speed = Utils.randomInclusive(0, 2) * 2;
             int finalSpeed = e.getPlayer().hasEffect(Effect.FARMERS_AFFINITY) ? 3 + speed : 6 + speed;
             Tile finalTile = e.getPlayer().getFrontfacingTile(2);
@@ -161,22 +158,13 @@ public class MagicalWheat {
                 case 2 -> e.getPlayer().sendMessage("You push through the wheat.");
                 case 4 -> e.getPlayer().sendMessage("You push through the wheat. It's hard work, though.");
             }
-
-            WorldTasks.scheduleTimer(ticks -> {
-                if (ticks == 0) {
-                    e.getPlayer().setNextForceMovement(new ForceMovement(finalTile, finalSpeed, dir));
-                    e.getPlayer().setNextAnimation(new Animation(6593 + speed / 2));
-                }
-                if (ticks == finalSpeed) {
-                    e.getPlayer().unlock();
-                    e.getPlayer().setNextTile(finalTile);
+            WorldTasks.schedule(0, () -> {
+                e.getPlayer().forceMove(finalTile, (6573 + speed / 2), 0, finalSpeed * 30, () -> {
                     if (e.getPlayer().getO("ppStrengthEnabled") == null)
                         e.getPlayer().save("ppStrengthEnabled", true);
                     if (e.getPlayer().getBool("ppStrengthEnabled"))
                         e.getPlayer().getSkills().addXp(Skills.STRENGTH, 4 - speed);
-                    return false;
-                }
-                return true;
+                });
             });
         }
     });

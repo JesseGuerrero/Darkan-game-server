@@ -18,7 +18,6 @@ package com.rs.game.content.world.areas.dungeons;
 
 import com.rs.game.content.skills.slayer.TaskMonster;
 import com.rs.game.content.world.areas.dungeons.ancientcavern.KuradalDungeonController;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
@@ -65,19 +64,7 @@ public class KuradalsDungeon {
 						return;
 
 				if (ticks == 1) {
-					if(isPlayerNorth) {
-						e.getPlayer().setFaceAngle(Direction.getAngleTo(Direction.SOUTH));
-						p.setNextForceMovement(new ForceMovement(Tile.of(1641, 5260, 0), 1, Direction.SOUTH));
-					}
-					if(!isPlayerNorth) {
-						e.getPlayer().setFaceAngle(Direction.getAngleTo(Direction.NORTH));
-						p.setNextForceMovement(new ForceMovement(Tile.of(1641, 5268, 0), 1, Direction.NORTH));
-					}
-				} else if (ticks >= 2) {
-					if(isPlayerNorth)
-						p.setNextTile(Tile.of(1641, 5260, 0));
-					if(!isPlayerNorth)
-						p.setNextTile(Tile.of(1641, 5268, 0));
+					p.forceMove(isPlayerNorth ? Tile.of(1641, 5260, 0) : Tile.of(1641, 5268, 0), 0, 30);
 					stop();
 				}
 				ticks++;

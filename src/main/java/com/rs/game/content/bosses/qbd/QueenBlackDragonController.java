@@ -18,18 +18,18 @@ package com.rs.game.content.bosses.qbd;
 
 import com.rs.Settings;
 import com.rs.cache.loaders.ObjectType;
+import com.rs.engine.dialogue.Dialogue;
 import com.rs.game.World;
 import com.rs.game.content.bosses.qbd.npcs.QueenBlackDragon;
 import com.rs.game.content.death.DeathOfficeController;
 import com.rs.game.content.skills.magic.Magic;
-import com.rs.engine.dialogue.Dialogue;
+import com.rs.game.map.instance.Instance;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.player.Controller;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.managers.InterfaceManager.Sub;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.map.instance.Instance;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
@@ -87,7 +87,7 @@ public final class QueenBlackDragonController extends Controller {
 	@Override
 	public void start() {
 		player.lock();
-		bossRegion = new Instance(8, 8);
+		bossRegion = Instance.of(OUTSIDE, 8, 8);
 		bossRegion.copyMapAllPlanes(176, 792).thenAccept(e -> {
 			bossBase = bossRegion.getTileBase().transform(0, 0, 1);
 			player.fadeScreen(() -> {
@@ -119,7 +119,7 @@ public final class QueenBlackDragonController extends Controller {
 				player.sendMessage("You descend the stairs that appeared when you defeated the Queen Black Dragon.");
 				player.getPackets().sendVarc(184, -1);
 				npc.finish();
-				rewardRegion = new Instance(8, 8);
+				rewardRegion = Instance.of(OUTSIDE, 8, 8);
 				rewardRegion.copyMapAllPlanes(160, 760).thenAccept(e -> {
 					player.resetReceivedHits();
 					rewardBase = rewardRegion.getTileBase().transform(0, 0, 0);
@@ -230,61 +230,6 @@ public final class QueenBlackDragonController extends Controller {
 	}
 
 	@Override
-	public boolean processButtonClick(int interfaceId, int componentId, int slotId, int slotId2, ClientPacket packet) {
-		if (npc == null)
-			return true;
-		switch (interfaceId) {
-		case 1284:
-			switch (componentId) {
-			case 8:
-				player.getBank().addItems(npc.getRewards().toArray(), true);
-				npc.getRewards().clear();
-				player.sendMessage("All the items were moved to your bank.");
-				break;
-			case 9:
-				npc.getRewards().clear();
-				player.sendMessage("All the items were removed from the chest.");
-				break;
-			case 10:
-				for (int slot = 0; slot < npc.getRewards().toArray().length; slot++) {
-					Item item = npc.getRewards().get(slot);
-					if (item == null)
-						continue;
-					boolean added = true;
-					if (item.getDefinitions().isStackable() || item.getAmount() < 2) {
-						added = player.getInventory().addItem(item);
-						if (added)
-							npc.getRewards().toArray()[slot] = null;
-					} else
-						for (int i = 0; i < item.getAmount(); i++) {
-							Item single = new Item(item.getId());
-							if (!player.getInventory().addItem(single)) {
-								added = false;
-								break;
-							}
-							npc.getRewards().remove(single);
-						}
-					if (!added) {
-						player.sendMessage("You only had enough space in your inventory to accept some of the items.");
-						break;
-					}
-				}
-				break;
-			case 7:
-				Item item = npc.getRewards().get(slotId);
-				if (item == null)
-					return true;
-				break;
-			default:
-				return true;
-			}
-			npc.openRewardChest(false);
-			return false;
-		}
-		return true;
-	}
-
-	@Override
 	public void magicTeleported(int type) {
 		end(0);
 	}
@@ -336,7 +281,8 @@ public final class QueenBlackDragonController extends Controller {
 			player.setTile(OUTSIDE);
 		removeController();
 		if (npc != null)
-			player.getBank().addItems(npc.getRewards().toArray(), false);
+			for (Item item : npc.getRewards().toArray())
+				player.getBank().addItem(item, true);
 		bossRegion.destroy();
 		if (rewardRegion != null)
 			rewardRegion.destroy();

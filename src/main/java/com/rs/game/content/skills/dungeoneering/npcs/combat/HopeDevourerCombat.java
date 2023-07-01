@@ -20,7 +20,6 @@ import com.rs.game.World;
 import com.rs.game.content.skills.dungeoneering.DungeonManager;
 import com.rs.game.content.skills.dungeoneering.npcs.HopeDevourer;
 import com.rs.game.model.entity.Entity;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.npc.combat.CombatScript;
@@ -113,12 +112,8 @@ public class HopeDevourerCombat extends CombatScript {
 								tile = Tile.of(target.getTile());
 						}
 						target.faceEntity(boss);
-						target.setNextAnimation(new Animation(10070));
-						target.setNextForceMovement(new ForceMovement(target.getTile(), 0, tile, 2, target.getFaceAngle()));
-					} else if (ticks == 2) {
-						target.setNextTile(tile);
+						target.forceMove(tile, 10070, 1, 60);
 						stop();
-						return;
 					}
 				}
 			}, 0, 0);

@@ -105,10 +105,6 @@ public abstract class Controller {
 	public boolean canPot(Potion pot) {
 		return true;
 	}
-	
-	public boolean reenableDynamicRegion() {
-		return false;
-	}
 
 	/**
 	 * after the normal checks, extra checks, only called when you attacking
@@ -344,4 +340,8 @@ public abstract class Controller {
 	public boolean canTrade() {
 		return true;
 	}
+
+    public boolean canDepositItem(Item item) {
+		return true;
+    }
 }

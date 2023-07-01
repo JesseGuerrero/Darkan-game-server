@@ -16,9 +16,7 @@
 //
 package com.rs.game.content.interfacehandlers;
 
-import java.text.NumberFormat;
-import java.util.Locale;
-
+import com.rs.game.content.skills.dungeoneering.DungeonController;
 import com.rs.game.content.world.Rest;
 import com.rs.game.model.entity.player.managers.InterfaceManager;
 import com.rs.game.model.entity.player.managers.InterfaceManager.Sub;
@@ -28,6 +26,9 @@ import com.rs.net.LobbyCommunicator;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.ButtonClickHandler;
 import com.rs.utils.ReportsManager;
+
+import java.text.NumberFormat;
+import java.util.Locale;
 
 @PluginEventHandler
 public class GameFrame {
@@ -162,6 +163,8 @@ public class GameFrame {
 
 	public static ButtonClickHandler handleButtons = new ButtonClickHandler(new Object[] { InterfaceManager.FIXED_TOP, InterfaceManager.RESIZEABLE_TOP }, e -> {
 		if ((e.getInterfaceId() == 548 && e.getComponentId() == 167) || (e.getInterfaceId() == 746 && e.getComponentId() == 208)) {
+			if (e.getPlayer().getControllerManager().isIn(DungeonController.class))
+				return;
 			switch(e.getPacket()) {
 			case IF_OP1 -> e.getPlayer().getPackets().sendRunScript(5557, 1);
 			case IF_OP2 -> e.getPlayer().sendInputInteger("How much would you like to withdraw?", num -> e.getPlayer().getInventory().coinPouchToInventory(num));

@@ -16,16 +16,17 @@
 //
 package com.rs.game.model.object;
 
+import com.rs.cache.loaders.ObjectType;
+import com.rs.game.World;
+import com.rs.game.model.entity.player.Player;
+import com.rs.lib.game.Tile;
+import com.rs.lib.util.Logger;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.rs.cache.loaders.ObjectType;
-import com.rs.game.World;
-import com.rs.game.model.entity.player.Player;
-import com.rs.lib.game.Tile;
 
 public class OwnedObject extends GameObject {
 
@@ -64,14 +65,18 @@ public class OwnedObject extends GameObject {
 		return player.getUsername().equals(owner);
 	}
 
-	public static void process() {
-		Iterator<Integer> it = OBJECTS.keySet().iterator();
-		while (it.hasNext()) {
-			Integer key = it.next();
-			OwnedObject o = OBJECTS.get(key);
-			if (o == null || o.destroyed)
-				continue;
-			o.tick(World.getPlayerByUsername(o.owner));
+	public static void processAll() {
+		try {
+			Iterator<Integer> it = OBJECTS.keySet().iterator();
+			while (it.hasNext()) {
+				Integer key = it.next();
+				OwnedObject o = OBJECTS.get(key);
+				if (o == null || o.destroyed)
+					continue;
+				o.tick(World.getPlayerByUsername(o.owner));
+			}
+		} catch(Throwable e) {
+			Logger.handle(OwnedObject.class, "process", e);
 		}
 	}
 

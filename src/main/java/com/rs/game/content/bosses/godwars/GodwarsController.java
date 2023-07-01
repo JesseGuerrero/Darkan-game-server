@@ -20,8 +20,6 @@ import com.rs.game.World;
 import com.rs.game.content.bosses.godwars.zaros.NexArena;
 import com.rs.game.content.skills.magic.Magic;
 import com.rs.game.content.world.unorganized_dialogue.NexEntrance;
-import com.rs.game.model.entity.ForceMovement;
-import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.pathing.RouteEvent;
 import com.rs.game.model.entity.player.Controller;
 import com.rs.game.model.entity.player.Skills;
@@ -146,14 +144,12 @@ public class GodwarsController extends Controller {
 					case 4 -> {
 						player.getAppearance().transformIntoNPC(266);
 						World.sendProjectile(Tile.of(player.getTile()), tile, 605, 18, 18, 20, 0.6, 30, 0).getTaskDelay();
-						player.setNextForceMovement(new ForceMovement(Tile.of(player.getTile()), 0, tile, 6, withinArmadyl ? Direction.NORTH : Direction.SOUTH));
-					}
-					case 6 -> player.setNextTile(tile);
-					case 10 -> {
-						player.getAppearance().transformIntoNPC(-1);
-						player.setNextAnimation(new Animation(16672));
-						player.unlock();
-						player.resetReceivedHits();
+						player.forceMove(tile, 0, 180, false, () -> {
+							player.getAppearance().transformIntoNPC(-1);
+							player.setNextAnimation(new Animation(16672));
+							player.unlock();
+							player.resetReceivedHits();
+						});
 						return false;
 					}
 					}

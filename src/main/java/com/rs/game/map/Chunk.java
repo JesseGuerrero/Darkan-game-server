@@ -19,14 +19,19 @@ import com.rs.utils.music.Music;
 import com.rs.utils.spawns.ItemSpawns;
 import com.rs.utils.spawns.NPCSpawns;
 import com.rs.utils.spawns.ObjectSpawns;
-import it.unimi.dsi.fastutil.ints.*;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSets;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSets;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class Chunk {
     public static final int PLANE_INC = 0x400000;
@@ -46,6 +51,8 @@ public class Chunk {
     protected GameObject[][][] baseObjects = new GameObject[8][8][4];
     protected Map<Integer, GameObject> removedBaseObjects = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
     protected List<GameObject> spawnedObjects = ObjectLists.synchronize(new ObjectArrayList<>());
+
+    protected Set<GameObject> flaggedObjectsForTickProcessing = ObjectSets.synchronize(new ObjectOpenHashSet<>());
 
     protected Map<Integer, Map<Integer, List<GroundItem>>> groundItems = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
     protected List<GroundItem> groundItemList = ObjectLists.synchronize(new ObjectArrayList<>());
@@ -119,6 +126,25 @@ public class Chunk {
         return item;
     }
 
+    public void processSpawnedObjects() {
+        if (flaggedObjectsForTickProcessing.isEmpty())
+            return;
+        Set<GameObject> toRemove = new ObjectOpenHashSet<>();
+        for (GameObject object : flaggedObjectsForTickProcessing)
+            if (!object.process())
+                toRemove.add(object);
+        for (GameObject object : toRemove)
+            unflagForProcess(object);
+    }
+
+    public void flagForProcess(GameObject object) {
+        flaggedObjectsForTickProcessing.add(object);
+    }
+
+    public void unflagForProcess(GameObject object) {
+        flaggedObjectsForTickProcessing.remove(object);
+    }
+
     public void processGroundItems() {
         if (groundItems.isEmpty())
             return;
@@ -187,7 +213,7 @@ public class Chunk {
             tileMap.put(item.getTile().getTileHash(), items);
         }
         GroundItem existing = getGroundItem(item.getId(), item.getTile(), item.getVisibleToId());
-        if (item.getDefinitions().isStackable() && existing != null) {
+        if (item.getDefinitions().isStackable() && !item.containsMetaData() && existing != null) {
             int oldAmount = existing.getAmount();
             existing.setAmount(existing.getAmount() + item.getAmount());
             if (existing.getCreatorUsername() != null && World.getPlayerByUsername(existing.getCreatorUsername()) != null)
@@ -616,7 +642,8 @@ public class Chunk {
     public void process() {
         updates.clear();
         processGroundItems();
-        if (groundItems.isEmpty() && spawnedObjects.isEmpty())
+        processSpawnedObjects();
+        if (groundItems.isEmpty() && spawnedObjects.isEmpty() && flaggedObjectsForTickProcessing.isEmpty())
             ChunkManager.markChunkInactive(id);
     }
 
@@ -650,6 +677,8 @@ public class Chunk {
         for (GameObject object : new ArrayList<>(getRemovedObjects().values()))
             initUpdates.add(new RemoveObject(object.getTile().getChunkLocalHash(), object));
         for (GameObject object : getSpawnedObjects())
+            initUpdates.add(new AddObject(object.getTile().getChunkLocalHash(), object));
+        for (GameObject object : flaggedObjectsForTickProcessing)
             initUpdates.add(new AddObject(object.getTile().getChunkLocalHash(), object));
         for (GameObject object : getAllObjects())
             if (object.getMeshModifier() != null)

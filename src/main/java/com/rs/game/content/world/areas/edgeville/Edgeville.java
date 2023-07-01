@@ -16,16 +16,14 @@
 //
 package com.rs.game.content.world.areas.edgeville;
 
-import com.rs.game.content.quests.dragonslayer.OziachDragonSlayerD;
-import com.rs.game.content.world.areas.wilderness.WildernessController;
-import com.rs.game.content.world.doors.Doors;
 import com.rs.engine.dialogue.Conversation;
 import com.rs.engine.dialogue.Dialogue;
 import com.rs.engine.dialogue.HeadE;
 import com.rs.engine.dialogue.Options;
 import com.rs.engine.quest.Quest;
-import com.rs.game.model.entity.ForceMovement;
-import com.rs.game.model.entity.pathing.Direction;
+import com.rs.game.content.quests.dragonslayer.OziachDragonSlayerD;
+import com.rs.game.content.world.areas.wilderness.WildernessController;
+import com.rs.game.content.world.doors.Doors;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
@@ -86,9 +84,7 @@ public class Edgeville  {
 	public static ObjectClickHandler handleEdgevilleMonkeybars = new ObjectClickHandler(new Object[] { 29375 }, e -> {
 		final boolean isNorth = e.getPlayer().getY() > 9964;
 		final Tile tile = Tile.of(e.getPlayer().getX(), e.getPlayer().getY() + (isNorth ? -7 : 7), 0);
-		e.getPlayer().lock();
-		e.getPlayer().setNextAnimation(new Animation(745));
-		e.getPlayer().setNextForceMovement(new ForceMovement(e.getPlayer().getTile(), 1, tile, 5, isNorth ? Direction.SOUTH : Direction.NORTH));
+		e.getPlayer().forceMove(tile, 745, 0, 150);
 		WorldTasks.schedule(new WorldTask() {
 			int ticks = 0;
 

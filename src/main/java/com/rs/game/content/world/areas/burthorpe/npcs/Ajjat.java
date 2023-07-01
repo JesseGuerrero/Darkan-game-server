@@ -16,10 +16,10 @@
 //
 package com.rs.game.content.world.areas.burthorpe.npcs;
 
-import com.rs.game.content.Skillcapes;
 import com.rs.engine.dialogue.Conversation;
 import com.rs.engine.dialogue.Dialogue;
 import com.rs.engine.dialogue.HeadE;
+import com.rs.game.content.Skillcapes;
 import com.rs.game.model.entity.player.Player;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCClickHandler;
@@ -31,7 +31,7 @@ public class Ajjat extends Conversation {
 
 	public static NPCClickHandler Ajjat = new NPCClickHandler(new Object[]{npcId}, e -> {
 		switch (e.getOption()) {
-		//Start Conversation
+		
 		case "Talk-to" -> e.getPlayer().startConversation(new Ajjat(e.getPlayer()));
 		}
 	});

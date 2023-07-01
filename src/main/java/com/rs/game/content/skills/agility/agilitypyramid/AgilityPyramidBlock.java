@@ -16,23 +16,19 @@
 //
 package com.rs.game.content.skills.agility.agilitypyramid;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.rs.game.World;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.npc.NPC;
-import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Player;
-import com.rs.game.tasks.WorldTask;
-import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
 import com.rs.utils.WorldUtil;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @PluginEventHandler
 public class AgilityPyramidBlock extends NPC {
@@ -50,7 +46,7 @@ public class AgilityPyramidBlock extends NPC {
 		if (timer-- <= 0) {
 			for (Player player : World.getPlayersInChunkRange(getChunkId(), 1))
 				player.getVars().setVarBit(1550, getId() == 3125 ? 1 : 3);
-			setNextForceMovement(new ForceMovement(dangerTile, 2, getId() == 3125 ? Direction.EAST : Direction.NORTH));
+			forceMoveVisually(dangerTile, 20, 0);
 			timer = 10;
 		}
 		if (timer > 7)
@@ -64,16 +60,8 @@ public class AgilityPyramidBlock extends NPC {
 					dist = 2;
 				p.lock();
 				p.setNextAnimation(new Animation(3066));
-				final Tile tile = p.transform(getId() == 3125 ? dist : 0, getId() == 3125 ? 0 : dist, 0);
-				p.setNextForceMovement(new ForceMovement(tile, dist, getId() == 3125 ? Direction.WEST : Direction.SOUTH));
-				WorldTasks.schedule(new WorldTask() {
-					@Override
-					public void run() {
-						p.setNextTile(tile.transform(0, 0, -1));
-						p.applyHit(new Hit(null, 80, HitLook.TRUE_DAMAGE));
-						p.unlock();
-					}
-				}, 2);
+				final Tile tile = p.transform(getId() == 3125 ? dist : 0, getId() == 3125 ? 0 : dist, -1);
+				p.forceMove(tile, 10, 30, () -> p.applyHit(new Hit(null, 80, HitLook.TRUE_DAMAGE)));
 			}
 		if (timer == 4)
 			for (Player player : World.getPlayersInChunkRange(getChunkId(), 1))

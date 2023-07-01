@@ -20,16 +20,12 @@ import com.rs.cache.loaders.map.ClipFlag;
 import com.rs.game.content.skills.dungeoneering.DungeonConstants;
 import com.rs.game.content.skills.dungeoneering.npcs.DungeonNPC;
 import com.rs.game.content.skills.dungeoneering.rooms.PuzzleRoom;
-import com.rs.game.model.entity.ForceMovement;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.pathing.WorldCollision;
 import com.rs.game.model.entity.player.Player;
-import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
-import com.rs.lib.game.Animation;
 import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
-import com.rs.utils.WorldUtil;
 
 public class SlidingStatuesRoom extends PuzzleRoom {
 
@@ -126,30 +122,16 @@ public class SlidingStatuesRoom extends PuzzleRoom {
 					player.sendMessage("A party member is blocking the way.");
 					return;
 				}
-		}
-
-			player.lock(2);
-			WorldTasks.schedule(new WorldTask() {
-
-				private boolean moved;
-
-				@Override
-				public void run() {
-					if (!moved) {
-						moved = true;
-						WorldCollision.removeFlag(getTile(), ClipFlag.PF_FULL);
-						addWalkSteps(getX() + dx, getY() + dy);
-						Tile fromTile = Tile.of(player.getX(), player.getY(), player.getPlane());
-						player.setNextTile(pTarget);
-						player.setNextForceMovement(new ForceMovement(fromTile, 0, pTarget, 1, WorldUtil.getFaceDirection(getTile(), player)));
-						player.setNextAnimation(new Animation(push ? 3065 : 3065));
-					} else {
-						WorldCollision.addFlag(getTile(), ClipFlag.PF_FULL);
-						checkComplete();
-						stop();
-					}
-		}
-			}, 0, 0);
+			}
+			player.lock();
+			WorldTasks.schedule(0, () -> {
+				WorldCollision.removeFlag(getTile(), ClipFlag.PF_FULL);
+				addWalkSteps(getX() + dx, getY() + dy);
+				player.forceMove(pTarget, push ? 3065 : 3065, 0, 30, () -> {
+					WorldCollision.addFlag(getTile(), ClipFlag.PF_FULL);
+					checkComplete();
+				});
+			});
 
 		}
 

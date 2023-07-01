@@ -16,19 +16,16 @@
 //
 package com.rs.game.model.entity.player;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Set;
-
 import com.rs.Settings;
 import com.rs.cache.loaders.NPCDefinitions.MovementType;
-import com.rs.game.World;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.HitBar;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.lib.io.OutputStream;
 import com.rs.lib.util.Utils;
+
+import java.util.Iterator;
+import java.util.LinkedList;
 
 public final class LocalNPCUpdate {
 
@@ -255,12 +252,12 @@ public final class LocalNPCUpdate {
 	}
 
 	private void applyForceMovementMask(NPC n, OutputStream data) {
-		data.write128Byte(n.getNextForceMovement().getToFirstTile().getX() - n.getX());
-		data.writeByte128(n.getNextForceMovement().getToFirstTile().getY() - n.getY());
-		data.writeByteC(n.getNextForceMovement().getToSecondTile() == null ? 0 : n.getNextForceMovement().getToSecondTile().getX() - n.getX());
-		data.writeByte128(n.getNextForceMovement().getToSecondTile() == null ? 0 : n.getNextForceMovement().getToSecondTile().getY() - n.getY());
-		data.writeShortLE((n.getNextForceMovement().getFirstTileTicketDelay() * 600) / 20);
-		data.writeShortLE(n.getNextForceMovement().getToSecondTile() == null ? 0 : ((n.getNextForceMovement().getSecondTileTicketDelay() * 600) / 20));
+		data.write128Byte(n.getNextForceMovement().getDiffX1());
+		data.writeByte128(n.getNextForceMovement().getDiffY1());
+		data.writeByteC(n.getNextForceMovement().getDiffX2());
+		data.writeByte128(n.getNextForceMovement().getDiffY2());
+		data.writeShortLE(n.getNextForceMovement().getStartClientCycles());
+		data.writeShortLE(n.getNextForceMovement().getSpeedClientCycles());
 		data.writeShortLE128(n.getNextForceMovement().getDirection());
 	}
 

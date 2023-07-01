@@ -18,6 +18,11 @@ package com.rs.game.content.world.areas.morytania;
 
 import com.rs.cache.loaders.ItemDefinitions;
 import com.rs.cache.loaders.ObjectType;
+import com.rs.engine.dialogue.Conversation;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
+import com.rs.engine.dialogue.Options;
+import com.rs.engine.quest.Quest;
 import com.rs.game.World;
 import com.rs.game.content.achievements.AchievementSystemDialogue;
 import com.rs.game.content.achievements.SetReward;
@@ -25,11 +30,6 @@ import com.rs.game.content.skills.agility.Agility;
 import com.rs.game.content.skills.magic.Magic;
 import com.rs.game.content.world.AgilityShortcuts;
 import com.rs.game.content.world.doors.Doors;
-import com.rs.engine.dialogue.Conversation;
-import com.rs.engine.dialogue.Dialogue;
-import com.rs.engine.dialogue.HeadE;
-import com.rs.engine.dialogue.Options;
-import com.rs.engine.quest.Quest;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.player.Player;
@@ -323,8 +323,7 @@ public class Morytania  {
 			if (e.getPlayer().getInventory().addItemDrop(product.getProduct(), 1)) {
 				e.getPlayer().sendMessage("You pick a " + productName + ".");
 				e.getPlayer().incrementCount(productName + " bloomed", 1);
-				World.spawnObject(new GameObject(product.getObject()-1, e.getObject().getType(), e.getObject().getRotation(), e.getObject().getTile()));
-
+				e.getObject().setId(product.getObject()-1);
 			}
 		});
 	});
