@@ -80,8 +80,8 @@ public class FightArena extends QuestOutline {
 		return lines;
 	}
 
-	public static ItemOnObjectHandler keyOnCell = new ItemOnObjectHandler(true, new Object[] { 80 }, e -> {
-		if (e.getPlayer().getQuestManager().getStage(Quest.FIGHT_ARENA) == GET_JAIL_KEYS && e.getItem().getId() == 76) {
+	public static ItemOnObjectHandler keyOnCell = new ItemOnObjectHandler(new Object[] { 80 }, new Object[] { 76 }, e -> {
+		if (e.getPlayer().getQuestManager().getStage(Quest.FIGHT_ARENA) == GET_JAIL_KEYS) {
 			e.getPlayer().startConversation(new Dialogue()
 					.addPlayer(HeadE.HAPPY_TALKING, "Jeremy! Look, I have the keys.")
 					.addNPC(265, HeadE.CHILD_UNSURE, "Wow! Please set me free so we can find my dad. I overheard a guard talking. I think " +
@@ -159,7 +159,29 @@ public class FightArena extends QuestOutline {
 		player.getInventory().addCoins(1000);
 		player.getSkills().addXpQuest(Constants.ATTACK, 12_175);
 		player.getSkills().addXpQuest(Constants.THIEVING, 2_175);
-		getQuest().sendQuestCompleteInterface(player, 75, "12,175 Attack XP", "2,175 Thieving XP", "1,000 Coins");
+		sendQuestCompleteInterface(player, 75);
+	}
+
+	@Override
+	public String getStartLocationDescription() {
+		return "Talk to Lady Servil, just north-west of the fight arena.";
+	}
+
+	@Override
+	public String getRequiredItemsString() {
+		return "Combat gear.";
+	}
+
+	@Override
+	public String getCombatInformationString() {
+		return "Be able to defeat level 50, 64 and 77 foes.";
+	}
+
+	@Override
+	public String getRewardsString() {
+		return "12,175 Attack XP<br>" +
+				"2,175 Thieving XP<br>" +
+				"1,000 coins";
 	}
 
 }

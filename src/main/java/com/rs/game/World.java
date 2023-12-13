@@ -37,7 +37,7 @@ import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.pathing.WorldCollision;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.*;
 import com.rs.lib.game.GroundItem.GroundItemType;
@@ -53,6 +53,7 @@ import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.annotations.ServerStartupEvent;
 import com.rs.plugin.events.NPCInstanceEvent;
 import com.rs.utils.*;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 import java.util.*;
@@ -70,6 +71,8 @@ public final class World {
 	private static final Map<String, Player> PLAYER_MAP_DISPLAYNAME = new ConcurrentHashMap<>();
 
 	private static final EntityList<NPC> NPCS = new EntityList<>(Settings.NPCS_LIMIT);
+
+	private static final Map<Integer, GameObject.RouteType> GAMEOBJECT_ROUTE_TYPE_MAPPINGS = new Int2ObjectOpenHashMap<>();
 
 	@ServerStartupEvent
 	public static final void addSaveFilesTask() {
@@ -731,7 +734,7 @@ public final class World {
 
 	public static final void spawnObjectTemporary(final GameObject object, int ticks, boolean clip) {
 		spawnObject(object, clip);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				try {
@@ -753,7 +756,7 @@ public final class World {
 		if (object == null)
 			return false;
 		removeObject(object);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				try {
@@ -768,7 +771,7 @@ public final class World {
 
 	public static final void spawnTempGroundObject(final GameObject object, final int replaceId, int ticks) {
 		spawnObject(object);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				try {
@@ -844,6 +847,19 @@ public final class World {
 	public static List<Player> getPlayersInChunkRange(int chunkId, int chunkRadius) {
 		List<Player> players = new ArrayList<>();
 		Set<Integer> chunkIds = getChunkRadius(chunkId, chunkRadius);
+		for (int chunk : chunkIds) {
+			for (int pid : ChunkManager.getChunk(chunk).getPlayerIndexes()) {
+				Player player = World.getPlayers().get(pid);
+				if (player == null || !player.hasStarted() || player.hasFinished())
+					continue;
+				players.add(player);
+			}
+		}
+		return players;
+	}
+
+	public static List<Player> getPlayersInChunks(int... chunkIds) {
+		List<Player> players = new ArrayList<>();
 		for (int chunk : chunkIds) {
 			for (int pid : ChunkManager.getChunk(chunk).getPlayerIndexes()) {
 				Player player = World.getPlayers().get(pid);
@@ -932,7 +948,16 @@ public final class World {
 		return ChunkManager.getChunk(tile.getChunkId()).getObject(tile, type);
 	}
 
-	public enum DropMethod {
+    public static void setObjectRouteType(int id, GameObject.RouteType routeType) {
+		GAMEOBJECT_ROUTE_TYPE_MAPPINGS.put(id, routeType);
+    }
+
+	public static GameObject.RouteType getRouteType(int id) {
+		GameObject.RouteType type = GAMEOBJECT_ROUTE_TYPE_MAPPINGS.get(id);
+		return type != null ? type : GameObject.RouteType.NORMAL;
+	}
+
+    public enum DropMethod {
 		NORMAL, TURN_UNTRADEABLES_TO_COINS
 	}
 
@@ -1259,8 +1284,12 @@ public final class World {
 	/**
 	 * Please someone refactor this. This is beyond disgusting and definitely can be done better.
 	 */
-	public static Tile findAdjacentFreeTile(Tile tile) {
+	public static Tile findAdjacentFreeTile(Tile tile, Direction... blacklistedDirections) {
 		List<Direction> unchecked = new ArrayList<>(Arrays.asList(Direction.values()));
+		if (blacklistedDirections != null) {
+			for (Direction dir : blacklistedDirections)
+				unchecked.remove(dir);
+		}
 		while(!unchecked.isEmpty()) {
 			Direction curr = unchecked.get(Utils.random(unchecked.size()));
 			if (World.checkWalkStep(tile, curr, 1))
@@ -1268,6 +1297,14 @@ public final class World {
 			unchecked.remove(curr);
 		}
 		return null;
+	}
+
+	public static Tile findAdjacentFreeTile(Tile tile) {
+		return findAdjacentFreeTile(tile, (Direction) null);
+	}
+
+	public static Tile findAdjacentFreeSpace(Tile tile, Direction... blacklistedDirections) {
+		return findAdjacentFreeTile(tile, blacklistedDirections);
 	}
 
 	/**

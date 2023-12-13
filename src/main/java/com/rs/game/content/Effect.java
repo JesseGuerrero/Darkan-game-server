@@ -98,6 +98,7 @@ public enum Effect {
 	AGGRESSION_POTION("aggression potion", false),
 
 	OVERLOAD_PVP_REDUCTION(true),
+	MELEE_IMMUNE(true),
 
 	BONFIRE("bonfire boost", false) {
 		@Override
@@ -130,6 +131,16 @@ public enum Effect {
 						npc.applyHit(new Hit(player, dmg, Hit.HitLook.TRUE_DAMAGE));
 						player.heal(dmg);
 					}
+			}
+		}
+	},
+
+	EXCALIBUR_HEAL() {
+		@Override
+		public void tick(Entity entity, long tick) {
+			if (tick % 7 == 0) {
+				entity.heal(40);
+				entity.spotAnim(1507);
 			}
 		}
 	},
@@ -181,7 +192,7 @@ public enum Effect {
 
 	FARMERS_AFFINITY("Farmer's affinity"),
 
-	;
+	SHOOTING_STAR_MINING_BUFF("star sprite's power", false);
 
 	private boolean removeOnDeath = true;
 	private String name;

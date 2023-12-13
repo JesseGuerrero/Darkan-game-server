@@ -43,6 +43,7 @@ import com.rs.game.model.entity.pathing.*;
 import com.rs.game.model.entity.player.Bank;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.item.ItemsContainer;
+import com.rs.game.tasks.TaskInformation;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
@@ -110,6 +111,7 @@ public class NPC extends Entity {
 	private transient boolean locked;
 	private transient boolean skipWalkStep;
 	private transient boolean deleted = false;
+	private transient TaskInformation respawnTask;
 
 	public boolean switchWalkStep() {
 		return skipWalkStep = !skipWalkStep;
@@ -164,17 +166,6 @@ public class NPC extends Entity {
 
 	public boolean walksOnWater() {
 		return (getDefinitions().walkMask & 0x4) != 0;
-	}
-
-	public void walkToAndExecute(Tile startTile, Runnable event) {
-		Route route = RouteFinder.find(getX(), getY(), getPlane(), getSize(), new FixedTileStrategy(startTile.getX(), startTile.getY()), true);
-		//TODO expensive call for cutscenes
-		if (route.getStepCount() == -1)
-			return;
-		for (int i = route.getStepCount() - 1; i >= 0; i--)
-			if (!addWalkSteps(route.getBufferX()[i], route.getBufferY()[i], 25, true, true))
-				break;
-		setRouteEvent(new RouteEvent(startTile, event));
 	}
 
 	@Override
@@ -412,7 +403,12 @@ public class NPC extends Entity {
 			setTile(respawnTile);
 			finish();
 		}
-		WorldTasks.schedule(time < 0 ? getCombatDefinitions().getRespawnDelay() : time, () -> spawn());
+		respawnTask = WorldTasks.schedule(time < 0 ? getCombatDefinitions().getRespawnDelay() : time, () -> spawn());
+	}
+
+	public void cancelRespawnTask() {
+		if (respawnTask != null)
+			WorldTasks.remove(respawnTask);
 	}
 
 	public void deserialize() {
@@ -477,6 +473,7 @@ public class NPC extends Entity {
 
 	@Override
 	public void sendDeath(final Entity source) {
+		clearPendingTasks();
 		final NPCCombatDefinitions defs = getCombatDefinitions();
 		getInteractionManager().forceStop();
 		resetWalkSteps();

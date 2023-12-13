@@ -10,7 +10,7 @@ import com.rs.game.World;
 import com.rs.game.content.world.doors.Doors;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
@@ -106,7 +106,7 @@ public class TreeGnomeVillage extends QuestOutline {
 	public static ObjectClickHandler handleWallBallistaHit = new ObjectClickHandler(new Object[] { 12762 }, e -> {
 		if(e.getPlayer().getQuestManager().getStage(Quest.TREE_GNOME_VILLAGE) == ORB1) {
 			Player p = e.getPlayer();
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				int tick = 0;
 				boolean isPlayerNorth = true;
 				@Override
@@ -232,7 +232,29 @@ public class TreeGnomeVillage extends QuestOutline {
 	public void complete(Player player) {
 		player.getSkills().addXp(Constants.ATTACK, 11450);
 		player.getInventory().addItem(new Item(589, 1), true);
-		getQuest().sendQuestCompleteInterface(player, 589, "11,450 Attack XP", "Spirit Tree Access");
+		sendQuestCompleteInterface(player, 589);
+	}
+
+	@Override
+	public String getStartLocationDescription() {
+		return "Talk to King Bolren in the Tree Gnome Village.";
+	}
+
+	@Override
+	public String getRequiredItemsString() {
+		return "6 normal logs.";
+	}
+
+	@Override
+	public String getCombatInformationString() {
+		return "You will need to defeat a level 53 enemy and might need to defeat two level 49 enemies.";
+	}
+
+	@Override
+	public String getRewardsString() {
+		return "11,450 Attack XP<br>"+
+				"Access to spirit tree teleportation<br>" +
+				"Gnome amulet of protection";
 	}
 
 }

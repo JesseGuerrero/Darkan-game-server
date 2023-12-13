@@ -87,7 +87,7 @@ public class Foods {
         return true;
     }
 
-    public static enum Food {
+    public enum Food {
         ACAI(20270, 50),
         ADMIRAL_PIE(new int[] { 7198, 7200 }, 2313, 80, p -> p.getSkills().adjustStat(5, 0.0, Constants.FISHING)),
         AMPHIBIOUS_FRUIT(21381, 150),
@@ -389,10 +389,6 @@ public class Foods {
         TANGLED_TOAD_LEGS(2187, 150),
         TCHIKI_MONKEY_NUTS(7573, 2),
         TCHIKI_NUT_PASTE(7575, 2),
-        TEA(new int[] { 1978 }, 1980, 20, player -> {
-            player.setNextForceTalk(new ForceTalk("Aaah, nothing like a nice cuppa tea!"));
-            player.removeEffect(Effect.AGGRESSION_POTION);
-        }),
         TEA_FLASK(10859, 20),
         TENTH_ANNIVERSARY_CAKE(20111, 20),
         THIN_SNAIL_MEAT(3369, 30),
@@ -446,39 +442,39 @@ public class Foods {
                     foods.put(id, food);
         }
 
-        private int[] ids;
+        private final int[] ids;
         private int container;
-        private int heal;
+        private final int heal;
 
         private Consumer<Player> effect;
 
-        private Food(int[] ids, int container, int heal, Consumer<Player> effect) {
+        Food(int[] ids, int container, int heal, Consumer<Player> effect) {
             this.ids = ids;
             this.container = container;
             this.heal = heal;
             this.effect = effect;
         }
 
-        private Food(int[] ids, int heal, Consumer<Player> effect) {
+        Food(int[] ids, int heal, Consumer<Player> effect) {
             this(ids, -1, heal, effect);
         }
 
-        private Food(int id, int heal, Consumer<Player> effect) {
+        Food(int id, int heal, Consumer<Player> effect) {
             this(new int[] { id }, -1, heal, effect);
         }
 
-        private Food(int id, int heal) {
+        Food(int id, int heal) {
             this.ids = new int[] { id };
             this.heal = heal;
         }
 
-        private Food(int[] ids, int container, int heal) {
+        Food(int[] ids, int container, int heal) {
             this.ids = ids;
             this.container = container;
             this.heal = heal;
         }
 
-        private Food(int[] ids, int heal) {
+        Food(int[] ids, int heal) {
             this(ids, -1, heal);
         }
 

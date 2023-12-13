@@ -35,7 +35,7 @@ import com.rs.game.model.entity.player.Controller;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.managers.InterfaceManager.Sub;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
@@ -337,7 +337,7 @@ public class House {
 		for (final Player p : getTrappedPlayers(x, y)) {
 			p.lock(10);
 			p.setNextAnimation(new Animation(1950));
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				@Override
 				public void run() {
 					p.setNextTile(Tile.of(p.getX(), p.getY(), 0));
@@ -742,7 +742,7 @@ public class House {
 				player.getInventory().deleteItem(item);
 		player.getTempAttribs().removeO("OpenedBuild");
 		player.getTempAttribs().removeO("OpenedBuildObject");
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				player.getSkills().addXp(Constants.CONSTRUCTION, piece.getXP());
@@ -858,7 +858,7 @@ public class House {
 			return;
 		player.lock();
 		player.setNextAnimation(new Animation(3685));
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				World.removeObject(object);
@@ -923,15 +923,17 @@ public class House {
 		player.getControllerManager().startController(new HouseController(this));
 		if (loaded) {
 			teleportPlayer(player);
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				@Override
 				public void run() {
 					player.lock(1);
 					player.getInterfaceManager().setDefaultTopInterface();
 				}
 			}, 4);
-		} else
+		} else {
 			createHouse();
+		}
+		teleportServant();
 		return true;
 	}
 
@@ -981,8 +983,9 @@ public class House {
 	}
 
 	private void addServant() {
-		if (servantInstance == null && servant != null)
+		if (servantInstance == null && servant != null) {
 			servantInstance = new ServantNPC(this);
+		}
 	}
 
 	public Servant getServant() {
@@ -1005,7 +1008,7 @@ public class House {
 			servantInstance.setFollowing(true);
 			servantInstance.setNextTile(World.getFreeTile(player.getTile(), 1));
 			servantInstance.setNextAnimation(new Animation(858));
-			player.startConversation(new ServantDialogue(player, servantInstance));
+			player.startConversation(new ServantHouseD(player, servantInstance, true));
 		}
 	}
 
@@ -1043,11 +1046,35 @@ public class House {
 		teleportPlayer(player, getPortalRoom());
 	}
 
+	public void teleportServant() {
+		teleportServant(getPortalRoom());
+	}
+
+	public void teleportServant(RoomReference room) {
+		if (room == null)
+			return;
+		if (servantInstance == null)
+			return;
+		servantInstance.resetWalkSteps();
+		byte rotation = room.rotation;
+		if (rotation == 0) {
+			instance.teleportChunkLocal(servantInstance, room.x, 3, room.y - 1, 3, room.plane);
+		} else {
+			instance.teleportChunkLocal(servantInstance, room.x, 3, room.y, 3 + 1, room.plane);
+		}
+	}
+
 	public void teleportPlayer(Player player, RoomReference room) {
 		if (room == null)
 			player.sendMessage("Error, tried teleporting to room that doesn't exist.");
-		else
-			instance.teleportChunkLocal(player, room.x, 3, room.y, 3, room.plane);
+		else {
+			byte rotation = room.rotation;
+			if (rotation == 0) {
+				instance.teleportChunkLocal(player, room.x, 3, room.y - 1, 3, room.plane);
+			} else {
+				instance.teleportChunkLocal(player, room.x, 3, room.y, 3 + 1, room.plane);
+			}
+		}
 	}
 
 	public int getPortalCount() {
@@ -1345,6 +1372,7 @@ public class House {
 							}
 					}
 			}
+			refreshServant();
 			teleportPlayer(player);
 			player.setForceNextMapLoadRefresh(true);
 			player.loadMapRegions();
@@ -1355,7 +1383,6 @@ public class House {
 					for (Item item : petHouse.getPets().array())
 						if (item != null)
 							addPet(item, false);
-			refreshServant();
 			if (player.getTempAttribs().getO("CRef") != null && player.getTempAttribs().getO("CRef") instanceof RoomReference toRoom) {
 				player.getTempAttribs().removeO("CRef");
 				teleportPlayer(player, toRoom);

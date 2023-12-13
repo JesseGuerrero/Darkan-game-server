@@ -9,7 +9,7 @@ import com.rs.game.map.ChunkManager;
 import com.rs.game.model.entity.npc.OwnedNPC;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.GroundItem;
 import com.rs.lib.game.Item;
@@ -207,7 +207,7 @@ public class MerlinsCrystal extends QuestOutline {
 	public static PlayerStepHandler handleRitualSpot = new PlayerStepHandler(Tile.of(2780, 3515, 0), e -> {
 		if(e.getPlayer().getQuestManager().getStage(Quest.MERLINS_CRYSTAL) != PERFORM_RITUAL)
 			return;
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int tick;
 			@Override
 			public void run() {
@@ -235,6 +235,26 @@ public class MerlinsCrystal extends QuestOutline {
 
 	@Override
 	public void complete(Player player) {
-		getQuest().sendQuestCompleteInterface(player, EXCALIBUR, "Excalibur");
+		sendQuestCompleteInterface(player, EXCALIBUR);
+	}
+
+	@Override
+	public String getStartLocationDescription() {
+		return "Talk to King Arthur in Camelot Castle.";
+	}
+
+	@Override
+	public String getRequiredItemsString() {
+		return "Bread, a bucket, insect repellent, bat bones.";
+	}
+
+	@Override
+	public String getCombatInformationString() {
+		return "You will need to defeat a level 23 knight. You might anger a level 70 demon.";
+	}
+
+	@Override
+	public String getRewardsString() {
+		return "Excalibur";
 	}
 }

@@ -21,10 +21,7 @@ import com.rs.plugin.events.EnterChunkEvent;
 import com.rs.utils.music.Music;
 import it.unimi.dsi.fastutil.ints.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @PluginEventHandler
 public final class ChunkManager {
@@ -33,6 +30,7 @@ public final class ChunkManager {
     private static final Set<Integer> UNLOADABLE_REGIONS = IntSets.synchronize(new IntOpenHashSet());
     private static final Set<Integer> PERMANENTLY_LOADED_REGIONS = IntSets.synchronize(new IntOpenHashSet());
     private static final Map<Integer, UpdateZone> UPDATE_ZONES = new HashMap<>();
+    private static final Map<Integer, List<UpdateZone>> UPDATE_ZONES_REGION = new HashMap<>();
 
     @ServerStartupEvent(ServerStartupEvent.Priority.FILE_IO)
     public static void loadAllMapData() {
@@ -72,8 +70,11 @@ public final class ChunkManager {
             if (entity instanceof Player) {
                 getChunk(entity.getLastChunkId()).removePlayerIndex(entity.getIndex());
                 getUpdateZone(entity.getSceneBaseChunkId(), entity.getMapSize()).removePlayerWatcher(entity.getIndex());
-            } else
+            } else {
                 getChunk(entity.getLastChunkId()).removeNPCIndex(entity.getIndex());
+                if (entity instanceof NPC n && n.isLoadsUpdateZones())
+                    getUpdateZone(entity.getSceneBaseChunkId(), entity.getMapSize()).removeNPCWatcher(entity.getIndex());
+            }
             return;
         }
         int chunkId = MapUtils.encode(MapUtils.Structure.CHUNK, entity.getChunkX(), entity.getChunkY(), entity.getPlane());
@@ -83,7 +84,7 @@ public final class ChunkManager {
 
             if (entity instanceof Player player) {
                 if(Settings.getConfig().isDebug() && player.hasStarted() && Music.getGenre(player) == null && !(getChunk(player.getChunkId()) instanceof InstancedChunk))
-                    player.sendMessage(chunkId + " has no music genre!");
+                    player.sendMessage(chunkId + " has no music genre!", true);
                 if (entity.getLastChunkId() > 0)
                     getChunk(entity.getLastChunkId()).removePlayerIndex(entity.getIndex());
                 Chunk chunk = getChunk(chunkId);
@@ -236,8 +237,19 @@ public final class ChunkManager {
             UpdateZone zone = UPDATE_ZONES.remove(UpdateZone.getId(baseChunkId, size));
             if (zone == null)
                 return null;
+            Logger.debug(ChunkManager.class, "removeUpdateZone", UpdateZone.getId(baseChunkId, size) + " update zone removed");
             for (int chunkId : zone.getChunkIds())
                 ChunkManager.getChunk(chunkId).removeUpdateZone(zone);
+            for (int regionId : zone.getRegionIds()) {
+                List<UpdateZone> zones = UPDATE_ZONES_REGION.get(regionId);
+                if (zones != null) {
+                    zones.remove(zone);
+                    if (zones.isEmpty()) {
+                        UPDATE_ZONES_REGION.remove(regionId);
+                        markRegionUnloadable(regionId);
+                    }
+                }
+            }
             return zone;
         }
     }
@@ -249,6 +261,15 @@ public final class ChunkManager {
             if (zone == null) {
                 zone = new UpdateZone(baseChunkId, size);
                 UPDATE_ZONES.put(id, zone);
+                Logger.debug(ChunkManager.class, "getUpdateZone", UpdateZone.getId(baseChunkId, size) + " update zone added");
+                for (int regionId : zone.getRegionIds()) {
+                    List<UpdateZone> zones = UPDATE_ZONES_REGION.get(regionId);
+                    if (zones == null) {
+                        zones = new ArrayList<>();
+                        zones.add(zone);
+                        UPDATE_ZONES_REGION.put(regionId, zones);
+                    }
+                }
                 for (int chunkId : zone.getChunkIds())
                     ChunkManager.getChunk(chunkId).addUpdateZone(zone);
             }
@@ -257,13 +278,16 @@ public final class ChunkManager {
     }
 
     public static void markRegionUnloadable(int regionId) {
-        if (!PERMANENTLY_LOADED_REGIONS.contains(regionId))
+        if (!PERMANENTLY_LOADED_REGIONS.contains(regionId)) {
             UNLOADABLE_REGIONS.add(regionId);
+            Logger.debug(ChunkManager.class, "markRegionUnloadable", regionId + " UNLOADABLE");
+        }
     }
 
     public static void unmarkRegionUnloadable(int regionId) {
-        if (!PERMANENTLY_LOADED_REGIONS.contains(regionId))
+        if (!PERMANENTLY_LOADED_REGIONS.contains(regionId)) {
             UNLOADABLE_REGIONS.remove(regionId);
+        }
     }
 
     public static void permanentlyPreloadRegions(int... regionIds) {
@@ -313,32 +337,35 @@ public final class ChunkManager {
     }
 
     public static void clearUnusedMemory() {
-        List<Integer> destroyed = new IntArrayList();
-        regionLoop: for (int regionId : UNLOADABLE_REGIONS) {
-            int chunkBaseId = Tile.of((regionId >> 8) * 64, (regionId & 0xff) * 64, 0).getChunkId();
-            Set<Integer> chunksToDestroy = new IntOpenHashSet();
-            for (int planeOff = 0; planeOff < 4 * Chunk.PLANE_INC; planeOff += Chunk.PLANE_INC) {
-                for (int chunkXOff = 0; chunkXOff < 8 * Chunk.X_INC; chunkXOff += Chunk.X_INC) {
-                    for (int chunkYOff = 0; chunkYOff < 8; chunkYOff++) {
-                        int chunkId = chunkBaseId + chunkXOff + chunkYOff + planeOff;
-                        Chunk chunk = getChunk(chunkId);
-                        if (ACTIVE_CHUNKS.contains(chunkId))
-                            continue regionLoop;
-                        if (chunk != null && !(chunk instanceof InstancedChunk))
-                            chunksToDestroy.add(chunkId);
+        synchronized (CHUNKS) {
+            List<Integer> destroyed = new IntArrayList();
+            regionLoop:
+            for (int regionId : UNLOADABLE_REGIONS) {
+                int chunkBaseId = Tile.of((regionId >> 8) * 64, (regionId & 0xff) * 64, 0).getChunkId();
+                Set<Integer> chunksToDestroy = new IntOpenHashSet();
+                for (int planeOff = 0; planeOff < 4 * Chunk.PLANE_INC; planeOff += Chunk.PLANE_INC) {
+                    for (int chunkXOff = 0; chunkXOff < 8 * Chunk.X_INC; chunkXOff += Chunk.X_INC) {
+                        for (int chunkYOff = 0; chunkYOff < 8; chunkYOff++) {
+                            int chunkId = chunkBaseId + chunkXOff + chunkYOff + planeOff;
+                            Chunk chunk = getChunk(chunkId);
+                            if (ACTIVE_CHUNKS.contains(chunkId))
+                                continue regionLoop;
+                            if (chunk != null && !(chunk instanceof InstancedChunk))
+                                chunksToDestroy.add(chunkId);
+                        }
                     }
                 }
+                for (int chunkId : chunksToDestroy) {
+                    Chunk chunk = getChunk(chunkId);
+                    if (chunk != null)
+                        continue;
+                    chunk.clearCollisionData();
+                    chunk.destroy();
+                    destroyed.add(chunkId);
+                }
             }
-            for (int chunkId : chunksToDestroy) {
-                Chunk chunk = getChunk(chunkId);
-                if (chunk != null)
-                    continue;
-                chunk.clearCollisionData();
-                chunk.destroy();
-                destroyed.add(chunkId);
-            }
+            for (int regionId : destroyed)
+                UNLOADABLE_REGIONS.remove(regionId);
         }
-        for (int regionId : destroyed)
-            UNLOADABLE_REGIONS.remove(regionId);
     }
 }

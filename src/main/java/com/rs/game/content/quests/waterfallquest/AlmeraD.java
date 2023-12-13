@@ -38,11 +38,12 @@ public class AlmeraD extends Conversation {
 						.addPlayer(HeadE.HAPPY_TALKING, "I am looking for a quest.")
 						.addNPC(NPC, HeadE.CALM_TALK, "I might have one for you. My son Hudon has gone missing on some hunt for treasure in the waterfall.")
 						.addNPC(NPC, HeadE.CALM_TALK, "Could you please go make sure he is alright for me?")
+						.addQuestStart(Quest.WATERFALL_QUEST)
 						.addOptions("Choose an option:", new Options() {
 							@Override
 							public void create() {
 								option("Of course.", new Dialogue()
-										.addPlayer(HeadE.HAPPY_TALKING, "Of course I will.", () ->{player.getQuestManager().setStage(Quest.WATERFALL_QUEST, 1, true);})
+										.addPlayer(HeadE.HAPPY_TALKING, "Of course I will.", () ->{player.getQuestManager().setStage(Quest.WATERFALL_QUEST, 1);})
 										.addNPC(NPC, HeadE.CALM_TALK, "Thank you so much!")
 								);
 								option("No thanks, I don't have time right now.", new Dialogue()

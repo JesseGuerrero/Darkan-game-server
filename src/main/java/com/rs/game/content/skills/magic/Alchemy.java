@@ -21,15 +21,29 @@ import com.rs.game.World;
 import com.rs.game.content.ItemConstants;
 import com.rs.game.content.skills.smithing.Smelting.SmeltingBar;
 import com.rs.game.model.entity.player.Equipment;
+import com.rs.game.model.entity.player.Inventory;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.managers.InterfaceManager.Sub;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Item;
 import com.rs.lib.game.SpotAnim;
+import com.rs.plugin.annotations.PluginEventHandler;
+import com.rs.plugin.handlers.InterfaceOnInterfaceHandler;
 
+@PluginEventHandler
 public class Alchemy {
 
+	public static InterfaceOnInterfaceHandler handleAlchSuperheat = new InterfaceOnInterfaceHandler(192, new int[] { 38, 50, 59 }, Inventory.INVENTORY_INTERFACE, null, e -> {
+		Item item = e.getPlayer().getInventory().getItem(e.getToSlotId());
+		if (item == null)
+			return;
+		switch(e.getFromComponentId()) {
+			case 38 -> handleAlchemy(e.getPlayer(), item, true, true);
+			case 50 -> handleSuperheat(e.getPlayer(), item, true);
+			case 59 -> handleAlchemy(e.getPlayer(), item, false, true);
+		}
+	});
 
 	public static boolean handleSuperheat(Player player, Item item, boolean useRunes) {
 		if (useRunes)
@@ -57,8 +71,8 @@ public class Alchemy {
 			return false;
 		}
 		Magic.checkMagicAndRunes(player, 43, true, useRunes ? new RuneSet(Rune.NATURE, 1, Rune.FIRE, 4) : null);
-		player.setNextAnimation(new Animation(722));
-		player.setNextSpotAnim(new SpotAnim(148));
+		player.anim(725);
+		player.spotAnim(148, 0, 96);
 		for (Item itemReq : bar.getItemsRequired())
 			if (itemReq.getId() == 453 && player.getInventory().containsItem(18339) && player.getI("coalBag") > 0) {
 				int coalBag = player.getI("coalBag");

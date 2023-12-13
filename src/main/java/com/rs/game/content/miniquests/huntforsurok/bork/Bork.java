@@ -17,29 +17,24 @@
 package com.rs.game.content.miniquests.huntforsurok.bork;
 
 import com.rs.cache.loaders.ItemDefinitions;
+import com.rs.engine.dialogue.Dialogue;
+import com.rs.engine.dialogue.HeadE;
+import com.rs.engine.miniquest.Miniquest;
 import com.rs.game.World;
 import com.rs.game.content.achievements.AchievementDef;
-import com.rs.game.content.achievements.AchievementReqsMisc;
-import com.rs.game.content.achievements.AchievementSetRewards;
 import com.rs.game.content.achievements.SetReward;
 import com.rs.game.content.minigames.treasuretrails.TreasureTrailsManager;
 import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
-import com.rs.game.tasks.WorldTask;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Item;
 import com.rs.lib.game.Tile;
-import com.rs.lib.util.Logger;
 import com.rs.lib.util.Utils;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.handlers.NPCInstanceHandler;
-import com.rs.utils.EffigyDrop;
-import com.rs.utils.NPCClueDrops;
-import com.rs.utils.Ticks;
-import com.rs.utils.drop.ClueDrop;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,7 +64,6 @@ public class Bork extends NPC {
 			player.getInterfaceManager().sendForegroundInterfaceOverGameWindow(693);
 			WorldTasks.schedule(8, () -> {
 				player.getInterfaceManager().closeInterfacesOverGameWindow();
-				//player.startConversation(new DagonHai(), 7137);
 				setNextAnimation(new Animation(getCombatDefinitions().getDeathEmote()));
 				WorldTasks.schedule(4, () -> {
 					drop();
@@ -86,6 +80,12 @@ public class Bork extends NPC {
 		Player killer = getMostDamageReceivedSourcePlayer();
 		if (killer == null)
 			return;
+		if (killer.getMiniquestStage(Miniquest.HUNT_FOR_SUROK) == 4) {
+			killer.getMiniquestManager().complete(Miniquest.HUNT_FOR_SUROK);
+			killer.startConversation(new Dialogue()
+					.addPlayer(HeadE.CONFUSED, "It looks like Surok managed to escape during the fight. I wonder what he is up to now...")
+					.addPlayer(HeadE.AMAZED, "What the-? This power! It must be Zamorak! I can't fight something this strong! I better loot what I can and get out of here!"));
+		}
 		if (!killer.getDailyB("borkKilled")) {
 			boolean diaryReward = SetReward.VARROCK_ARMOR.hasRequirements(killer, AchievementDef.Area.VARROCK, AchievementDef.Difficulty.HARD, false);
 			boolean row = killer.getEquipment().getRingId() != -1 && ItemDefinitions.getDefs(killer.getEquipment().getRingId()).getName().toLowerCase().contains("ring of wealth");

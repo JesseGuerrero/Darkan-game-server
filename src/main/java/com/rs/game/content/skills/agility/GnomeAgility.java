@@ -18,7 +18,7 @@ package com.rs.game.content.skills.agility;
 
 import com.rs.game.model.entity.pathing.RouteEvent;
 import com.rs.game.model.entity.player.Player;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
@@ -36,31 +36,34 @@ public class GnomeAgility {
 		int x = Utils.clampI(e.getObject().getX(), 2485, 2487);
 		e.getPlayer().setRouteEvent(new RouteEvent(Tile.of(x, 3419, 3), () -> {
 			e.getPlayer().lock();
-			WorldTasks.schedule(new WorldTask() {
-				int stage = 0;
-
-				@Override
-				public void run() {
-					if (stage == 0)
-						e.getPlayer().faceObject(e.getObject());
-					else if (stage == 1) {
-						e.getPlayer().forceMove(Tile.of(x, 3421, 3), 11784, 0, 30, false);
-					} else if (stage == 2) {
-						e.getPlayer().forceMove(Tile.of(x, 3425, 3), 11785, 0, 30, false, () -> e.getPlayer().setNextAnimation(new Animation(11789)));
-					} else if (stage == 6)
-						e.getPlayer().forceMove(Tile.of(x, 3429, 3), -1, 0, 60, false);
-					else if (stage == 11) {
-						e.getPlayer().forceMove(Tile.of(x, 3432, 3), -1, 0, 60, false, () -> {
-							e.getPlayer().getSkills().addXp(Constants.AGILITY, 25);
-							if (getGnomeStage(e.getPlayer()) == 1)
-								setGnomeStage(e.getPlayer(), 2);
-							e.getPlayer().unlock();
-						});
-						stop();
+			WorldTasks.scheduleTimer(tick -> {
+				switch(tick) {
+					case 0 -> e.getPlayer().faceObject(e.getObject());
+					case 1 -> e.getPlayer().forceMoveVisually(Tile.of(x, 3421, 3), 11784, 0, 30);
+					case 2 -> {
+						e.getPlayer().setNextTile(Tile.of(x, 3421, 3));
+						e.getPlayer().forceMoveVisually(Tile.of(x, 3421, 3), Tile.of(x, 3425, 3), 11785, 0, 30);
 					}
-					stage++;
+					case 3 -> {
+						e.getPlayer().anim(11789);
+						e.getPlayer().setNextTile(Tile.of(x, 3425, 3));
+					}
+					case 6 -> e.getPlayer().forceMoveVisually(Tile.of(x, 3429, 3), -1, 20, 60);
+					case 11 -> {
+						e.getPlayer().setNextTile(Tile.of(x, 3429, 3));
+						e.getPlayer().forceMoveVisually(Tile.of(x, 3429, 3), Tile.of(x, 3432, 3), -1, 20, 60);
+					}
+					case 15 -> {
+						e.getPlayer().setNextTile(Tile.of(x, 3432, 3));
+						e.getPlayer().getSkills().addXp(Constants.AGILITY, 25);
+						if (getGnomeStage(e.getPlayer()) == 1)
+							setGnomeStage(e.getPlayer(), 2);
+						e.getPlayer().unlock();
+						return false;
+					}
 				}
-			}, 0, 0);
+				return true;
+			});
 		}));
 	});
 
@@ -90,7 +93,7 @@ public class GnomeAgility {
 		if (!Agility.hasLevel(e.getPlayer(), 85))
 			return;
 		e.getPlayer().lock();
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int tick = 0;
 			@Override
 			public void run() {
@@ -98,6 +101,7 @@ public class GnomeAgility {
 					e.getPlayer().forceMove(Tile.of(2485, 3434, 3), 2923, 25, 60, false);
 				} else if (tick == 3) {
 					e.getPlayer().setNextAnimation(new Animation(2924));
+					e.getPlayer().setNextTile(Tile.of(2485, 3436, 0));
 				} else if (tick == 5) {
 					e.getPlayer().unlock();
 					e.getPlayer().getSkills().addXp(Constants.AGILITY, 25);
@@ -119,7 +123,7 @@ public class GnomeAgility {
 		e.getPlayer().lock();
 		e.getPlayer().addWalkSteps(2474, 3429, -1, false);
 		e.getPlayer().sendMessage("You walk carefully across the slippery log...", true);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			boolean secondloop;
 
 			@Override
@@ -143,7 +147,7 @@ public class GnomeAgility {
 	public static ObjectClickHandler handleObstacleNet = new ObjectClickHandler(new Object[] { 69383 }, e -> {
 		e.getPlayer().sendMessage("You climb the netting.", true);
 		e.getPlayer().useStairs(828, Tile.of(e.getPlayer().getX(), 3423, 1), 1, 2);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				if (getGnomeStage(e.getPlayer()) == 0)
@@ -156,7 +160,7 @@ public class GnomeAgility {
 	public static ObjectClickHandler handleTreeBranch = new ObjectClickHandler(new Object[] { 69508 }, e -> {
 		e.getPlayer().sendMessage("You climb the tree...", true);
 		e.getPlayer().useStairs(828, Tile.of(2473, 3420, 2), 1, 2, "... to the platform above.");
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				if (getGnomeStage(e.getPlayer()) == 1)
@@ -173,7 +177,7 @@ public class GnomeAgility {
 		e.getPlayer().setRunHidden(false);
 		e.getPlayer().lock();
 		e.getPlayer().addWalkSteps(2483, 3420, -1, false);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			boolean secondloop;
 
 			@Override
@@ -197,7 +201,7 @@ public class GnomeAgility {
 
 	public static ObjectClickHandler handleTreeBranch3 = new ObjectClickHandler(new Object[] { 69507 }, e -> {
 		e.getPlayer().useStairs(828, Tile.of(2487, 3421, 0), 1, 2, "You climbed the tree branch succesfully.");
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				if (getGnomeStage(e.getPlayer()) == 3)
@@ -211,7 +215,7 @@ public class GnomeAgility {
 		e.getPlayer().setRouteEvent(new RouteEvent(Tile.of(Utils.clampI(e.getPlayer().getX(), 2483, 2488), e.getObject().getY()-1, 0), () -> {
 			e.getPlayer().sendMessage("You climb the netting.", true);
 			e.getPlayer().useStairs(828, Tile.of(e.getPlayer().getX(), e.getObject().getY()+1, 0), 1, 2);
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				@Override
 				public void run() {
 					if (getGnomeStage(e.getPlayer()) == 4)
@@ -228,7 +232,7 @@ public class GnomeAgility {
 		e.getPlayer().lock(8);
 		e.getPlayer().addWalkSteps(e.getObject().getX(), e.getObject().getY() == 3431 ? 3437 : 3430, -1, false);
 		e.getPlayer().sendMessage("You pulled yourself through the pipes.", true);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			boolean secondloop;
 
 			@Override

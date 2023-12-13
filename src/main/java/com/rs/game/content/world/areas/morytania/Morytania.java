@@ -34,7 +34,7 @@ import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Item;
@@ -176,10 +176,6 @@ public class Morytania  {
 		e.getPlayer().ladder(Tile.of(3405, 3506, 0));
 	});
 
-	public static ObjectClickHandler handleHolyBarrier = new ObjectClickHandler(new Object[] { 3443 }, e -> {
-		e.getPlayer().ladder(Tile.of(3423, 3484, 0));
-	});
-
 	public static ObjectClickHandler handleSwampTrapdoorShortcut = new ObjectClickHandler(new Object[] { 5055, 5054 }, e -> {
 		e.getPlayer().ladder(e.getObjectId() == 5055 ? Tile.of(3477, 9845, 0) : Tile.of(3495, 3466, 0));
 	});
@@ -222,7 +218,7 @@ public class Morytania  {
 		e.getPlayer().lock();
 		e.getPlayer().setNextFaceTile(endTile);
 		e.getPlayer().setNextAnimation(new Animation(769));
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				e.getPlayer().unlockNextTick();
@@ -328,14 +324,12 @@ public class Morytania  {
 		});
 	});
 
-	public static ItemOnObjectHandler handleDipSickle = new ItemOnObjectHandler(new Object[] { 3521 }, e -> {
-		if (e.getItem().getId() == 2961) {
-			e.getPlayer().lock(2);
-			e.getPlayer().setNextAnimation(new Animation(9104));
-			e.getPlayer().getInventory().deleteItem(e.getItem());
-			e.getPlayer().getInventory().addItem(2963, 1);
-			e.getPlayer().itemDialogue(2963, "You dip the sickle into the grotto water and bless it.");
-		}
+	public static ItemOnObjectHandler handleDipSickle = new ItemOnObjectHandler(new Object[] { 3521 }, new Object[] { 2961 }, e -> {
+		e.getPlayer().lock(2);
+		e.getPlayer().setNextAnimation(new Animation(9104));
+		e.getPlayer().getInventory().deleteItem(e.getItem());
+		e.getPlayer().getInventory().addItem(2963, 1);
+		e.getPlayer().itemDialogue(2963, "You dip the sickle into the grotto water and bless it.");
 	});
 
 	public static ItemClickHandler handleBloom = new ItemClickHandler(new Object[] { 2963 }, new String[] { "Bloom" }, e -> {
@@ -368,4 +362,36 @@ public class Morytania  {
 		}
 		e.getPlayer().sendMessage("You need more prayer points to do this.");
 	});
+
+	//Fenkenstraincastle
+	public static ObjectClickHandler handleFenkenstraincastlestairs = new ObjectClickHandler(new Object[] { 5206, 5207 }, e -> {
+		if (e.getObjectId() == 5206)
+			e.getPlayer().setNextTile(e.getPlayer().transform(e.getObject().getRotation() == 0 ? -0 : e.getObject().getRotation() == 1 ? -0 : 0, e.getObject().getRotation() == 0 ? 4 : e.getObject().getRotation() == 1 ? -0 : 0,  1));
+		else if (e.getObjectId() == 5207)
+			e.getPlayer().setNextTile(e.getPlayer().transform(e.getObject().getRotation() == 0 ? 0 : e.getObject().getRotation() == 1 ? -0 : 0, e.getObject().getRotation() == 0 ? -4 : e.getObject().getRotation() == 1 ? -0 : 0, -1));
+	});
+	public static ObjectClickHandler experimentcavegraveentrance = new ObjectClickHandler(new Object[] { 5167 }, e -> {
+		e.getPlayer().setNextTile(Tile.of(3577, 9927, 0));
+	});
+	public static ObjectClickHandler experimentcavegraveexit = new ObjectClickHandler(new Object[] { 1757 }, e -> {
+		e.getPlayer().setNextTile(Tile.of(3578, 3527, 0));
+	});
+
+	//TakenTemple
+	public static ObjectClickHandler handleTemplespiralstairsup = new ObjectClickHandler(new Object[] { 30722 }, e -> {
+		e.getPlayer().setNextTile(Tile.of(3415, 3485, 1));
+	});
+
+	public static ObjectClickHandler handleTemplespiralstairsdown = new ObjectClickHandler(new Object[] { 30723 }, e -> {
+		e.getPlayer().setNextTile(Tile.of(3414, 3486, 0));
+	});
+
+	public static ObjectClickHandler handleTemplespiralstairsup2 = new ObjectClickHandler(new Object[] { 30724 }, e -> {
+		e.getPlayer().setNextTile(Tile.of(3415, 3492, 1));
+	});
+
+	public static ObjectClickHandler handleTemplespiralstairsdown2 = new ObjectClickHandler(new Object[] { 30725  }, e -> {
+		e.getPlayer().setNextTile(Tile.of(3414, 3491, 0));
+	});
+
 }

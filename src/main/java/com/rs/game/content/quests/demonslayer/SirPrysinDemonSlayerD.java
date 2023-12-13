@@ -25,7 +25,7 @@ import com.rs.game.World;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Inventory;
 import com.rs.game.model.entity.player.Player;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Tile;
@@ -257,11 +257,11 @@ public class SirPrysinDemonSlayerD extends Conversation {
 	private void cutscene(Player p) {
 		for(NPC npc : World.getNPCsInChunkRange(p.getChunkId(), 2))
 			if(npc.getId() == SIR_PRYSIN) {
-				npc.transformIntoNPC(266);
+				npc.setHidden(true);
 				NPC dummy = World.spawnNPC(SIR_PRYSIN, Tile.of(3204, 3470, 0), -1, false, true);
 				dummy.setRandomWalk(false);
 				dummy.faceTile(Tile.of(3204, 3469, 0));
-				WorldTasks.schedule(new WorldTask() {
+				WorldTasks.schedule(new Task() {
 					int tick;
 					Tile playerTile;
 					@Override
@@ -297,7 +297,7 @@ public class SirPrysinDemonSlayerD extends Conversation {
 							p.unlock();
 							p.setNextTile(playerTile);
 							dummy.finish();
-							npc.transformIntoNPC(SIR_PRYSIN);
+							npc.setHidden(false);
 							stop();
 						}
 						tick++;

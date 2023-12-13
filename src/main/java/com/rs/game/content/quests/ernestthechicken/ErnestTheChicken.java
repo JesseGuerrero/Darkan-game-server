@@ -28,7 +28,7 @@ import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Inventory;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Item;
@@ -116,7 +116,29 @@ public class ErnestTheChicken extends QuestOutline {
 		player.getInventory().addCoins(3000);
 		player.getInventory().addItem(new Item(1945, 10), true);
 		player.getInventory().addItem(new Item(314, 300), true);
-		getQuest().sendQuestCompleteInterface(player, 314, "3,000 coins", "10 eggs", "300 feathers");
+		sendQuestCompleteInterface(player, 314);
+	}
+
+	@Override
+	public String getStartLocationDescription() {
+		return "Talk to Veronica outside Draynor Manor.";
+	}
+
+	@Override
+	public String getRequiredItemsString() {
+		return "None.";
+	}
+
+	@Override
+	public String getCombatInformationString() {
+		return "None, but watch out for those trees in the manor grounds.";
+	}
+
+	@Override
+	public String getRewardsString() {
+		return "3,000 coins<br>" +
+				"10 eggs<br>" +
+				"300 feathers";
 	}
 
 	public static ObjectClickHandler handleManorFrontDoor = new ObjectClickHandler(new Object[] { 47424, 47421 }, e -> {
@@ -156,16 +178,13 @@ public class ErnestTheChicken extends QuestOutline {
 		inv.addItem(POISONED_FISH_FOOD, 1);
 	});
 
-	public static ItemOnObjectHandler handleCompostHeapItem = new ItemOnObjectHandler(new Object[] { 152 }, e -> {
+	public static ItemOnObjectHandler handleCompostHeapItem = new ItemOnObjectHandler(new Object[] { 152 }, new Object[] { SPADE }, e -> {
 		if(e.getPlayer().getInventory().containsItem(GRIMY_KEY, 1)) {
 			e.getPlayer().sendMessage("I already have the key");
 			return;
 		}
-		if(e.getItem().getId() == SPADE) {
-			e.getPlayer().setNextAnimation(new Animation(830));
-			e.getPlayer().getInventory().addItem(GRIMY_KEY, 1);
-		} else
-			e.getPlayer().sendMessage("I appear to need a spade.");
+		e.getPlayer().setNextAnimation(new Animation(830));
+		e.getPlayer().getInventory().addItem(GRIMY_KEY, 1);
 	});
 
 	public static ObjectClickHandler handleCompostHeapSearch = new ObjectClickHandler(new Object[] { 152 }, e -> {
@@ -209,7 +228,7 @@ public class ErnestTheChicken extends QuestOutline {
 			});
 	});
 
-	public static ItemOnObjectHandler handleFountainItem = new ItemOnObjectHandler(new Object[] { 153 }, e -> {
+	public static ItemOnObjectHandler handleFountainItem = new ItemOnObjectHandler(new Object[] { 153 }, null, e -> {
 		Player p = e.getPlayer();
 		if(e.getItem().getId() != POISONED_FISH_FOOD) {
 			p.startConversation(new Conversation(p) {{
@@ -219,7 +238,7 @@ public class ErnestTheChicken extends QuestOutline {
 			return;
 		}
 		p.getInventory().deleteItem(POISONED_FISH_FOOD, 1);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int tick = 0;
 			@Override
 			public void run() {

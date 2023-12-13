@@ -95,7 +95,9 @@ public class Bank {
 		else if (e.getComponentId() == 39)
 			e.getPlayer().getBank().depositAllBob(true);
 		else if (e.getComponentId() == 35) {
-			int amount = e.getPlayer().getInventory().getCoinsAsInt();
+			int amount = e.getPlayer().getInventory().getPouchCoinsAsInt();
+			if (amount <= 0)
+				return;
 			Item bankCoins = e.getPlayer().getBank().getItem(995);
 			int bankAmt = bankCoins == null ? 0 : bankCoins.getAmount();
 			if (amount + bankAmt <= 0)
@@ -109,7 +111,10 @@ public class Bank {
 		} else if (e.getComponentId() == 46) {
 			e.getPlayer().closeInterfaces();
 			e.getPlayer().getInterfaceManager().sendInterface(767);
-			e.getPlayer().setCloseInterfacesEvent(() -> e.getPlayer().getBank().open());
+			e.getPlayer().setCloseInterfacesEvent(() -> {
+				e.getPlayer().getBank().open();
+				e.getPlayer().abortDialogue();
+			});
 		} else if (e.getComponentId() >= 46 && e.getComponentId() <= 64) {
 			int tabId = 9 - ((e.getComponentId() - 46) / 2);
 			if (e.getPacket() == ClientPacket.IF_OP1)
@@ -413,7 +418,7 @@ public class Bank {
 		sendBoxInterItems();
 		player.getPackets().setIFText(11, 13, "Bank Of " + Settings.getConfig().getServerName() + " - Deposit Box");
 		player.setCloseInterfacesEvent(() -> {
-			player.getSession().writeToQueue(ServerPacket.TRIGGER_ONDIALOGABORT);
+			player.abortDialogue();
 			player.getInterfaceManager().sendSubDefaults(Sub.TAB_INVENTORY, Sub.TAB_EQUIPMENT);
 			player.getInterfaceManager().openTab(Sub.TAB_INVENTORY);
 			player.getTempAttribs().setB("viewingDepositBox", false);
@@ -582,7 +587,7 @@ public class Bank {
 		sendItems();
 		refreshItems();
 		player.setCloseInterfacesEvent(() -> {
-			player.getSession().writeToQueue(ServerPacket.TRIGGER_ONDIALOGABORT);
+			player.abortDialogue();
 			Familiar.sendLeftClickOption(player);
 		});
 	}
@@ -599,6 +604,7 @@ public class Bank {
 		player.getPackets().sendItems(94, other.getEquipment().getItemsCopy());
 		player.getTempAttribs().setB("viewingOtherBank", true);
 		player.setCloseInterfacesEvent(() -> {
+			player.abortDialogue();
 			player.getInventory().refresh();
 			player.getEquipment().refresh();
 			Familiar.sendLeftClickOption(player);
@@ -1013,7 +1019,11 @@ public class Bank {
 				toRemove.add(ip);
 		for (String ip : toRemove)
 			enteredPin.remove(ip);
-		return enteredPin.containsKey(player.getSession().getIP());
+		if (enteredPin.containsKey(player.getSession().getIP())) {
+			sessionPin = true;
+			return true;
+		}
+		return false;
 	}
 
 	public void setEnteredPIN() {

@@ -11,7 +11,7 @@ import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
@@ -213,7 +213,7 @@ public class WitchsHouse extends QuestOutline {
 			});
 	});
 
-	public static ItemOnObjectHandler handleMouseHole = new ItemOnObjectHandler(new Object[] { 2870 }, e -> {
+	public static ItemOnObjectHandler handleMouseHole = new ItemOnObjectHandler(new Object[] { 2870 }, null, e -> {
 		GameObject obj = e.getObject();
 		if(e.getPlayer().getQuestManager().getAttribs(Quest.WITCHS_HOUSE).getB("MOUSE_SOLVED")) {
 			e.getPlayer().startConversation(new Conversation(e.getPlayer()) {
@@ -242,7 +242,7 @@ public class WitchsHouse extends QuestOutline {
 					create();
 				}
 			});
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				int tick;
 				NPC mouse;
 				@Override
@@ -326,7 +326,27 @@ public class WitchsHouse extends QuestOutline {
 	@Override
 	public void complete(Player player) {
 		player.getSkills().addXpQuest(Constants.HITPOINTS, 6325);
-		getQuest().sendQuestCompleteInterface(player, BALL, "6,325 Constitution XP");
+		sendQuestCompleteInterface(player, BALL);
+	}
+
+	@Override
+	public String getStartLocationDescription() {
+		return "Talk to Harvey, the crying boy west of Falador.";
+	}
+
+	@Override
+	public String getRequiredItemsString() {
+		return "Cheese or cheese wheel, leather gloves, some combat equipment and food.";
+	}
+
+	@Override
+	public String getCombatInformationString() {
+		return "You will need to defeat a shapeshifting enemy with forms up to level 49.";
+	}
+
+	@Override
+	public String getRewardsString() {
+		return "6,325 Constitution XP";
 	}
 
 }

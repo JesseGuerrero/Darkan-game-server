@@ -42,12 +42,15 @@ import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
 import com.rs.game.model.entity.player.actions.ActionManager;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
+import com.rs.game.tasks.TaskInformation;
+import com.rs.game.tasks.TaskManager;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
 import com.rs.lib.game.Tile;
+import com.rs.lib.net.packets.encoders.MinimapFlag;
 import com.rs.lib.util.GenericAttribMap;
 import com.rs.lib.util.MapUtils;
 import com.rs.lib.util.MapUtils.Structure;
@@ -98,9 +101,11 @@ public abstract class Entity {
 	private transient Tile lastTile;
 	private transient Tile tileBehind;
 	private transient Tile nextTile;
+	private transient boolean walkedThisTick;
 	private transient Direction nextWalkDirection;
 	private transient Direction nextRunDirection;
 	private transient Tile nextFaceTile;
+	private transient Tile fixedFaceTile;
 	private transient boolean teleported;
 	private transient ConcurrentLinkedQueue<WalkStep> walkSteps;
 	protected transient RouteEvent routeEvent;
@@ -142,9 +147,10 @@ public abstract class Entity {
 	private Tile tile;
 	private RegionSize regionSize;
 
-	private boolean run;
+	protected MoveType moveType = MoveType.WALK;
 	private Poison poison;
 	private Map<Effect, Long> effects = new HashMap<>();
+	private transient TaskManager tasks = new TaskManager();
 
 	// creates Entity and saved classes
 	public Entity(Tile tile) {
@@ -158,6 +164,8 @@ public abstract class Entity {
 			return;
 		Map<Effect, Long> persisted = new HashMap<>();
 		for (Effect effect : effects.keySet()) {
+			if (effect == null)
+				continue;
 			if (!effect.isRemoveOnDeath())
 				persisted.put(effect, effects.get(effect));
 		}
@@ -176,6 +184,15 @@ public abstract class Entity {
 		effect.tick(this, ticks);
 	}
 
+	public void extendEffect(Effect effect, long ticks) {
+		if (effects == null)
+			effects = new HashMap<>();
+		if (effects.containsKey(effect))
+			effects.put(effect, effects.get(effect) + ticks);
+		else
+			addEffect(effect, ticks);
+	}
+
 	public void removeEffect(Effect effect) {
 		if (effects == null)
 			return;
@@ -190,11 +207,31 @@ public abstract class Entity {
 			removeEffect(e);
 	}
 
+	public void walkToAndExecute(Tile startTile, Runnable event) {
+		Route route = RouteFinder.find(getX(), getY(), getPlane(), getSize(), new FixedTileStrategy(startTile.getX(), startTile.getY()), true);
+		int last = -1;
+		if (route.getStepCount() == -1)
+			return;
+		for (int i = route.getStepCount() - 1; i >= 0; i--)
+			if (!addWalkSteps(route.getBufferX()[i], route.getBufferY()[i], 25, true, true))
+				break;
+		if (this instanceof Player player) {
+			if (last != -1) {
+				Tile tile = Tile.of(route.getBufferX()[last], route.getBufferY()[last], getPlane());
+				player.getSession().writeToQueue(new MinimapFlag(tile.getXInScene(getSceneBaseChunkId()), tile.getYInScene(getSceneBaseChunkId())));
+			} else
+				player.getSession().writeToQueue(new MinimapFlag());
+		}
+		setRouteEvent(new RouteEvent(startTile, event));
+	}
+
 	private void processEffects() {
 		if (effects == null)
 			return;
 		Set<Effect> expired = new HashSet<>();
 		for (Effect effect : effects.keySet()) {
+			if (effect == null)
+				continue;
 			long time = effects.get(effect);
 			time--;
 			effect.tick(this, time);
@@ -276,6 +313,7 @@ public abstract class Entity {
 		nextHits = new ArrayList<>();
 		nextHitBars = new ArrayList<>();
 		actionManager = new ActionManager(this);
+		tasks = new TaskManager();
 		interactionManager = new InteractionManager(this);
 		nextWalkDirection = nextRunDirection = null;
 		lastFaceEntity = -1;
@@ -284,6 +322,8 @@ public abstract class Entity {
 		if (!(this instanceof NPC))
 			faceAngle = 2;
 		poison.setEntity(this);
+		if (moveType == null)
+			moveType = MoveType.WALK;
 	}
 
 	public int getClientIndex() {
@@ -310,22 +350,22 @@ public abstract class Entity {
 			hit.setSource(f.getOwner());
 			PlayerCombat.addXpFamiliar(f.getOwner(), this, f.getPouch().getXpType(), hit);
 		}
-		if (delay < 0)
+		if (delay < 0) {
+			handlePostHit(hit);
+			if (onHit != null)
+				onHit.run();
 			receivedHits.add(hit);
-		else
-			WorldTasks.schedule(new WorldTask() {
-				@Override
-				public void run() {
-					if (isDead()) {
-						hit.setDamage(0);
-						return;
-					}
-					handlePostHit(hit);
-					if (onHit != null)
-						onHit.run();
-					receivedHits.add(hit);
+		} else
+			(hit.getSource() != null ? hit.getSource().getTasks() : tasks).schedule(delay, () -> {
+				if (isDead()) {
+					hit.setDamage(0);
+					return;
 				}
-			}, delay);
+				handlePostHit(hit);
+				if (onHit != null)
+					onHit.run();
+				receivedHits.add(hit);
+			});
 	}
 
 	public abstract void handlePreHit(Hit hit);
@@ -338,6 +378,7 @@ public abstract class Entity {
 		resetCombat();
 		walkSteps.clear();
 		poison.reset();
+		tasks = new TaskManager();
 		resetReceivedDamage();
 		clearEffects();
 		if (attributes)
@@ -378,7 +419,7 @@ public abstract class Entity {
 			p.incrementCount("Health soulsplitted back", hit.getDamage() / 5);
 		if (this instanceof Player p)
 			p.getPrayer().drainPrayer(hit.getDamage() / 5);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				setNextSpotAnim(new SpotAnim(2264));
@@ -511,8 +552,8 @@ public abstract class Entity {
 			Route route = RouteFinder.find(getX(), getY(), getPlane(), getSize(), target instanceof GameObject go ? new ObjectStrategy(go) : target instanceof Entity e ? new EntityStrategy(e) : new FixedTileStrategy(((Tile) target).getX(), ((Tile) target).getY()), true);
 			if (route.getStepCount() == -1)
 				return false;
-			if (route.getStepCount() == 0)
-				return DumbRouteFinder.addDumbPathfinderSteps(this, target, getClipType());
+//			if (route.getStepCount() == 0) //TODO why did I add this?
+//				return DumbRouteFinder.addDumbPathfinderSteps(this, target, getClipType());
 			for (int step = route.getStepCount() - 1; step >= 0; step--)
 				if (!addWalkSteps(route.getBufferX()[step], route.getBufferY()[step], maxStepsCount, true, true))
 					break;
@@ -583,8 +624,12 @@ public abstract class Entity {
 	}
 
 	public boolean hasWalkSteps() {
-		return !walkSteps.isEmpty();
+		return !walkSteps.isEmpty() || walkedThisTick;
 	}
+
+//	public boolean isMoving() {
+//		return hasWalkSteps() || walkedThisTick;
+//	}
 
 	public abstract void sendDeath(Entity source);
 
@@ -617,7 +662,7 @@ public abstract class Entity {
 			tileBehind = getBackfacingTile();
 			nextTile = null;
 			teleported = true;
-			if (player != null && player.getTemporaryMoveType() == null)
+			if (player != null && player.getTemporaryMoveType() == null && !tile.withinDistance(lastTile, 14))
 				player.setTemporaryMoveType(MoveType.TELE);
 			ChunkManager.updateChunks(this);
 			if (needMapUpdate())
@@ -628,7 +673,7 @@ public abstract class Entity {
 		teleported = false;
 		if (walkSteps.isEmpty())
 			return;
-
+		walkedThisTick = true;
 		if (player != null) {
 			if (player.getEmotesManager().isAnimating())
 				return;
@@ -643,7 +688,7 @@ public abstract class Entity {
 				if (npc.switchWalkStep())
 					return;
 
-		for (int stepCount = 0; stepCount < (run ? 2 : 1); stepCount++) {
+		for (int stepCount = 0; stepCount < (moveType == MoveType.RUN ? 2 : 1); stepCount++) {
 			WalkStep nextStep = getNextWalkStep();
 			if (nextStep == null)
 				break;
@@ -659,7 +704,7 @@ public abstract class Entity {
 				nextRunDirection = nextStep.getDir();
 			tileBehind = Tile.of(getTile());
 			moveLocation(nextStep.getDir().getDx(), nextStep.getDir().getDy(), 0);
-			if (run && stepCount == 0) { // fixes impossible steps TODO is this even necessary?
+			if (moveType == MoveType.RUN && stepCount == 0) { // fixes impossible steps TODO is this even necessary?
 				WalkStep previewStep = previewNextWalkStep();
 				if (previewStep == null)
 					break;
@@ -828,6 +873,7 @@ public abstract class Entity {
 	}
 
 	public boolean addWalkStep(int nextX, int nextY, int lastX, int lastY, boolean check, boolean force) {
+		//World.sendSpotAnim(Tile.of(nextX, nextY, getPlane()), new SpotAnim(2000));
 		Direction dir = Direction.forDelta(nextX - lastX, nextY - lastY);
 		if (dir == null)
 			return false;
@@ -849,7 +895,6 @@ public abstract class Entity {
 	}
 
 	private WalkStep getNextWalkStep() {
-
 		WalkStep step = walkSteps.poll();
 		if (step == null)
 			return null;
@@ -870,7 +915,7 @@ public abstract class Entity {
 	}
 
 	public boolean needMasksUpdate() {
-		return nextBodyGlow != null || nextFaceEntity != -2 || nextAnimation != null || nextSpotAnim1 != null || nextSpotAnim2 != null || nextSpotAnim3 != null || nextSpotAnim4 != null || (nextWalkDirection == null && nextFaceTile != null) || !nextHits.isEmpty() || !nextHitBars.isEmpty() || nextForceMovement != null || nextForceTalk != null || bodyModelRotator != null;
+		return nextBodyGlow != null || nextFaceEntity != -2 || nextAnimation != null || nextSpotAnim1 != null || nextSpotAnim2 != null || nextSpotAnim3 != null || nextSpotAnim4 != null || (nextWalkDirection == null && nextFaceTile != null) || fixedFaceTile != null || !nextHits.isEmpty() || !nextHitBars.isEmpty() || nextForceMovement != null || nextForceTalk != null || bodyModelRotator != null;
 	}
 
 	public boolean isDead() {
@@ -878,6 +923,7 @@ public abstract class Entity {
 	}
 
 	public void resetMasks() {
+		walkedThisTick = false;
 		nextBodyGlow = null;
 		nextAnimation = null;
 		nextSpotAnim1 = null;
@@ -928,12 +974,14 @@ public abstract class Entity {
 	public void loadMapRegions(RegionSize oldSize) {
 		Player player = this instanceof Player p ? p : null;
 		NPC npc = this instanceof NPC n ? n : null;
-		Set<Integer> old = player != null ? new IntOpenHashSet(mapChunkIds) : null;
+		Set<Integer> old = player != null && mapChunkIds != null ? IntSets.synchronize(new IntOpenHashSet(mapChunkIds)) : null;
 		if (player != null)
 			ChunkManager.getUpdateZone(sceneBaseChunkId, oldSize).removePlayerWatcher(player.getIndex());
 		if (npc != null && npc.isLoadsUpdateZones())
 			ChunkManager.getUpdateZone(sceneBaseChunkId, oldSize).removeNPCWatcher(npc.getIndex());
 		mapChunkIds.clear();
+		if (player != null)
+			player.getMapChunksNeedInit().clear();
 		hasNearbyInstancedChunks = false;
 		int currChunkX = getChunkX();
 		int currChunkY = getChunkY();
@@ -1096,15 +1144,19 @@ public abstract class Entity {
 	}
 
 	public void setRun(boolean run) {
-		this.run = run;
+		this.moveType = run ? MoveType.RUN : MoveType.WALK;
 	}
 
 	public boolean getRun() {
-		return run;
+		return this.moveType == MoveType.RUN;
 	}
 
 	public Tile getNextFaceTile() {
 		return nextFaceTile;
+	}
+
+	public Tile getFixedFaceTile() {
+		return fixedFaceTile;
 	}
 
 	public Direction getDirection() {
@@ -1121,6 +1173,10 @@ public abstract class Entity {
 			faceAngle = Utils.getAngleTo(nextFaceTile.getX() - nextTile.getX(), nextFaceTile.getY() - nextTile.getY());
 		else
 			faceAngle = Utils.getAngleTo(nextFaceTile.getX() - getX(), nextFaceTile.getY() - getY());
+	}
+
+	public void setFixedFaceTile(Tile tile) {
+		this.fixedFaceTile = tile;
 	}
 
 	public void faceNorth() {
@@ -1256,9 +1312,13 @@ public abstract class Entity {
 	}
 
 	public void forceMoveVisually(Tile destination, int animation, int startClientCycles, int speedClientCycles) {
+		forceMoveVisually(getTile(), destination, animation, startClientCycles, speedClientCycles);
+	}
+
+	public void forceMoveVisually(Tile start, Tile destination, int animation, int startClientCycles, int speedClientCycles) {
 		if (animation != -1)
 			anim(animation);
-		setNextForceMovement(new ForceMovement(getTile(), destination, startClientCycles, speedClientCycles));
+		setNextForceMovement(new ForceMovement(start, destination, startClientCycles, speedClientCycles));
 	}
 
 	public void forceMoveVisually(Direction dir, int distance, int animation, int startClientCycles, int speedClientCycles) {
@@ -1276,14 +1336,20 @@ public abstract class Entity {
 	}
 
 	public void forceMove(Tile destination, int animation, int startClientCycles, int speedClientCycles, boolean autoUnlock, Runnable afterComplete) {
-		ForceMovement movement = new ForceMovement(Tile.of(getTile()), destination, startClientCycles, speedClientCycles);
+		forceMove(Tile.of(getTile()), destination, animation, startClientCycles, speedClientCycles, autoUnlock, afterComplete);
+	}
+
+	public void forceMove(Tile start, Tile destination, int animation, int startClientCycles, int speedClientCycles, boolean autoUnlock, Runnable afterComplete) {
+		ForceMovement movement = new ForceMovement(start, destination, startClientCycles, speedClientCycles);
 		if (animation != -1)
 			anim(animation);
 		lock();
 		resetWalkSteps();
+		if (startClientCycles == 0 && this instanceof Player player)
+			player.setTemporaryMoveType(MoveType.TELE);
+		setNextTile(destination);
 		setNextForceMovement(movement);
-		WorldTasks.schedule(movement.getTickDuration()-1, () -> setNextTile(destination));
-		WorldTasks.schedule(movement.getTickDuration(), () -> {
+		tasks.schedule(movement.getTickDuration(), () -> {
 			if (autoUnlock)
 				unlock();
 			if (afterComplete != null)
@@ -1293,6 +1359,10 @@ public abstract class Entity {
 
 	public void forceMove(Tile destination, int animation, int startClientCycles, int speedClientCycles, boolean autoUnlock) {
 		forceMove(destination, animation, startClientCycles, speedClientCycles, autoUnlock, null);
+	}
+
+	public void forceMove(Tile start, Tile destination, int animation, int startClientCycles, int speedClientCycles, boolean autoUnlock) {
+		forceMove(start, destination, animation, startClientCycles, speedClientCycles, autoUnlock, null);
 	}
 
 	public void forceMove(Tile destination, int startClientCycles, int speedClientCycles, boolean autoUnlock, Runnable afterComplete) {
@@ -1375,7 +1445,7 @@ public abstract class Entity {
 				x = object.getX();
 				y = object.getY() - 1;
 			}
-		} else if (object.getType() == ObjectType.WALL_DIAGONAL_CORNER || object.getType() == ObjectType.WALL_WHOLE_CORNER) { // corner and cornerwall
+		} else if (object.getType() == ObjectType.WALL_DIAGONAL_CORNER || object.getType() == ObjectType.WALL_WHOLE_CORNER) { // corner and corner wall
 			if (object.getRotation() == 0) { // nw
 				x = object.getX() - 1;
 				y = object.getY() + 1;
@@ -1568,6 +1638,10 @@ public abstract class Entity {
 		return World.findAdjacentFreeSpace(this.getTile(), size);
 	}
 
+	public Tile getNearestTeleTile(Direction... blacklistedDirections) {
+		return World.findAdjacentFreeSpace(this.getTile(), blacklistedDirections);
+	}
+
 	public Tile getTile() {
 		return tile;
 	}
@@ -1729,7 +1803,7 @@ public abstract class Entity {
 			return true;
 		if(target instanceof Familiar && this.isForceMultiArea())
 			return true;
-		if (target instanceof NPC npc && npc.isForceMultiAttacked())
+		if ((this instanceof NPC n && n.isForceMultiAttacked()) || (target instanceof NPC npc && npc.isForceMultiAttacked()))
 			return true;
 		if (target.isAtMultiArea() && isAtMultiArea())
 			return true;
@@ -1949,5 +2023,18 @@ public abstract class Entity {
 
 	public void unlockNextTick() {
 		nextTickUnlock = true;
+	}
+
+	public TaskManager getTasks() {
+		return tasks;
+	}
+
+	public void processTasks() {
+		if (tasks != null)
+			tasks.processTasks();
+	}
+
+	public void clearPendingTasks() {
+		tasks = new TaskManager();
 	}
 }

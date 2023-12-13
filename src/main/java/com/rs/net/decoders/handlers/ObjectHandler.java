@@ -43,9 +43,6 @@ import com.rs.game.content.pets.Incubator;
 import com.rs.game.content.skills.agility.Agility;
 import com.rs.game.content.skills.agility.WildernessAgility;
 import com.rs.game.content.skills.agility.agilitypyramid.AgilityPyramidController;
-import com.rs.game.content.skills.cooking.Cooking;
-import com.rs.game.content.skills.cooking.Cooking.Cookables;
-import com.rs.game.content.skills.cooking.CookingD;
 import com.rs.game.content.skills.cooking.CowMilkingAction;
 import com.rs.game.content.skills.crafting.Jewelry;
 import com.rs.game.content.skills.crafting.SandBucketFill;
@@ -53,10 +50,6 @@ import com.rs.game.content.skills.crafting.Silver;
 import com.rs.game.content.skills.dungeoneering.rooms.puzzles.FishingFerretRoom;
 import com.rs.game.content.skills.firemaking.Bonfire;
 import com.rs.game.content.skills.magic.Magic;
-import com.rs.game.content.skills.runecrafting.Runecrafting;
-import com.rs.game.content.skills.runecrafting.Runecrafting.RCRune;
-import com.rs.game.content.skills.smithing.ForgingInterface;
-import com.rs.game.content.skills.smithing.Smithing.Smithable;
 import com.rs.game.content.skills.thieving.Thieving;
 import com.rs.game.content.transportation.WildernessObelisk;
 import com.rs.game.content.world.areas.dungeons.UndergroundDungeonController;
@@ -70,7 +63,7 @@ import com.rs.game.model.entity.pathing.RouteEvent;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.managers.EmotesManager.Emote;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.*;
@@ -222,28 +215,10 @@ public final class ObjectHandler {
 				return;
 			} else if (id == 10230) { // dag down ladder
 				player.setNextAnimation(new Animation(828));
-				WorldTasks.schedule(new WorldTask() {
+				WorldTasks.schedule(new Task() {
 					@Override
 					public void run() {
 						player.setNextTile(Tile.of(2900, 4449, 0));
-					}
-				}, 1);
-				return;
-			} else if (id == 26849) { // ZMI Altar down ladder
-				player.setNextAnimation(new Animation(828));
-				WorldTasks.schedule(new WorldTask() {
-					@Override
-					public void run() {
-						player.setNextTile(Tile.of(3271, 4861, 0));
-					}
-				}, 1);
-				return;
-			} else if (id == 26850) { // ZMI Altar up ladder
-				player.setNextAnimation(new Animation(828));
-				WorldTasks.schedule(new WorldTask() {
-					@Override
-					public void run() {
-						player.setNextTile(Tile.of(2452, 3232, 0));
 					}
 				}, 1);
 				return;
@@ -263,13 +238,11 @@ public final class ObjectHandler {
 			} else if (id == 25632) {
 				if (Lander.canEnter(player, 2))
 					return;
-			} else if (id == 26847)
-				Runecrafting.craftZMIAltar(player);
-			else if (id == 35391 || id == 2832) {
+			} else if (id == 35391 || id == 2832) {
 				if (!Agility.hasLevel(player, id == 2832 ? 20 : 41))
 					return;
 				player.addWalkSteps(x, y);
-				WorldTasks.schedule(new WorldTask() {
+				WorldTasks.schedule(new Task() {
 					@Override
 					public void run() {
 						boolean isTravelingWest = id == 2832 ? player.getX() >= 2508 : (x == 2834 && y == 3626) ? player.getX() >= 2834 : player.getX() >= 2900;
@@ -282,7 +255,7 @@ public final class ObjectHandler {
 					player.lock(5);
 					player.sendMessage("You pray to the gods...", true);
 					player.setNextAnimation(new Animation(645));
-					WorldTasks.schedule(new WorldTask() {
+					WorldTasks.schedule(new Task() {
 						@Override
 						public void run() {
 							player.getPrayer().restorePrayer(maxPrayer1);
@@ -326,32 +299,6 @@ public final class ObjectHandler {
 				player.useStairs(828, Tile.of(3353, 3416, 0));
 			else if (id == 66115 || id == 66116)
 				Spade.dig(player);
-			else if (id == 2478)
-				Runecrafting.runecraft(player, RCRune.AIR);
-			else if (id == 2479)
-				Runecrafting.runecraft(player, RCRune.MIND);
-			else if (id == 2480)
-				Runecrafting.runecraft(player, RCRune.WATER);
-			else if (id == 2481)
-				Runecrafting.runecraft(player, RCRune.EARTH);
-			else if (id == 2482)
-				Runecrafting.runecraft(player, RCRune.FIRE);
-			else if (id == 2483)
-				Runecrafting.runecraft(player, RCRune.BODY);
-			else if (id == 2484)
-				Runecrafting.runecraft(player, RCRune.COSMIC);
-			else if (id == 2487)
-				Runecrafting.runecraft(player, RCRune.CHAOS);
-			else if (id == 17010)
-				Runecrafting.runecraft(player, RCRune.ASTRAL);
-			else if (id == 2486)
-				Runecrafting.runecraft(player, RCRune.NATURE);
-			else if (id == 2485)
-				Runecrafting.runecraft(player, RCRune.LAW);
-			else if (id == 2488)
-				Runecrafting.runecraft(player, RCRune.DEATH);
-			else if (id == 30624)
-				Runecrafting.runecraft(player, RCRune.BLOOD);
 			else if (id == 20604)
 				player.useStairs(-1, Tile.of(3018, 3404, 0), 0, 1);
 			else if (object.getId() == 39508 || object.getId() == 39509)
@@ -433,7 +380,7 @@ public final class ObjectHandler {
 				player.getControllerManager().startController(new UndergroundDungeonController(false, true));
 			} else if (id == 5947) {
 				player.useStairs(540, Tile.of(3170, 9571, 0), 8, 9);
-				WorldTasks.schedule(new WorldTask() {
+				WorldTasks.schedule(new Task() {
 					@Override
 					public void run() {
 						player.getControllerManager().startController(new UndergroundDungeonController(false, true));
@@ -754,7 +701,7 @@ public final class ObjectHandler {
 				player.lock(8);
 				player.addWalkSteps(x == 3150 ? 3155 : 3149, 9906, -1, false);
 				player.sendMessage("You pulled yourself through the pipes.", true);
-				WorldTasks.schedule(new WorldTask() {
+				WorldTasks.schedule(new Task() {
 					boolean secondloop;
 
 					@Override
@@ -791,7 +738,7 @@ public final class ObjectHandler {
 					return;
 				}
 				player.setNextAnimation(new Animation(910));
-				WorldTasks.schedule(new WorldTask() {
+				WorldTasks.schedule(new Task() {
 
 					@Override
 					public void run() {
@@ -817,12 +764,8 @@ public final class ObjectHandler {
 				player.useStairs(-1, Tile.of(3071, 3649, 0), 0, 1);
 			else if (id == 20600 && object.getX() == 3072 && object.getY() == 3648)
 				player.useStairs(-1, Tile.of(3077, 10058, 0), 0, 1);
-			else if (id == 42219)
-				player.useStairs(-1, Tile.of(1886, 3178, 0), 0, 1);
 			else if (id == 8689)
 				player.getActionManager().setAction(new CowMilkingAction());
-			else if (id == 42220)
-				player.useStairs(-1, Tile.of(3082, 3475, 0), 0, 1);
 				// start falador mininig
 			else if (id == 30942 && object.getX() == 3019 && object.getY() == 3450)
 				player.useStairs(828, Tile.of(3020, 9850, 0));
@@ -875,7 +818,7 @@ public final class ObjectHandler {
 				player.lock();
 				if (player.getX() != object.getX() || player.getY() != object.getY())
 					player.addWalkSteps(object.getX(), object.getY(), -1, false);
-				WorldTasks.schedule(new WorldTask() {
+				WorldTasks.schedule(new Task() {
 
 					private int count;
 
@@ -1070,7 +1013,7 @@ public final class ObjectHandler {
 					player.lock(5);
 					player.sendMessage("You pray to the gods...", true);
 					player.setNextAnimation(new Animation(645));
-					WorldTasks.schedule(new WorldTask() {
+					WorldTasks.schedule(new Task() {
 						@Override
 						public void run() {
 							player.getPrayer().restorePrayer(maxPrayer2);
@@ -1089,7 +1032,7 @@ public final class ObjectHandler {
 			} else if (id == 2873 || id == 2874 || id == 2875) {
 				player.sendMessage("You kneel and begin to chant to " + objectDef.getName().replace("Statue of ", "") + "...");
 				player.setNextAnimation(new Animation(645));
-				WorldTasks.schedule(new WorldTask() {
+				WorldTasks.schedule(new Task() {
 
 					@Override
 					public void run() {
@@ -1144,7 +1087,7 @@ public final class ObjectHandler {
 				if (player.getX() != object.getX() || player.getY() != object.getY()) {
 					player.lock();
 					player.addWalkSteps(object.getX(), object.getY());
-					WorldTasks.schedule(new WorldTask() {
+					WorldTasks.schedule(new Task() {
 						@Override
 						public void run() {
 							Spade.dig(player);
@@ -1329,25 +1272,6 @@ public final class ObjectHandler {
 							slashWeb(player, object);
 						}
 						break;
-					case "anvil":
-						if (objectDef.containsOption(0, "Smith"))
-							ForgingInterface.openSmithingInterfaceForHighestBar(player);
-						break;
-					//					case "gate":
-					//					case "large door":
-					//					case "metal door":
-					//					case "city gate":
-					//						if (object.getType() == 0 && objectDef.containsOption(0, "Open"))
-					//							if (!handleGate(player, object))
-					//								handleDoor(player, object);
-					//						break;
-					//					case "door":
-					//					case "long hall door":
-					//					case "castle door":
-					//					case "heavy door":
-					//						if (object.getType() == 0 && (objectDef.containsOption(0, "Open") || objectDef.containsOption(0, "Unlock")))
-					//							handleDoor(player, object);
-					//						break;
 					case "ladder":
 						handleLadder(player, object, 1);
 						break;
@@ -1375,7 +1299,7 @@ public final class ObjectHandler {
 								player.lock(5);
 								player.sendMessage("You pray to the gods...", true);
 								player.setNextAnimation(new Animation(645));
-								WorldTasks.schedule(new WorldTask() {
+								WorldTasks.schedule(new Task() {
 									@Override
 									public void run() {
 										player.getPrayer().restorePrayer(maxPrayer3);
@@ -1662,7 +1586,7 @@ public final class ObjectHandler {
 
 			if (!player.getControllerManager().handleItemOnObject(object, item) || Ectofuntus.handleItemOnObject(player, itemId, object.getId()))
 				return;
-			if (itemId == Ectofuntus.EMPTY_BUCKET && objectDef.getName().toLowerCase().contains("sand") && objectDef.getName().toLowerCase().contains("pit")) {
+			if (itemId == 1925 && objectDef.getName().toLowerCase().contains("sand") && objectDef.getName().toLowerCase().contains("pit")) {
 				player.getActionManager().setAction(new SandBucketFill());
 				return;
 			}
@@ -1678,30 +1602,6 @@ public final class ObjectHandler {
 			}
 			if (object.getId() == 13715)
 				ItemConstants.handleRepairs(player, item, true, slot);
-			if (object.getId() == 2478 && itemId == 1438)
-				Runecrafting.craftTalisman(player, 1438, 5527, 13630, 25); //air
-			else if (object.getId() == 2479 && itemId == 1448)
-				Runecrafting.craftTalisman(player, 1448, 5529, 13631, 27); //mind
-			else if (object.getId() == 2480 && itemId == 1444)
-				Runecrafting.craftTalisman(player, 1444, 5531, 13632, 30); //water
-			else if (object.getId() == 2481 && itemId == 1440)
-				Runecrafting.craftTalisman(player, 1440, 5535, 13633, 32); //earth
-			else if (object.getId() == 2482 && itemId == 1442)
-				Runecrafting.craftTalisman(player, 1442, 5537, 13634, 35); //fire
-			else if (object.getId() == 2483 && itemId == 1446)
-				Runecrafting.craftTalisman(player, 1446, 5533, 13635, 37); //body
-			else if (object.getId() == 2484 && itemId == 1454)
-				Runecrafting.craftTalisman(player, 1454, 5539, 13636, 40); //cosmic
-			else if (object.getId() == 2487 && itemId == 1452)
-				Runecrafting.craftTalisman(player, 1452, 5543, 13637, 42); //chaos
-			else if (object.getId() == 2486 && itemId == 1462)
-				Runecrafting.craftTalisman(player, 1462, 5541, 13638, 45); //nature
-			else if (object.getId() == 2485 && itemId == 1458)
-				Runecrafting.craftTalisman(player, 1458, 5545, 13639, 47); //law
-			else if (object.getId() == 2488 && itemId == 1456)
-				Runecrafting.craftTalisman(player, 1456, 5547, 13640, 50); //death
-			else if (object.getId() == 30624 && itemId == 1450)
-				Runecrafting.craftTalisman(player, 1450, 5549, 13641, 52); //blood
 			else if (object.getId() == 28352 || object.getId() == 28550)
 				Incubator.useEgg(player, itemId);
 			else if (object.getId() == 733 || object.getId() == 64729) {
@@ -1717,37 +1617,8 @@ public final class ObjectHandler {
 					return;
 				player.getInventory().deleteItem(954, 1);
 				player.setKalphiteLairEntrance();
-			} else {
-				if (PluginManager.handle(new ItemOnObjectEvent(player, item, object, true)))
-					return;
-				switch (objectDef.getName().toLowerCase()) {
-					case "anvil":
-						int bar = Smithable.getHighestBar(player);
-						if (bar != -1)
-							ForgingInterface.sendSmithingInterface(player, bar);
-						else
-							player.sendMessage("You can't find a way to smith that.");
-						break;
-					case "fire":
-						if (objectDef.containsOption(4, "Add-logs") && Bonfire.addLog(player, object, item))
-							return;
-					case "range":
-					case "campfire":
-					case "oven":
-					case "cooking range":
-					case "sulphur pit":
-					case "stove":
-					case "clay oven":
-					case "fireplace":
-						Cookables cook = Cooking.isCookingSkill(item);
-						if (cook != null) {
-							player.startConversation(new CookingD(player, cook, object));
-							return;
-						}
-						player.simpleDialogue("You can't cook that on a " + (objectDef.getName().contains("Fire") ? "fire" : "range") + ".");
-						break;
-				}
-			}
+			} else
+				PluginManager.handle(new ItemOnObjectEvent(player, item, object, true));
 		}));
 	}
 }

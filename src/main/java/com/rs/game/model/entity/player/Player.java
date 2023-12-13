@@ -76,7 +76,7 @@ import com.rs.game.content.skills.summoning.Pouch;
 import com.rs.game.content.transportation.FadingScreen;
 import com.rs.game.content.tutorialisland.GamemodeSelection;
 import com.rs.game.content.tutorialisland.TutorialIslandController;
-import com.rs.game.content.world.Musician;
+import com.rs.game.content.world.MusicianKt;
 import com.rs.game.ge.GE;
 import com.rs.game.ge.Offer;
 import com.rs.game.map.ChunkManager;
@@ -94,7 +94,7 @@ import com.rs.game.model.entity.player.managers.InterfaceManager.Sub;
 import com.rs.game.model.entity.player.social.FCManager;
 import com.rs.game.model.item.ItemsContainer;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.*;
@@ -106,7 +106,6 @@ import com.rs.lib.net.ServerPacket;
 import com.rs.lib.net.Session;
 import com.rs.lib.net.packets.Packet;
 import com.rs.lib.net.packets.PacketHandler;
-import com.rs.lib.net.packets.encoders.MinimapFlag;
 import com.rs.lib.net.packets.encoders.ReflectionCheckRequest;
 import com.rs.lib.net.packets.encoders.Sound;
 import com.rs.lib.net.packets.encoders.Sound.SoundType;
@@ -143,6 +142,8 @@ public class Player extends Entity {
 	private Date dateJoined;
 
 	private Map<String, Object> dailyAttributes;
+
+	private Map<String, Object> weeklyAttributes;
 
 	public transient int chatType;
 
@@ -241,6 +242,7 @@ public class Player extends Entity {
 	private boolean ironMan;
 
 	private int jadinkoFavor;
+	public int soulWarsZeal;
 
 	private long lastLoggedIn = 0;
 
@@ -286,7 +288,7 @@ public class Player extends Entity {
 	private transient LocalNPCUpdate localNPCUpdate;
 
 	private MoveType tempMoveType;
-	private boolean updateMovementType;
+	public boolean updateMovementType;
 
 	// player stages
 	private transient boolean started;
@@ -500,6 +502,7 @@ public class Player extends Entity {
 	}
 
 	private int lastDate = 0;
+	private int weeklyDate = 0;
 
 	private int[] pouches;
 	private boolean[] pouchesType;
@@ -578,11 +581,11 @@ public class Player extends Entity {
 		questManager = new QuestManager();
 		miniquestManager = new MiniquestManager();
 		dungManager = new DungManager(this);
-		pouchesType = new boolean[4];
+		pouchesType = new boolean[5];
 		runEnergy = 100;
 		allowChatEffects = true;
 		mouseButtons = true;
-		pouches = new int[4];
+		pouches = new int[5];
 		taskBlocks = new TaskMonster[6];
 		for (int i = 0; i < 6; i++)
 			taskBlocks[i] = null;
@@ -662,7 +665,11 @@ public class Player extends Entity {
 		tempMoveType = null;
 		initEntity();
 		if (pouchesType == null)
-			pouchesType = new boolean[4];
+			pouchesType = new boolean[5];
+		if (pouches.length == 4)
+			pouches = new int[5];
+		if (pouchesType.length == 4)
+			pouchesType = new boolean[5];
 		World.addPlayer(this);
 		ChunkManager.updateChunks(this);
 		Logger.info(Player.class, "init", "Initiated player: " + account.getUsername());
@@ -881,7 +888,6 @@ public class Player extends Entity {
 		if (interfaceManager.containsInventoryInter())
 			interfaceManager.removeInventoryInterface();
 		endConversation();
-		getSession().writeToQueue(ServerPacket.TRIGGER_ONDIALOGABORT);
 		if (closeInterfacesEvent != null) {
 			Runnable event = closeInterfacesEvent;
 			closeInterfacesEvent = null;
@@ -892,6 +898,12 @@ public class Player extends Entity {
 			closeChatboxInterfaceEvent = null;
 			event.run();
 		}
+		if (getInterfaceManager().topOpen(755))
+			setNextAnimation(new Animation(-1));
+	}
+
+	public void abortDialogue() {
+		getSession().writeToQueue(ServerPacket.TRIGGER_ONDIALOGABORT);
 	}
 
 	public void setClientHasntLoadedMapRegion() {
@@ -981,7 +993,7 @@ public class Player extends Entity {
 			double energy = (8.0 + Math.floor(getSkills().getLevel(Constants.AGILITY) / 6.0)) / 100.0;
 			if (isResting()) {
 				energy = 1.68;
-				if (Musician.isNearby(this)) //TODO optimize this with its own resting variable
+				if (MusicianKt.isNearby(this)) //TODO optimize this with its own resting variable
 					energy = 2.28;
 			}
 			restoreRunEnergy(energy);
@@ -1055,7 +1067,7 @@ public class Player extends Entity {
 	private void processMusic() {
 		if (!getTempAttribs().getB("MUSIC_BREAK") && musicsManager.musicEnded()) {
 			getTempAttribs().setB("MUSIC_BREAK", true);
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				@Override
 				public void run() {
 					musicsManager.nextAmbientSong();
@@ -1270,6 +1282,7 @@ public class Player extends Entity {
 			if (!Settings.getConfig().getLoginMessage().isEmpty())
 				sendMessage(Settings.getConfig().getLoginMessage());
 			processDailyTasks();
+			processWeeklyTasks();
 		}
 
 		if (!isChosenAccountType()) {
@@ -1310,6 +1323,27 @@ public class Player extends Entity {
 		if (familiar != null && ((familiar.getInventory() != null && familiar.containsOneItem(itemIds) || familiar.isFinished())))
 			return true;
 		return false;
+	}
+
+	public void processWeeklyTasks() {
+		if (Utils.getTodayDate() >= weeklyDate) {
+			sendMessage("<col=FF0000>Your weekly tasks have been reset.</col>");
+			weeklyAttributes = new ConcurrentHashMap<>();
+			weeklyDate = setLastDateToNextWednesday();
+		}
+	}
+
+	public int setLastDateToNextWednesday() {
+		Calendar cal = new GregorianCalendar();
+		cal.setTimeZone(TimeZone.getTimeZone("UTC"));
+		int daysUntilNextWednesday = (Calendar.WEDNESDAY - cal.get(Calendar.DAY_OF_WEEK) + 7) % 7;
+		if (daysUntilNextWednesday == 0) {
+			daysUntilNextWednesday = 7;
+		}
+		cal.add(Calendar.DAY_OF_MONTH, daysUntilNextWednesday);
+		int day = cal.get(Calendar.DAY_OF_MONTH);
+		int month = cal.get(Calendar.MONTH);
+		return (month * 100 + day);
 	}
 
 	private void sendUnlockedObjectConfigs() {
@@ -1799,13 +1833,19 @@ public class Player extends Entity {
 		getPackets().sendInputNameScript(question);
 		if (description != null)
 			getPackets().setIFText(1110, 70, description);
-		setCloseChatboxInterfaceEvent(() -> getTempAttribs().removeO("pluginEnterName"));
+		setCloseChatboxInterfaceEvent(() -> {
+			getTempAttribs().removeO("pluginEnterName");
+			abortDialogue();
+		});
 	}
 
 	public void sendInputLongText(String question, InputStringEvent e) {
 		getTempAttribs().setO("pluginEnterLongText", e);
 		getPackets().sendInputLongTextScript(question);
-		setCloseChatboxInterfaceEvent(() -> getTempAttribs().removeO("pluginEnterLongText"));
+		setCloseChatboxInterfaceEvent(() -> {
+			getTempAttribs().removeO("pluginEnterLongText");
+			abortDialogue();
+		});
 	}
 
 	public void sendInputInteger(String question, InputIntegerEvent e) {
@@ -1817,17 +1857,24 @@ public class Player extends Entity {
 				getTempAttribs().setB("viewingDepositBox", false);
 			}
 			getTempAttribs().removeO("pluginInteger");
+			abortDialogue();
 		});
 	}
 
 	public void sendInputHSL(InputHSLEvent e) {
 		getTempAttribs().setO("pluginHSL", e);
-		setCloseChatboxInterfaceEvent(() -> getTempAttribs().removeO("pluginHSL"));
+		setCloseChatboxInterfaceEvent(() -> {
+			getTempAttribs().removeO("pluginHSL");
+			abortDialogue();
+		});
 	}
 
 	public void sendInputForumQFC(InputStringEvent e) {
 		getTempAttribs().setO("pluginQFCD", e);
-		setCloseChatboxInterfaceEvent(() -> getTempAttribs().removeO("pluginQFCD"));
+		setCloseChatboxInterfaceEvent(() -> {
+			getTempAttribs().removeO("pluginQFCD");
+			abortDialogue();
+		});
 	}
 
 	public boolean hasStarted() {
@@ -1978,6 +2025,10 @@ public class Player extends Entity {
 			hit.setDamage(0);
 			return;
 		}
+		if (hasEffect(Effect.MELEE_IMMUNE) && hit.getLook() == HitLook.MELEE_DAMAGE) {
+			hit.setDamage(0);
+			return;
+		}
 
 		Entity source = hit.getSource();
 		if (source == null)
@@ -2058,7 +2109,7 @@ public class Player extends Entity {
 		if (castedVeng && hit.getDamage() >= 4) {
 			castedVeng = false;
 			setNextForceTalk(new ForceTalk("Taste vengeance!"));
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				@Override
 				public void run() {
 					source.applyHit(new Hit(Player.this, (int) (hit.getDamage() * 0.75), HitLook.TRUE_DAMAGE));
@@ -2152,6 +2203,7 @@ public class Player extends Entity {
 	}
 	@Override
 	public void sendDeath(final Entity source) {
+		clearPendingTasks();
 		incrementCount("Deaths");
 
 		if (prayer.hasPrayersOn() && !getTempAttribs().getB("startedDuel")) {
@@ -2173,7 +2225,7 @@ public class Player extends Entity {
 		if (isHasNearbyInstancedChunks())
 			lastTile = getRandomGraveyardTile();
 		final Tile deathTile = lastTile;
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int loop;
 
 			@Override
@@ -2395,6 +2447,14 @@ public class Player extends Entity {
 		useStairs(-1, dest, 1, 2);
 	}
 
+	public int getQuestStage(Quest quest) {
+		return getQuestManager().getStage(quest);
+	}
+
+	public int getMiniquestStage(Miniquest quest) {
+		return getMiniquestManager().getStage(quest);
+	}
+
 	public void useStairs(int animId, Tile dest) {
 		useStairs(animId, dest, 1, 2, null);
 	}
@@ -2458,7 +2518,7 @@ public class Player extends Entity {
 		if (useDelay == 0)
 			setNextTile(dest);
 		else {
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				@Override
 				public void run() {
 					if (isDead())
@@ -2815,7 +2875,7 @@ public class Player extends Entity {
 	public MoveType getMovementType() {
 		if (getTemporaryMoveType() != null)
 			return getTemporaryMoveType();
-		return getRun() ? MoveType.RUN : MoveType.WALK;
+		return moveType;
 	}
 
 	public void setDisableEquip(boolean equip) {
@@ -2988,7 +3048,7 @@ public class Player extends Entity {
 
 	public void ladder(final Tile toTile) {
 		setNextAnimation(new Animation(828));
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			@Override
 			public void run() {
 				setNextTile(toTile);
@@ -3303,6 +3363,38 @@ public class Player extends Entity {
 		setDailyI(name, newVal);
 	}
 
+	public Map<String, Object> getWeeklyAttributes() {
+		if (weeklyAttributes == null)
+			weeklyAttributes = new ConcurrentHashMap<>();
+		return weeklyAttributes;
+	}
+
+	public void setWeeklyI(String name, int value) {
+		getWeeklyAttributes().put("weeklyI"+name, value);
+	}
+
+	public void incWeeklyI(String name) {
+		int newVal = getWeeklyI(name) + 1;
+		setWeeklyI(name, newVal);
+	}
+
+	public void incWeeklyI(String name, int i) {
+		int newVal = getWeeklyI(name) + i;
+		setWeeklyI(name, newVal);
+	}
+
+	public int getWeeklyI(String name) {
+		return getWeeklyI(name, 0);
+	}
+
+	public int getWeeklyI(String name, int def) {
+		if (getWeeklyAttributes().get("weeklyI"+name) == null)
+			return def;
+		if (getWeeklyAttributes().get("weeklyI"+name) != null && getWeeklyAttributes().get("weeklyI"+name) instanceof Integer)
+			return (int) getWeeklyAttributes().get("weeklyI"+name);
+		return (int) Math.floor(((double) getWeeklyAttributes().get("weeklyI"+name)));
+	}
+
 	public void setIronMan(boolean ironMan) {
 		this.ironMan = ironMan;
 		if (ironMan) {
@@ -3464,20 +3556,12 @@ public class Player extends Entity {
 		return ipAddresses;
 	}
 
-	public void walkToAndExecute(Tile startTile, Runnable event) {
-		Route route = RouteFinder.find(getX(), getY(), getPlane(), getSize(), new FixedTileStrategy(startTile.getX(), startTile.getY()), true);
-		int last = -1;
-		if (route.getStepCount() == -1)
-			return;
-		for (int i = route.getStepCount() - 1; i >= 0; i--)
-			if (!addWalkSteps(route.getBufferX()[i], route.getBufferY()[i], 25, true, true))
-				break;
-		if (last != -1) {
-			Tile tile = Tile.of(route.getBufferX()[last], route.getBufferY()[last], getPlane());
-			getSession().writeToQueue(new MinimapFlag(tile.getXInScene(getSceneBaseChunkId()), tile.getYInScene(getSceneBaseChunkId())));
-		} else
-			getSession().writeToQueue(new MinimapFlag());
-		setRouteEvent(new RouteEvent(startTile, event));
+	public int getXInScene() {
+		return getXInScene(getSceneBaseChunkId());
+	}
+
+	public int getYInScene() {
+		return getYInScene(getSceneBaseChunkId());
 	}
 
 	public String getFormattedTitle() {
@@ -3498,7 +3582,7 @@ public class Player extends Entity {
 		return getInventory().containsItem(id, 1) || getEquipment().containsOneItem(id) || getBank().containsItem(id, 1);
 	}
 
-	public boolean containsItems(int... ids) {
+	public boolean containsAnyItems(int... ids) {
 		for (int id : ids)
 			if (containsItem(id))
 				return true;
@@ -3744,14 +3828,10 @@ public class Player extends Entity {
 		setRunHidden(false);
 		lock(5);
 		addWalkSteps(tile.getX(), tile.getY(), 3, false);
-		WorldTasks.schedule(new WorldTask() {
-			@Override
-			public void run() {
-				setRunHidden(running);
-				unlock();
-				stop();
-			}
-		}, 3);
+		getTasks().schedule(3, () -> {
+			setRunHidden(running);
+			unlock();
+		});
 	}
 
 	public int[] getWarriorPoints() {
@@ -4253,6 +4333,13 @@ public class Player extends Entity {
 		return getMiniquestManager().isComplete(quest, actionString);
 	}
 
+	public boolean isQuestStarted(Quest quest) {
+		return getQuestStage(quest) > 0;
+	}
+
+	public boolean isMiniquestStarted(Miniquest quest) {
+		return getMiniquestStage(quest) > 0;
+	}
 	public boolean isMiniquestComplete(Miniquest quest) {
 		return isMiniquestComplete(quest, null);
 	}
@@ -4295,5 +4382,12 @@ public class Player extends Entity {
 
 	public Set<Integer> getMapChunksNeedInit() {
 		return mapChunksNeedInit;
+	}
+
+    public void setQuestStage(Quest quest, int stage) {
+		getQuestManager().setStage(quest, stage);
+    }
+	public void setMiniquestStage(Miniquest quest, int stage) {
+		getMiniquestManager().setStage(quest, stage);
 	}
 }

@@ -20,7 +20,6 @@ import com.rs.Settings;
 import com.rs.lib.thread.CatchExceptionRunnable;
 import com.rs.lib.util.Logger;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import jdk.incubator.concurrent.StructuredTaskScope;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,29 +38,6 @@ public final class LowPriorityTaskExecutor {
 		Logger.info(LowPriorityTaskExecutor.class, "startThreads", "Initializing world threads...");
 		WORLD_EXECUTOR = Executors.newSingleThreadScheduledExecutor(new WorldThreadFactory());
 		LOW_PRIORITY_EXECUTOR = Executors.newScheduledThreadPool(16, Thread.ofVirtual().factory());
-	}
-
-	public class LowPriorityTaskScope<T> extends StructuredTaskScope<T> {
-		private final Queue<T> results = new ConcurrentLinkedQueue<>();
-
-		LowPriorityTaskScope() {
-			super("Low Priority Task Scope", Thread.ofVirtual().factory());
-		}
-
-		@Override
-		protected void handleComplete(Future<T> future) {
-			switch(future.state()) {
-				case SUCCESS -> {
-					T result = future.resultNow();
-					results.add(result);
-				}
-				case FAILED -> Logger.handle(LowPriorityTaskScope.class, "handleComplete", future.exceptionNow());
-			}
-		}
-
-		public Stream<T> results() {
-			return results.stream();
-		}
 	}
 
 	public static void execute(Runnable command) {

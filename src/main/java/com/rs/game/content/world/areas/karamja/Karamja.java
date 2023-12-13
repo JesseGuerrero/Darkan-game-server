@@ -28,7 +28,7 @@ import com.rs.game.content.skills.agility.Agility;
 import com.rs.game.content.world.doors.Doors;
 import com.rs.game.model.entity.pathing.Direction;
 import com.rs.game.model.entity.player.Player;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Tile;
@@ -40,6 +40,16 @@ import com.rs.utils.shop.ShopsHandler;
 
 @PluginEventHandler
 public class Karamja  {
+
+	public static NPCClickHandler handleGabooty = new NPCClickHandler(new Object[] { 2520 }, e -> {
+		if (!e.getPlayer().isQuestComplete(Quest.JUNGLE_POTION))
+			return;
+		switch (e.getOption())
+		{
+			case "Trade-Co-op" -> ShopsHandler.openShop(e.getPlayer(), "gabootys_tai_bwo_wannai_cooperative");
+			case "Trade-Drinks" -> ShopsHandler.openShop(e.getPlayer(), "gabootys_tai_bwo_wannai_drinky_store");
+		}
+	});
 
 	public static NPCClickHandler handlePirateJackieFruit = new NPCClickHandler(new Object[] { 1055 }, e -> {
 		e.getPlayer().startConversation(new Conversation(e.getPlayer()) {
@@ -229,22 +239,22 @@ public class Karamja  {
 		if (e.getOpNum() == ClientPacket.OBJECT_OP2) {
 			if (e.getPlayer().getX() >= e.getObject().getX())
 				Doors.handleDoubleDoor(e.getPlayer(), e.getObject());
-			else if (e.getPlayer().getInventory().containsItem(6306, 10)) {
+			else if (e.getPlayer().getInventory().containsItem(6306, 100)) {
 				Doors.handleDoubleDoor(e.getPlayer(), e.getObject());
-				e.getPlayer().getInventory().deleteItem(6306, 10);
+				e.getPlayer().getInventory().deleteItem(6306, 100);
 			} else
-				e.getPlayer().sendMessage("You need 10 trading sticks to use this door.");
+				e.getPlayer().sendMessage("You need 100 trading sticks to use this door.");
 		} else if (e.getOpNum() == ClientPacket.OBJECT_OP1)
 			if (e.getPlayer().getX() >= e.getObject().getX())
 				Doors.handleDoubleDoor(e.getPlayer(), e.getObject());
 			else
-				e.getPlayer().sendOptionDialogue("Pay 10 trading sticks to enter?", ops -> {
+				e.getPlayer().sendOptionDialogue("Pay 100 trading sticks to enter?", ops -> {
 					ops.add("Yes", () -> {
-						if (e.getPlayer().getInventory().containsItem(6306, 10)) {
+						if (e.getPlayer().getInventory().containsItem(6306, 100)) {
 							Doors.handleDoubleDoor(e.getPlayer(), e.getObject());
-							e.getPlayer().getInventory().deleteItem(6306, 10);
+							e.getPlayer().getInventory().deleteItem(6306, 100);
 						} else
-							e.getPlayer().sendMessage("You need 10 trading sticks to use this door.");
+							e.getPlayer().sendMessage("You need 100 trading sticks to use this door.");
 					});
 					ops.add("No");
 				});
@@ -326,7 +336,7 @@ public class Karamja  {
 	public static ObjectClickHandler handleElvargEntrance = new ObjectClickHandler(new Object[] { 25161 }, e -> {
 		Player p = e.getPlayer();
 
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int ticks = 0;
 			boolean goingEast = true;
 

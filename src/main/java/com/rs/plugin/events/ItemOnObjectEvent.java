@@ -30,7 +30,8 @@ import java.util.Map;
 
 public class ItemOnObjectEvent implements PluginEvent {
 
-	private static Map<Object, Map<Integer, List<ItemOnObjectHandler>>> METHODS = new HashMap<>();
+	private static Map<Object, Map<Object, Map<Integer, List<ItemOnObjectHandler>>>> OBJECT_HANDLERS = new HashMap<>();
+	private static Map<Object, Map<Integer, List<ItemOnObjectHandler>>> ITEM_HANDLERS = new HashMap<>();
 
 	private Player player;
 	private Item item;
@@ -69,16 +70,30 @@ public class ItemOnObjectEvent implements PluginEvent {
 	@Override
 	public List<PluginHandler<? extends PluginEvent>> getMethods() {
 		List<PluginHandler<? extends PluginEvent>> valids = new ArrayList<>();
-		Map<Integer, List<ItemOnObjectHandler>> methodMapping = METHODS.get(getObjectId());
-		if (methodMapping == null)
-			methodMapping = METHODS.get(getObject().getDefinitions(getPlayer()).getName());
-		if (methodMapping == null)
+		Map<Integer, List<ItemOnObjectHandler>> tileMaps = null;
+		Map<Object, Map<Integer, List<ItemOnObjectHandler>>> itemMappings = OBJECT_HANDLERS.get(object.getId());
+		if (itemMappings == null)
+			itemMappings = OBJECT_HANDLERS.get(object.getDefinitions(player).getName());
+		if (itemMappings != null) {
+			if (tileMaps == null)
+				tileMaps = itemMappings.get(item.getDefinitions().getName());
+			if (tileMaps == null)
+				tileMaps = itemMappings.get(item.getId());
+			if (tileMaps == null)
+				tileMaps = itemMappings.get(-1);
+		} else {
+			if (tileMaps == null)
+				tileMaps = ITEM_HANDLERS.get(item.getDefinitions().getName());
+			if (tileMaps == null)
+				tileMaps = ITEM_HANDLERS.get(item.getId());
+		}
+		if (tileMaps == null)
 			return null;
-		List<ItemOnObjectHandler> methods = methodMapping.get(getObject().getTile().getTileHash());
+		List<ItemOnObjectHandler> methods = tileMaps.get(getObject().getTile().getTileHash());
 		if (methods == null)
-			methods = methodMapping.get(0);
+			methods = tileMaps.get(-getObject().getType().id);
 		if (methods == null)
-			return null;
+			methods = tileMaps.get(0);
 		for (ItemOnObjectHandler method : methods) {
 			if (!isAtObject() && method.isCheckDistance())
 				continue;
@@ -89,26 +104,30 @@ public class ItemOnObjectEvent implements PluginEvent {
 
 	public static void registerMethod(Class<?> eventType, PluginHandler<? extends PluginEvent> method) {
 		ItemOnObjectHandler handler = (ItemOnObjectHandler) method;
-		for (Object key : handler.keys()) {
-			Map<Integer, List<ItemOnObjectHandler>> locMap = METHODS.get(key);
-			if (locMap == null) {
-				locMap = new HashMap<>();
-				METHODS.put(key, locMap);
+		if (handler.getObjectKeys() != null) {
+			for (Object objectKey : handler.getObjectKeys()) {
+				Map<Object, Map<Integer, List<ItemOnObjectHandler>>> itemMap = OBJECT_HANDLERS.computeIfAbsent(objectKey, k -> new HashMap<>());
+				if (handler.getItemKeys() != null) {
+					for (Object itemKey : handler.getItemKeys())
+						updateLocationMap(handler, itemMap.computeIfAbsent(itemKey, k -> new HashMap<>()));
+				} else
+					updateLocationMap(handler, itemMap.computeIfAbsent(-1, k -> new HashMap<>()));
 			}
-			if (handler.getTiles() == null || handler.getTiles().length <= 0) {
-				List<ItemOnObjectHandler> methods = locMap.get(0);
-				if (methods == null)
-					methods = new ArrayList<>();
+		} else {
+			for (Object itemKey : handler.getItemKeys())
+				updateLocationMap(handler, ITEM_HANDLERS.computeIfAbsent(itemKey, k -> new HashMap<>()));
+		}
+	}
+
+	private static void updateLocationMap(ItemOnObjectHandler handler, Map<Integer, List<ItemOnObjectHandler>> locMap) {
+		if (handler.getTiles() == null || handler.getTiles().length <= 0) {
+			List<ItemOnObjectHandler> methods = locMap.computeIfAbsent(0, k -> new ArrayList<>());
+			methods.add(handler);
+		} else {
+			for (Tile tile : handler.getTiles()) {
+				List<ItemOnObjectHandler> methods = locMap.computeIfAbsent(tile.getTileHash(), k -> new ArrayList<>());
 				methods.add(handler);
-				locMap.put(0, methods);
-			} else
-				for (Tile tile : handler.getTiles()) {
-					List<ItemOnObjectHandler> methods = locMap.get(tile.getTileHash());
-					if (methods == null)
-						methods = new ArrayList<>();
-					methods.add(handler);
-					locMap.put(tile.getTileHash(), methods);
-				}
+			}
 		}
 	}
 

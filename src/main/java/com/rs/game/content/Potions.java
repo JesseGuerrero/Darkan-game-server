@@ -20,11 +20,12 @@ import com.rs.cache.loaders.ItemDefinitions;
 import com.rs.game.World;
 import com.rs.game.content.skills.summoning.Familiar;
 import com.rs.game.content.world.areas.wilderness.WildernessController;
+import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
@@ -49,8 +50,14 @@ public class Potions {
 	public static final int EMPTY_KEG = 5769;
 	private static int EMPTY_CUP = 4244;
 	private static int BOWL = 1923;
+	private static int EMPTY_JUG = 1935;
 
 	public enum Potion {
+		CUP_OF_TEA(1980, new int[] { 712, 1978, 4242, 4243, 4245, 4246, 4838, 7730, 7731, 7733, 7734, 7736, 7737 }, p -> {
+			p.heal(30);
+			p.getSkills().adjustStat(3, 0, Constants.ATTACK);
+			p.setNextForceTalk(new ForceTalk("Aaah, nothing like a nice cuppa tea!"));
+		}),
 		CUP_OF_TEA_CLAY(7728, 7730, p -> {
 			p.getSkills().adjustStat(1, 0, Constants.CONSTRUCTION);
 		}),
@@ -95,7 +102,7 @@ public class Potions {
 
 		STRENGTH_POTION(VIAL, new int[] { 113, 115, 117, 119 }, p -> p.getSkills().adjustStat(3, 0.1, Constants.STRENGTH)),
 		STRENGTH_FLASK(-1, new int[] { 23207, 23209, 23211, 23213, 23215, 23217 }, p -> p.getSkills().adjustStat(3, 0.1, Constants.STRENGTH)),
-		STRENGTH_MIX(VIAL, new int[] { 11441, 11443 }, p -> {
+		STRENGTH_MIX(VIAL, new int[] { 11443, 11441 }, p -> {
 			p.getSkills().adjustStat(3, 0.1, Constants.STRENGTH);
 			p.heal(30);
 		}),
@@ -394,7 +401,7 @@ public class Potions {
 
 		OVERLOAD(VIAL, new int[] { 15332, 15333, 15334, 15335 }, true, p -> {
 			p.addEffect(Effect.OVERLOAD, 500);
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				int count = 4;
 
 				@Override
@@ -423,7 +430,7 @@ public class Potions {
 		},
 		OVERLOAD_FLASK(-1, new int[] { 23531, 23532, 23533, 23534, 23535, 23536 }, true, p -> {
 			p.addEffect(Effect.OVERLOAD, 500);
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				int count = 4;
 
 				@Override
@@ -806,6 +813,14 @@ public class Potions {
 		SERUM_208(VIAL, new int[] { 3416, 3417, 3418, 3419 }),
 		OLIVE_OIL(VIAL, new int[] { 3422, 3424, 3426, 3428 }),
 		SACRED_OIL(VIAL, new int[] { 3430, 3432, 3434, 3436 }),
+
+		JUG_OF_BAD_WINE(EMPTY_JUG, 1991, p -> {
+			p.getSkills().lowerStat(Constants.ATTACK, 3);
+		}),
+		JUG_OF_WINE(EMPTY_JUG, 1993, p -> {
+			p.heal(110, 0);
+			p.getSkills().lowerStat(Constants.ATTACK, 2);
+		}),
 
 		;
 

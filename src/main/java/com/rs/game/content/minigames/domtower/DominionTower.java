@@ -24,7 +24,7 @@ import com.rs.game.map.instance.Instance;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Player;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.Item;
@@ -221,7 +221,7 @@ public final class DominionTower {
 		player.setNextTile(Tile.of(getBaseX() + 25, getBaseY() + 32, 2));
 		player.setNextFaceTile(Tile.of(getBaseX() + 26, getBaseY() + 32, 0));
 		final int index = getNextBossIndex();
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 
 			private int count;
 
@@ -301,7 +301,7 @@ public final class DominionTower {
 		player.setNextTile(Tile.of(getBaseX() + 35, getBaseY() + 31, 2));
 		player.setNextFaceTile(Tile.of(player.getX() + 1, player.getY(), 0));
 
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int count;
 
 			@Override
@@ -356,7 +356,7 @@ public final class DominionTower {
 		player.setNextTile(Tile.of(getBaseX() + 35, getBaseY() + 31, 2));
 		player.setNextFaceTile(Tile.of(getBaseX() + 36, getBaseY() + 31, 0));
 
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 
 			private int count;
 
@@ -522,7 +522,17 @@ public final class DominionTower {
 		else
 			rewards = new Item[] { commonRewards[Utils.getRandomInclusive(commonRewards.length - 1)], commonRewards[Utils.getRandomInclusive(commonRewards.length - 1)], commonRewards[Utils.getRandomInclusive(commonRewards.length - 1)] };
 		for (Item item : rewards)
-			player.getInventory().addItem(item);
+            if(player.getInventory().hasFreeSlots())
+			    player.getInventory().addItem(item);
+            else if(player.getBank().hasBankSpace()) {
+                player.getBank().addItem(item, false);
+                player.sendMessage("Your reward have been sent to your bank.");
+            } else {
+                World.addGroundItem(item, player.getTile(), player);
+                player.sendMessage("You don't have bank space, so your reward has been dropped on the ground.");
+            }
+
+
 		player.getInterfaceManager().sendInterface(1171);
 		player.getPackets().sendInterSetItemsOptionsScript(1171, 7, 100, 8, 3, "Take", "Convert", "Discard", "Examine");
 		player.getPackets().setIFRightClickOps(1171, 7, 0, 10, 0, 1, 2, 3);

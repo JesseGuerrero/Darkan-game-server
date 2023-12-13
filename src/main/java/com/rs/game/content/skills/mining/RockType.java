@@ -42,11 +42,22 @@ public enum RockType {
 	GRANITE(20, Ore.GRANITE_500G, Ore.GRANITE_2KG, Ore.GRANITE_5KG),
 	SANDSTONE(20, Ore.SANDSTONE_10KG, Ore.SANDSTONE_5KG, Ore.SANDSTONE_2KG, Ore.SANDSTONE_1KG),
 	ADAMANT(400, Ore.ADAMANT),
+	BANE(100, Ore.BANE),
 	RUNE(1200, Ore.RUNE),
 	CONC_COAL(-1, Ore.CONCENTRATED_COAL),
 	CONC_GOLD(-1, Ore.CONCENTRATED_GOLD),
 	LIVING_MINERALS(0, Ore.LIVING_MINERALS),
 	RED_SANDSTONE(-1, Ore.RED_SANDSTONE),
+
+	CRASHED_STAR_1(-1, Ore.STARDUST_1),
+	CRASHED_STAR_2(-1, Ore.STARDUST_2),
+	CRASHED_STAR_3(-1, Ore.STARDUST_3),
+	CRASHED_STAR_4(-1, Ore.STARDUST_4),
+	CRASHED_STAR_5(-1, Ore.STARDUST_5),
+	CRASHED_STAR_6(-1, Ore.STARDUST_6),
+	CRASHED_STAR_7(-1, Ore.STARDUST_7),
+	CRASHED_STAR_8(-1, Ore.STARDUST_8),
+	CRASHED_STAR_9(-1, Ore.STARDUST_9),
 
 	;
 
@@ -56,9 +67,7 @@ public enum RockType {
 	private RockType(int respawnTime, Ore... ores) {
 		this.respawnTime = respawnTime;
 		this.ores = new ArrayList<>(Arrays.asList(ores));
-		this.ores.sort((f1, f2) -> {
-			return f2.getLevel() == f1.getLevel() ? Double.compare(f2.getXp(), f1.getXp()) : f2.getLevel()-f1.getLevel();
-		});
+		this.ores.sort((f1, f2) -> f2.getLevel() == f1.getLevel() ? Double.compare(f2.getXp(), f1.getXp()) : f2.getLevel()-f1.getLevel());
 	}
 
 	public List<Ore> getOres() {

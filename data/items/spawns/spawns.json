@@ -4880,16 +4880,6 @@
     }
   },
   {
-    "comment": "Wolfbane",
-    "itemId": 2952,
-    "amount": 1,
-    "tile": {
-      "x": 3439,
-      "y": 9896,
-      "plane": 0
-    }
-  },
-  {
     "comment": "Darklight",
     "itemId": 6746,
     "amount": 1,
@@ -5017,6 +5007,16 @@
       "x": 3501,
       "y": 9505,
       "plane": 0
+    }
+  },
+  {
+    "comment": "Plank",
+    "itemId": 960,
+    "amount": 1,
+    "tile": {
+      "x": 2509,
+      "y": 10290,
+      "plane": 1
     }
   }
 ]

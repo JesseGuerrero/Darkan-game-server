@@ -7,7 +7,7 @@ import com.rs.game.content.transportation.FairyRings;
 import com.rs.game.content.world.doors.Doors;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Tile;
 import com.rs.plugin.annotations.PluginEventHandler;
@@ -98,7 +98,7 @@ public class LostCity extends QuestOutline {
 		if(e.getPlayer().getX() <= obj.getX())
 			if(e.getPlayer().getEquipment().getWeaponId() == DRAMEN_STAFF
                     && e.getPlayer().getQuestManager().getStage(Quest.LOST_CITY) >= FIND_ZANARIS)
-				WorldTasks.schedule(new WorldTask() {
+				WorldTasks.schedule(new Task() {
 					int tick;
 					@Override
 					public void run() {
@@ -122,7 +122,30 @@ public class LostCity extends QuestOutline {
 
 	@Override
 	public void complete(Player player) {
-		getQuest().sendQuestCompleteInterface(player, 772, "Access to Zanaris");
+		sendQuestCompleteInterface(player, 772);
+	}
+
+	@Override
+	public String getStartLocationDescription() {
+		return "Talk to the warrior adventurer in Lumbridge Swamp.";
+	}
+
+	@Override
+	public String getRequiredItemsString() {
+		return "None.";
+	}
+
+	@Override
+	public String getCombatInformationString() {
+		return "You will need to defeat a level 63 tree spirit.";
+	}
+
+	@Override
+	public String getRewardsString() {
+		return "Access to Zanaris<br>" +
+				"Ability to wield dragon longswords and dragon daggers<br>" +
+				"Ability to craft cosmic runes<br>" +
+				"Access to Chaeldar the Slayer master (requires level 75 combat)";
 	}
 
 }

@@ -1082,6 +1082,15 @@ public final class TutorialIslandController extends Controller {
 	}
 
 	@Override
+	public boolean processNPCClick2(NPC npc) {
+		if (npc.getId() == SKIPPY) {
+			player.startConversation(new Skippy(player, npc, this));
+			return false;
+		}
+		return true;
+	}
+
+	@Override
 	public boolean processObjectClick1(GameObject object) {
 		if (object.getId() == 36773) {
 			player.sendMessage("I should continue what I was doing.");
@@ -1175,7 +1184,7 @@ public final class TutorialIslandController extends Controller {
 	public boolean processItemOnObject(GameObject object, Item item) {
 		if ((item.getId() == 438 || item.getId() == 436) && object.getId() == 3044)
 			player.getActionManager().setAction(new Smelting(Smelting.SmeltingBar.BRONZE, object, 1));
-		else if (item.getId() == Fish.SHRIMP.getId() || item.getId() == 2307)
+		else if (item.getId() == Fish.SHRIMP.getFishId() || item.getId() == 2307)
 			return true;
 		return false;
 	}
@@ -1202,14 +1211,14 @@ public final class TutorialIslandController extends Controller {
 
 	@Override
 	public boolean gainXP(int skillId, double exp) {
+		if (skillId == Skills.HITPOINTS || player.getSkills().getLevelForXp(skillId) >= 3)
+			return false;
 		double currXp = player.getSkills().getXp(skillId);
 		int levelPost = Skills.getLevelForXp(skillId, (long) (currXp + exp));
 		if (levelPost > 3) {
 			player.getSkills().set(skillId, 3);
 			return false;
 		}
-		if (player.getSkills().getLevelForXp(skillId) >= 3)
-			return false;
 		return true;
 	}
 
@@ -1229,20 +1238,20 @@ public final class TutorialIslandController extends Controller {
 		if (getStage() == Stage.CHOP_TREE && itemId == TreeType.NORMAL.getLogsId()[0]) {
 			nextStage(Stage.MAKE_A_FIRE);
 			player.startConversation(new Dialogue().addItem(itemId, "You get some logs."));
-		} else if (itemId == Fish.SHRIMP.getId()) {
+		} else if (itemId == Fish.SHRIMP.getFishId()) {
 			if (getStage() == Stage.CATCH_SHRIMP)
 				nextStage(Stage.BURN_SHRIMP);
-		} else if (itemId == Cooking.Cookables.RAW_SHRIMP.getBurntId().getId()) {
+		} else if (itemId == Cooking.Cookables.RAW_SHRIMP.getBurntItem().getId()) {
 			if (getStage() == Stage.COOK_SHRIMP) {
-				player.getInventory().addItem(Cooking.Cookables.RAW_SHRIMP.getProduct());
+				player.getInventory().addItem(Cooking.Cookables.RAW_SHRIMP.getProductItem());
 				return false;
 			}
 			nextStage(Stage.COOK_SHRIMP);
 		} else if (itemId == 2309 && getStage() == Stage.COOK_DOUGH)
 			nextStage(Stage.OPEN_MUSIC);
-		else if (itemId == Cooking.Cookables.RAW_SHRIMP.getProduct().getId()) {
+		else if (itemId == Cooking.Cookables.RAW_SHRIMP.getProductItem().getId()) {
 			if (getStage() == Stage.BURN_SHRIMP) {
-				player.getInventory().addItem(Cooking.Cookables.RAW_SHRIMP.getBurntId());
+				player.getInventory().addItem(Cooking.Cookables.RAW_SHRIMP.getBurntItem());
 				return false;
 			}
 			nextStage(Stage.LEAVE_SURVIVAL_EXPERT);

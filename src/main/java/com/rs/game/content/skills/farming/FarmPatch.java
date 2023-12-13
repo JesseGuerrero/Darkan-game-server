@@ -19,6 +19,8 @@ package com.rs.game.content.skills.farming;
 import com.rs.engine.dialogue.Dialogue;
 import com.rs.game.content.Effect;
 import com.rs.game.content.Potions;
+import com.rs.game.content.achievements.AchievementDef;
+import com.rs.game.content.achievements.SetReward;
 import com.rs.game.content.skills.woodcutting.TreeType;
 import com.rs.game.content.skills.woodcutting.Woodcutting;
 import com.rs.game.model.entity.player.Player;
@@ -432,6 +434,8 @@ public class FarmPatch {
 			return true;
 		if ((seed == ProduceType.Poison_ivy) || seed == ProduceType.Evil_turnip || location.type == PatchType.COMPOST || location == PatchLocation.Trollheim_herbs || location == PatchLocation.Burthorpe_potato_patch)
 			return true;
+		if (location == PatchLocation.Canifis_mushrooms && SetReward.MORYTANIA_LEGS.hasRequirements(player, AchievementDef.Area.MORYTANIA, AchievementDef.Difficulty.ELITE, false))
+			return true;
 		if (seed.type == PatchType.ALLOTMENT) {
 			ProduceType flower = seed.getFlowerProtection();
 			if (flower == null)
@@ -439,31 +443,23 @@ public class FarmPatch {
 			switch(location) {
 			case Ardougne_allotment_north:
 			case Ardougne_allotment_south:
-				if (player.isGrowing(PatchLocation.Ardougne_flower, ProduceType.White_lily))
+				if (player.isGrowing(PatchLocation.Ardougne_flower, flower) || player.isGrowing(PatchLocation.Ardougne_flower, ProduceType.White_lily))
 					return true;
-				if (!player.isGrowing(PatchLocation.Ardougne_flower, flower))
-					return false;
 				break;
 			case Canifis_allotment_north:
 			case Canifis_allotment_south:
-				if (player.isGrowing(PatchLocation.Canifis_flower, ProduceType.White_lily))
+				if (player.isGrowing(PatchLocation.Canifis_flower, flower) || player.isGrowing(PatchLocation.Canifis_flower, ProduceType.White_lily))
 					return true;
-				if (!player.isGrowing(PatchLocation.Canifis_flower, flower))
-					return false;
 				break;
 			case Catherby_allotment_north:
 			case Catherby_allotment_south:
-				if (player.isGrowing(PatchLocation.Catherby_flower, ProduceType.White_lily))
+				if (player.isGrowing(PatchLocation.Catherby_flower, flower) || player.isGrowing(PatchLocation.Catherby_flower, ProduceType.White_lily))
 					return true;
-				if (!player.isGrowing(PatchLocation.Catherby_flower, flower))
-					return false;
 				break;
 			case Falador_allotment_north:
 			case Falador_allotment_south:
-				if (player.isGrowing(PatchLocation.Falador_flower, ProduceType.White_lily))
+				if (player.isGrowing(PatchLocation.Falador_flower, flower) || player.isGrowing(PatchLocation.Falador_flower, ProduceType.White_lily))
 					return true;
-				if (!player.isGrowing(PatchLocation.Falador_flower, flower))
-					return false;
 				break;
 			default:
 				break;
@@ -508,7 +504,7 @@ public class FarmPatch {
 		e.getPlayer().putPatch(patch);
 	});
 
-	public static ItemOnObjectHandler handleItemOnPatch = new ItemOnObjectHandler(PatchLocation.MAP.keySet().toArray(), e -> {
+	public static ItemOnObjectHandler handleItemOnPatch = new ItemOnObjectHandler(PatchLocation.MAP.keySet().toArray(), null, e -> {
 		PatchLocation loc = PatchLocation.forObject(e.getObjectId());
 		if (loc == null)
 			return;

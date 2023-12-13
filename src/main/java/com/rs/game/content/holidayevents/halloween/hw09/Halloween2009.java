@@ -23,7 +23,7 @@ import com.rs.game.World;
 import com.rs.game.content.world.unorganized_dialogue.DestroyItem;
 import com.rs.game.model.entity.player.Equipment;
 import com.rs.game.model.entity.player.Player;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
@@ -47,7 +47,7 @@ import java.util.Set;
 @PluginEventHandler
 public class Halloween2009 {
 
-	public static String STAGE_KEY = "hw2022";
+	public static String STAGE_KEY = "hw2023";
 	public static final boolean ENABLED = false;
 
 	static Tile WEB_RESET_LOC = Tile.of(3936, 5125, 2);
@@ -160,7 +160,7 @@ public class Halloween2009 {
 		boolean needStart = !e.getPlayer().matches(from);
 		if (needStart)
 			e.getPlayer().addWalkSteps(curr.getCoordFace(), 2, false);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			boolean started;
 			int failTimer = 3;
 

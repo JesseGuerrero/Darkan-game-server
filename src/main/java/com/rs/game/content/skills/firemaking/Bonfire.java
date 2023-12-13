@@ -22,7 +22,7 @@ import com.rs.game.map.ChunkManager;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.actions.PlayerAction;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
@@ -30,10 +30,19 @@ import com.rs.lib.game.Item;
 import com.rs.lib.game.SpotAnim;
 import com.rs.lib.game.Tile;
 import com.rs.lib.util.Utils;
+import com.rs.plugin.annotations.PluginEventHandler;
+import com.rs.plugin.handlers.ItemOnObjectHandler;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
+@PluginEventHandler
 public class Bonfire extends PlayerAction {
+
+	public static ItemOnObjectHandler logsOnFire = new ItemOnObjectHandler(new Object[] { "Fire" }, Arrays.stream(Log.values()).map(log -> log.logId).toArray(), e -> {
+		if (e.getObject().getDefinitions(e.getPlayer()).containsOption(4, "Add-logs"))
+			Bonfire.addLog(e.getPlayer(), e.getObject(), e.getItem());
+	});
 
 	public static enum Log {
 		LOG(1511, 3098, 1, 50, 6),
@@ -178,7 +187,7 @@ public class Bonfire extends PlayerAction {
 	@Override
 	public void stop(final Player player) {
 		player.getEmotesManager().setNextEmoteEnd(4);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 
 			@Override
 			public void run() {

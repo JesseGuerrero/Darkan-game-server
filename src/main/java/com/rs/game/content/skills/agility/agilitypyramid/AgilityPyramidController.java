@@ -23,8 +23,8 @@ import com.rs.engine.dialogue.HeadE;
 import com.rs.engine.dialogue.statements.ItemStatement;
 import com.rs.engine.dialogue.statements.PlayerStatement;
 import com.rs.game.World;
+import com.rs.game.content.minigames.pyramidplunder.SimonTempleton;
 import com.rs.game.content.skills.agility.Agility;
-import com.rs.game.content.world.unorganized_dialogue.SimonTempletonD;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
@@ -32,7 +32,7 @@ import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Controller;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.Animation;
@@ -123,7 +123,7 @@ public class AgilityPyramidController extends Controller {
 	@Override
 	public boolean processNPCClick1(NPC npc) {
 		if (npc.getId() == 3123)
-			player.startConversation(new SimonTempletonD(player, npc.getId()));
+			player.startConversation(new SimonTempleton(player));
 		return false;
 	}
 
@@ -165,7 +165,7 @@ public class AgilityPyramidController extends Controller {
 	private void grabTop(GameObject object) {
 		player.setNextFaceTile(player.transform(1, 0, 0));
 		player.lock();
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int ticks;
 			@Override
 			public void run() {
@@ -227,7 +227,7 @@ public class AgilityPyramidController extends Controller {
 		final boolean running = player.getRun();
 		player.setRunHidden(false);
 		player.lock();
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int ticks;
 			@Override
 			public void run() {
@@ -263,7 +263,7 @@ public class AgilityPyramidController extends Controller {
 			player.setRunHidden(false);
 			player.lock();
 			player.addWalkSteps(player.transform(-4, 0, 0), -1, false);
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				boolean secondloop;
 				@Override
 				public void run() {
@@ -295,7 +295,7 @@ public class AgilityPyramidController extends Controller {
 		player.setRunHidden(false);
 		player.lock();
 		player.addWalkSteps(toTile.getX(), toTile.getY(), -1, false);
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			boolean secondloop;
 			@Override
 			public void run() {

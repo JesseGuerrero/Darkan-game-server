@@ -101,14 +101,13 @@ public class Lumbridge {
 			ShopsHandler.openShop(e.getPlayer(), "bobs_brilliant_axes");
 	});
 
-	public static ItemOnObjectHandler handleWheatDeposit = new ItemOnObjectHandler(new Object[] { 70034 }, e -> {
-		if (e.getItem().getId() == 1947)
-			if (e.getPlayer().get(WHEAT_DEPOSITED) == Boolean.FALSE) {
-				e.getPlayer().getInventory().deleteItem(1947, 1);
-				e.getPlayer().setNextAnimation(new Animation(832));
-				e.getPlayer().sendMessage("You put the wheat in the hopper.");
-				e.getPlayer().save(WHEAT_DEPOSITED, Boolean.TRUE);
-			}
+	public static ItemOnObjectHandler handleWheatDeposit = new ItemOnObjectHandler(new Object[] { 70034 }, new Object[] { 1947 }, e -> {
+		if (e.getPlayer().get(WHEAT_DEPOSITED) == Boolean.FALSE) {
+			e.getPlayer().getInventory().deleteItem(1947, 1);
+			e.getPlayer().setNextAnimation(new Animation(832));
+			e.getPlayer().sendMessage("You put the wheat in the hopper.");
+			e.getPlayer().save(WHEAT_DEPOSITED, Boolean.TRUE);
+		}
 	});
 
 	public static void updateWheat(Player player) {
@@ -191,14 +190,6 @@ public class Lumbridge {
 			e.getPlayer().useLadder(Tile.of(3207, 3222, 3));
 		else if (e.getObjectId() == 36772)
 			e.getPlayer().useLadder(Tile.of(3207, 3224, 2));
-	});
-
-	public static ObjectClickHandler handleThievesGuildExitLadder = new ObjectClickHandler(new Object[] { 52308 }, e -> {
-		e.getPlayer().useLadder(Tile.of(3223, 3269, 0));
-	});
-
-	public static ObjectClickHandler handleThievesGuildEntrance = new ObjectClickHandler(new Object[] { 52309 }, e -> {
-		e.getPlayer().useLadder(Tile.of(4762, 5891, 0));
 	});
 
 	public static ObjectClickHandler handleTakeFlour = new ObjectClickHandler(new Object[] { 36880 }, e -> {

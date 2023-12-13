@@ -30,6 +30,7 @@ import com.rs.game.content.skills.farming.PatchLocation;
 import com.rs.game.content.skills.farming.PatchType;
 import com.rs.game.content.skills.farming.ProduceType;
 import com.rs.game.content.skills.magic.Magic;
+import com.rs.game.content.skills.runecrafting.Runecrafting;
 import com.rs.game.content.skills.summoning.Summoning.ScrollTarget;
 import com.rs.game.content.skills.summoning.combat.impl.BarkerToad;
 import com.rs.game.content.skills.woodcutting.TreeType;
@@ -284,7 +285,7 @@ public enum Scroll {
 		@Override
 		public boolean object(Player owner, Familiar familiar, GameObject object) {
 			TreeType type = TreeType.forObject(owner, object);
-			if (type == null || !object.getDefinitions().containsOption(0, "Chop down")) {
+			if (type == null || (!object.getDefinitions().containsOption(0, "Chop down") && !object.getDefinitions().containsOption(0, "Cut down"))) {
 				owner.sendMessage("You can't chop that down.");
 				return false;
 			}
@@ -292,6 +293,7 @@ public enum Scroll {
 				owner.sendMessage("You need a woodcutting level of " + type.getLevel() + " to chop down this tree.");
 				return false;
 			}
+			familiar.stopAll();
 			familiar.faceObject(object);
 			familiar.setNextFaceEntity(null);
 			familiar.walkToAndExecute(object.getTile(), () -> familiar.getActionManager().setAction(new Woodcutting(object, type).setLevel(60)));
@@ -919,7 +921,7 @@ public enum Scroll {
 			owner.getBank().depositAllBob(false);
 			for (int i = 0;i < owner.getInventory().getItemsContainerSize();i++) {
 				Item item = owner.getInventory().getItem(i);
-				if (item == null)
+				if (item == null || (item.getId() != Runecrafting.RUNE_ESS && item.getId() != Runecrafting.PURE_ESS))
 					continue;
 				owner.getBank().depositItem(i, 1, false);
 			}

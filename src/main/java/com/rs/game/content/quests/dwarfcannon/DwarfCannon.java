@@ -130,7 +130,30 @@ public class DwarfCannon extends QuestOutline {
 	@Override
 	public void complete(Player player) {
 		player.getSkills().addXpQuest(Constants.CRAFTING, 750);
-		getQuest().sendQuestCompleteInterface(player, 1, "750 Crafting XP", "Permission to purchase and use a dwarf multicannon", "Ability to add the ammo mould to your tool belt", "Ability to smith cannonballs");
+		sendQuestCompleteInterface(player, 1);
+	}
+
+	@Override
+	public String getStartLocationDescription() {
+		return "Talk to Captain Lawgof, south of the coal truck mining site to the west of McGrubor's Wood.";
+	}
+
+	@Override
+	public String getRequiredItemsString() {
+		return "None.";
+	}
+
+	@Override
+	public String getCombatInformationString() {
+		return "None.";
+	}
+
+	@Override
+	public String getRewardsString() {
+		return "750 Crafting XP<br>" +
+				"Permission to purchase and use a dwarf multicannon<br>" +
+				"Ability to smith cannonballs<br>" +
+				"Ability to add the ammo mould to your tool belt";
 	}
 
 	public static LoginHandler login = new LoginHandler(e -> updateVars(e.getPlayer()));
@@ -144,24 +167,23 @@ public class DwarfCannon extends QuestOutline {
 
 	public static ButtonClickHandler handleToolkit = new ButtonClickHandler(409, e -> {});
 
-	public static ItemOnObjectHandler handleItemOnRailings = new ItemOnObjectHandler(new Object[] { 15590, 15591, 15592, 15593, 15594, 15595 }, e -> {
-		if (e.getPlayer().getQuestManager().getStage(Quest.DWARF_CANNON) == 1)
-			if (e.getItem().getId() == 14) {
-				int varbit = e.getObject().getDefinitions().varpBit;
-				if ((varbit != -1) && (e.getPlayer().getVars().getVarBit(varbit) == 0)) {
-					e.getPlayer().setNextAnimation(new Animation(4190));
-					if (Utils.random(4) == 0) {
-						e.getPlayer().getVars().saveVarBit(varbit, 1);
-						e.getPlayer().getInventory().deleteItem(14, 1);
-						e.getPlayer().sendMessage("This railing is now fixed.");
-						if (checkRemainingRepairs(e.getPlayer()) == 0)
-							e.getPlayer().startConversation(new Dialogue(new PlayerStatement(HeadE.CALM, "I've fixed all these railings now.")));
-						e.getPlayer().getQuestManager().setStage(Quest.DWARF_CANNON, 2);
-					} else
-						failedRepair(e.getPlayer());
-				} else
-					e.getPlayer().sendMessage("That railing does not need to be repaired.");
-			}
+	public static ItemOnObjectHandler handleItemOnRailings = new ItemOnObjectHandler(new Object[] { 15590, 15591, 15592, 15593, 15594, 15595 }, new Object[] { 14 }, e -> {
+		if (e.getPlayer().getQuestManager().getStage(Quest.DWARF_CANNON) != 1)
+			return;
+		int varbit = e.getObject().getDefinitions().varpBit;
+		if ((varbit != -1) && (e.getPlayer().getVars().getVarBit(varbit) == 0)) {
+			e.getPlayer().setNextAnimation(new Animation(4190));
+			if (Utils.random(4) == 0) {
+				e.getPlayer().getVars().saveVarBit(varbit, 1);
+				e.getPlayer().getInventory().deleteItem(14, 1);
+				e.getPlayer().sendMessage("This railing is now fixed.");
+				if (checkRemainingRepairs(e.getPlayer()) == 0)
+					e.getPlayer().startConversation(new Dialogue(new PlayerStatement(HeadE.CALM, "I've fixed all these railings now.")));
+				e.getPlayer().getQuestManager().setStage(Quest.DWARF_CANNON, 2);
+			} else
+				failedRepair(e.getPlayer());
+		} else
+			e.getPlayer().sendMessage("That railing does not need to be repaired.");
 	});
 
 	public static ObjectClickHandler handleRailingClick = new ObjectClickHandler(new Object[] { 15590, 15591, 15592, 15593, 15594, 15595 }, e -> {

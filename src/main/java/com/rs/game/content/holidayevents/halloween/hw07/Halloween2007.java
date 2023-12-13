@@ -24,7 +24,7 @@ import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.game.Animation;
 import com.rs.lib.game.SpotAnim;
@@ -47,7 +47,7 @@ import java.util.Set;
 @PluginEventHandler
 public class Halloween2007 {
 
-	public static String STAGE_KEY = "hw2022";
+	public static String STAGE_KEY = "hw2024";
 	public static boolean ENABLED = false;
 
 	public static Tile START_LOCATION = Tile.of(1697, 4814, 0);
@@ -171,7 +171,7 @@ public class Halloween2007 {
 			e.getPlayer().getControllerManager().startController(new Halloween2007Controller());
 		Halloween2007Controller ctrl = (Halloween2007Controller) e.getPlayer().getControllerManager().getController();
 		e.getPlayer().lock();
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int stage = 0;
 			@Override
 			public void run() {
@@ -246,7 +246,7 @@ public class Halloween2007 {
 			e.getPlayer().startConversation(new Dialogue().addSimple("You don't recall the diary mentioning that going in there."));
 	});
 
-	public static ItemOnObjectHandler handleVoDBookcase = new ItemOnObjectHandler(new Object[] { 27249 }, e -> {
+	public static ItemOnObjectHandler handleVoDBookcase = new ItemOnObjectHandler(new Object[] { 27249 }, null, e -> {
 		if (e.getPlayer().getControllerManager().getController() == null)
 			e.getPlayer().getControllerManager().startController(new Halloween2007Controller());
 		Halloween2007Controller ctrl = (Halloween2007Controller) e.getPlayer().getControllerManager().getController();
@@ -257,7 +257,7 @@ public class Halloween2007 {
 			e.getPlayer().startConversation(new Dialogue().addSimple("You don't recall the diary mentioning that going in there."));
 	});
 
-	public static ItemOnObjectHandler handleEyeShelf = new ItemOnObjectHandler(new Object[] { 27261 }, e -> {
+	public static ItemOnObjectHandler handleEyeShelf = new ItemOnObjectHandler(new Object[] { 27261 }, null, e -> {
 		if (e.getPlayer().getControllerManager().getController() == null)
 			e.getPlayer().getControllerManager().startController(new Halloween2007Controller());
 		Halloween2007Controller ctrl = (Halloween2007Controller) e.getPlayer().getControllerManager().getController();
@@ -268,7 +268,7 @@ public class Halloween2007 {
 			e.getPlayer().startConversation(new Dialogue().addSimple("You don't recall the diary mentioning that going in there."));
 	});
 
-	public static ItemOnObjectHandler handleBonesChest = new ItemOnObjectHandler(new Object[] { 27255 }, e -> {
+	public static ItemOnObjectHandler handleBonesChest = new ItemOnObjectHandler(new Object[] { 27255 }, null, e -> {
 		if (e.getPlayer().getControllerManager().getController() == null)
 			e.getPlayer().getControllerManager().startController(new Halloween2007Controller());
 		Halloween2007Controller ctrl = (Halloween2007Controller) e.getPlayer().getControllerManager().getController();
@@ -279,7 +279,7 @@ public class Halloween2007 {
 			e.getPlayer().startConversation(new Dialogue().addSimple("You don't recall the diary mentioning that going in there."));
 	});
 
-	public static ItemOnObjectHandler handleRobeFireplace = new ItemOnObjectHandler(new Object[] { 27251 }, e -> {
+	public static ItemOnObjectHandler handleRobeFireplace = new ItemOnObjectHandler(new Object[] { 27251 }, null, e -> {
 		if (e.getPlayer().getControllerManager().getController() == null)
 			e.getPlayer().getControllerManager().startController(new Halloween2007Controller());
 		Halloween2007Controller ctrl = (Halloween2007Controller) e.getPlayer().getControllerManager().getController();
@@ -311,7 +311,7 @@ public class Halloween2007 {
 		});
 	});
 
-	public static ItemOnObjectHandler handleWillCouch = new ItemOnObjectHandler(new Object[] { 27252 }, e -> {
+	public static ItemOnObjectHandler handleWillCouch = new ItemOnObjectHandler(new Object[] { 27252 }, null, e -> {
 		if (e.getPlayer().getControllerManager().getController() == null)
 			e.getPlayer().getControllerManager().startController(new Halloween2007Controller());
 		Halloween2007Controller ctrl = (Halloween2007Controller) e.getPlayer().getControllerManager().getController();
@@ -341,7 +341,7 @@ public class Halloween2007 {
 		});
 	});
 
-	public static ItemOnObjectHandler handleHourglassFishTank = new ItemOnObjectHandler(new Object[] { 27253 }, e -> {
+	public static ItemOnObjectHandler handleHourglassFishTank = new ItemOnObjectHandler(new Object[] { 27253 }, null, e -> {
 		if (e.getPlayer().getControllerManager().getController() == null)
 			e.getPlayer().getControllerManager().startController(new Halloween2007Controller());
 		Halloween2007Controller ctrl = (Halloween2007Controller) e.getPlayer().getControllerManager().getController();
@@ -554,7 +554,7 @@ public class Halloween2007 {
 					.addNPC(6389, HeadE.CAT_CALM_TALK2, "Who said you could come in here? See the Grim Reaper if you don't know where to go.")
 					.addPlayer(HeadE.NERVOUS, "Oops."));
 		player.lock();
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int stage = 0;
 			@Override
 			public void run() {
@@ -599,7 +599,7 @@ public class Halloween2007 {
 	public static void passWeb(Player player, GameObject object) {
 		Tile toTile = object.getRotation() % 2 != 0 ? player.transform(player.getX() >= object.getX() ? -2 : 2, 0, 0) : player.transform(0, player.getY() >= object.getY() ? -2 : 2, 0);
 		player.lock();
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int stage = 0;
 			@Override
 			public void run() {
@@ -617,7 +617,7 @@ public class Halloween2007 {
 
 	public static void failWeb(Player player, GameObject object) {
 		player.lock();
-		WorldTasks.schedule(new WorldTask() {
+		WorldTasks.schedule(new Task() {
 			int stage = 0;
 			@Override
 			public void run() {

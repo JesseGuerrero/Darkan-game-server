@@ -17,6 +17,7 @@
 package com.rs.game.content.skills.agility;
 
 import com.rs.game.World;
+import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.ForceTalk;
 import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.player.Skills;
@@ -74,8 +75,9 @@ public class WerewolfAgility {
 
 	public static ObjectClickHandler handleZipLine = new ObjectClickHandler(false, new Object[] { 5139, 5140, 5141 }, e -> {
 		Tile endTile = Tile.of(3528, 9873, 0);
-		e.getPlayer().walkToAndExecute(Tile.of(3528, 9910, 0), () ->{
-			WorldTasks.scheduleTimer(1, 0, ticks -> {
+		e.getPlayer().walkToAndExecute(Tile.of(3528, 9910, 0), () -> {
+			e.getPlayer().lock();
+			e.getPlayer().getTasks().scheduleTimer(1, 0, ticks -> {
 				switch(ticks) {
 					default -> { return true; }
 					case 0 -> {
@@ -119,6 +121,8 @@ public class WerewolfAgility {
 			return;
 		if(e.getObject().getTile().matches(e.getPlayer().getTile()))
 			return;
+		if (!e.getObject().getTile().withinDistance(e.getPlayer().getTile(), 2))
+			return;
 		if(e.getObject().getTile().isAt(3538, 9875)) {
 			e.getPlayer().walkToAndExecute(Tile.of(3538, 9873, 0), jumpRock(e));
 		} else
@@ -129,10 +133,9 @@ public class WerewolfAgility {
 		return () -> {
 			if(e.getObject().getTile().isAt(3538, 9875))
 				yellFetch(e);
-			e.getPlayer().lock();
-			WorldTasks.schedule(0, () -> {
-				e.getPlayer().forceMove(e.getObject().getTile(), 741, 0, 35, () -> e.getPlayer().getSkills().addXp(Skills.AGILITY, 10));
-			});
+			e.getPlayer().getSkills().addXp(Skills.AGILITY, 10);
+			e.getPlayer().forceMove(e.getObject().getTile(), 741, 0, 25);
+			e.getPlayer().lock(0);
 		};
 	}
 
@@ -151,11 +154,9 @@ public class WerewolfAgility {
 	public static ObjectClickHandler handleHurdles = new ObjectClickHandler(new Object[] { 5134, 5133, 5135 }, e -> {
 		if(e.getPlayer().getTile().getY() > e.getObject().getY())
 			return;
-		Tile endTile = Tile.of(e.getObject().getX()+(e.getObjectId() == 5134 ? 0 : 1), e.getObject().getY() + 1, 0);
-		e.getPlayer().lock();
-		WorldTasks.schedule(0, () -> {
-			e.getPlayer().forceMove(endTile, 1603, 0, 45, () -> e.getPlayer().getSkills().addXp(Skills.AGILITY, 20));
-		});
+		e.getPlayer().getSkills().addXp(Skills.AGILITY, 20);
+		e.getPlayer().forceMove(Tile.of(e.getObject().getX()+(e.getObjectId() == 5134 ? 0 : 1), e.getObject().getY() + 1, 0), 1603, 0, 45);
+		e.getPlayer().lock(1);
 	});
 
 	public static ObjectClickHandler handleObstaclePipes = new ObjectClickHandler(new Object[] { 5152 }, e -> {

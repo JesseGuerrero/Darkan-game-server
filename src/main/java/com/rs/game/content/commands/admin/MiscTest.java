@@ -22,14 +22,9 @@ import com.rs.cache.ArchiveType;
 import com.rs.cache.Cache;
 import com.rs.cache.IndexType;
 import com.rs.cache.loaders.*;
-import com.rs.cache.loaders.animations.AnimationDefinitions;
-import com.rs.cache.loaders.interfaces.IComponentDefinitions;
-import com.rs.cache.loaders.interfaces.IFEvents;
 import com.rs.cache.loaders.map.ClipFlag;
 import com.rs.engine.command.Commands;
 import com.rs.engine.cutscene.ExampleCutscene;
-import com.rs.engine.dialogue.Dialogue;
-import com.rs.engine.dialogue.statements.Statement;
 import com.rs.engine.miniquest.Miniquest;
 import com.rs.engine.quest.Quest;
 import com.rs.game.World;
@@ -37,10 +32,9 @@ import com.rs.game.content.achievements.Achievement;
 import com.rs.game.content.bosses.qbd.QueenBlackDragonController;
 import com.rs.game.content.combat.CombatDefinitions.Spellbook;
 import com.rs.game.content.combat.PlayerCombat;
+import com.rs.game.content.dnds.shootingstar.ShootingStars;
 import com.rs.game.content.minigames.barrows.BarrowsController;
-import com.rs.game.content.miniquests.huntforsurok.bork.BorkController;
 import com.rs.game.content.pets.Pet;
-import com.rs.game.content.quests.demonslayer.PlayerVSDelrithController;
 import com.rs.game.content.randomevents.RandomEvents;
 import com.rs.game.content.skills.runecrafting.runespan.RunespanController;
 import com.rs.game.content.skills.summoning.Familiar;
@@ -48,7 +42,9 @@ import com.rs.game.content.skills.summoning.Pouch;
 import com.rs.game.content.tutorialisland.TutorialIslandController;
 import com.rs.game.content.world.doors.Doors;
 import com.rs.game.map.ChunkManager;
+import com.rs.game.map.instance.Instance;
 import com.rs.game.map.instance.InstancedChunk;
+import com.rs.game.model.entity.Entity;
 import com.rs.game.model.entity.Hit;
 import com.rs.game.model.entity.Hit.HitLook;
 import com.rs.game.model.entity.ModelRotator;
@@ -57,11 +53,12 @@ import com.rs.game.model.entity.npc.NPC;
 import com.rs.game.model.entity.npc.combat.NPCCombatDefinitions;
 import com.rs.game.model.entity.pathing.*;
 import com.rs.game.model.entity.player.Equipment;
+import com.rs.game.model.entity.player.InstancedController;
 import com.rs.game.model.entity.player.Player;
 import com.rs.game.model.entity.player.Skills;
 import com.rs.game.model.entity.player.managers.InterfaceManager;
 import com.rs.game.model.object.GameObject;
-import com.rs.game.tasks.WorldTask;
+import com.rs.game.tasks.Task;
 import com.rs.game.tasks.WorldTasks;
 import com.rs.lib.Constants;
 import com.rs.lib.game.*;
@@ -74,7 +71,9 @@ import com.rs.lib.util.Utils;
 import com.rs.lib.util.reflect.ReflectionCheck;
 import com.rs.plugin.annotations.PluginEventHandler;
 import com.rs.plugin.annotations.ServerStartupEvent;
+import com.rs.plugin.kts.PluginScriptHost;
 import com.rs.tools.MapSearcher;
+import com.rs.tools.NPCDropDumper;
 import com.rs.utils.DropSets;
 import com.rs.utils.ObjAnimList;
 import com.rs.utils.music.Genre;
@@ -109,14 +108,48 @@ public class MiscTest {
 
 	@ServerStartupEvent
 	public static void loadCommands() {
-
 		//		Commands.add(Rights.ADMIN, "command [args]", "Desc", (p, args) -> {
 		//
 		//		});
-
 		Commands.add(Rights.ADMIN, "test", "legit test meme", (p, args) -> {
-			p.getControllerManager().startController(new BorkController());
-			//p.getInventory().addItem(new Item(24444, 1).addMetaData("trophyBoneOriginator", "Test Key").addMetaData("trophyBoneItems", new ArrayList<>(List.of(new Item(4151, 1).addMetaData("combatCharges", 500), new Item(4151, 1), new Item(4151, 1), new Item(1044, 1), new Item(995, 50000)))));
+			for (NPC npc : World.getNPCs()) {
+				if (npc == null || npc.hasFinished())
+					continue;
+				npc.setFixedFaceTile(p.getTile());
+			}
+		});
+
+		Commands.add(Rights.ADMIN, "reloadplugins", "legit test meme", (p, args) -> {
+			try {
+				PluginScriptHost.Companion.loadAndExecuteScripts();
+				p.sendMessage("Reloaded plugins successfully.");
+			} catch(Throwable e) {
+				p.sendMessage("Error compiling plugins.");
+			}
+		});
+
+		Commands.add(Rights.ADMIN, "shootingstar", "spawn a shooting star", (p, args) -> ShootingStars.spawnStar());
+
+		Commands.add(Rights.DEVELOPER, "dumpdrops [npcId]", "exports a drop dump file for the specified NPC", (p, args) -> {
+			NPCDropDumper.dumpNPC(args[0]);
+		});
+
+		Commands.add(Rights.DEVELOPER, "createinstance [chunkX, chunkY, width, height]", "create a test instance for getting coordinates and setting up cutscenes", (p, args) -> {
+			p.getControllerManager().startController(new InstancedController(Instance.of(p.getTile(), Integer.valueOf(args[2]), Integer.valueOf(args[3]), false)) {
+				@Override
+				public void onBuildInstance() {
+					getInstance().copyMapAllPlanes(Integer.valueOf(args[0]), Integer.valueOf(args[1]))
+							.thenAccept(b -> player.playCutscene(cs -> getInstance().teleportLocal(player, (Integer.valueOf(args[2]) * 8) / 2, (Integer.valueOf(args[3]) * 8) / 2, 0)));
+				}
+
+				@Override
+				public void onDestroyInstance() { }
+			});
+		});
+
+		Commands.add(Rights.DEVELOPER, "togglejfr", "Toggles JFR for the staff webhook tick profiler", (p, args) -> {
+			Settings.getConfig().setJFR(!Settings.getConfig().isEnableJFR());
+			p.sendMessage("JFR is now " + (Settings.getConfig().isEnableJFR() ? "enabled." : "disabled."));
 		});
 
 		Commands.add(Rights.DEVELOPER, "clanify", "Toggles the ability to clanify objects and npcs by examining them.", (p, args) -> {
@@ -411,10 +444,15 @@ public class MiscTest {
 			p.sendMessage("Visualizing chunks: " + p.getNSV().getB("visChunks"));
 		});
 
-		Commands.add(Rights.DEVELOPER, "spawntestnpc", "Spawns an invincible combat test NPC.", (p, args) -> {
+		Commands.add(Rights.DEVELOPER, "spawntestnpc", "Spawns a combat test NPC.", (p, args) -> {
 			NPC n = World.spawnNPC(14256, Tile.of(p.getTile()), -1, true, true);
+			n.setLoadsUpdateZones();
+			n.setPermName("Losercien (punching bag)");
 			n.setHitpoints(Integer.MAX_VALUE / 2);
 			n.getCombatDefinitions().setHitpoints(Integer.MAX_VALUE / 2);
+			n.setForceMultiArea(true);
+			n.setForceMultiAttacked(true);
+			n.anim(10993);
 		});
 
 		Commands.add(Rights.ADMIN, "clearbank,emptybank", "Empties the players bank entirely.", (p, args) -> {
@@ -742,12 +780,13 @@ public class MiscTest {
 		});
 
 		Commands.add(Rights.DEVELOPER, "killnpcs", "Kills all npcs around the player.", (p, args) -> {
-			for (NPC npc : World.getNPCs()) {
+			for (NPC npc : World.getNPCsInChunkRange(p.getChunkId(), 3)) {
 				if (npc instanceof Familiar || npc instanceof Pet)
 					continue;
-				if (Utils.getDistance(npc.getTile(), p.getTile()) < 9 && npc.getPlane() == p.getPlane())
+				if (Utils.getDistance(npc.getTile(), p.getTile()) < 9 && npc.getPlane() == p.getPlane()) {
 					for (int i = 0; i < 100; ++i)
 						npc.applyHit(new Hit(p, 10000, HitLook.TRUE_DAMAGE));
+				}
 			}
 		});
 
@@ -853,7 +892,7 @@ public class MiscTest {
 			p.setNextTile(objs.get(Integer.valueOf(args[1])).getTile());
 		});
 
-		Commands.add(Rights.DEVELOPER, "searchnpc,sn [npcId index]", "Searches the entire gameworld for an NPC matching the ID and teleports you to it.", (p, args) -> {
+		Commands.add(Rights.DEVELOPER, "searchnpc,sn [npcId index]", "Searches the entire (loaded) gameworld for an NPC matching the ID and teleports you to it.", (p, args) -> {
 			int i = 0;
 			List<NPC> npcs = new ArrayList<>();
 			for (NPC npc : World.getNPCs())
@@ -932,7 +971,7 @@ public class MiscTest {
 
 			int tickDelay = Integer.valueOf(args[2]);
 
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				int tick;
 				int voiceID = 0;
 
@@ -967,12 +1006,15 @@ public class MiscTest {
 				int x = Integer.valueOf(args[1]) << 6 | Integer.valueOf(args[3]);
 				int y = Integer.valueOf(args[2]) << 6 | Integer.valueOf(args[4]);
 				p.resetWalkSteps();
+				p.setTemporaryMoveType(Entity.MoveType.TELE);
 				p.setNextTile(Tile.of(x, y, plane));
 			} else if (args.length == 1) {
 				p.resetWalkSteps();
+				p.setTemporaryMoveType(Entity.MoveType.TELE);
 				p.setNextTile(Tile.of(Integer.valueOf(args[0])));
 			} else {
 				p.resetWalkSteps();
+				p.setTemporaryMoveType(Entity.MoveType.TELE);
 				p.setNextTile(Tile.of(Integer.valueOf(args[0]), Integer.valueOf(args[1]), args.length >= 3 ? Integer.valueOf(args[2]) : p.getPlane()));
 			}
 		});
@@ -1103,6 +1145,13 @@ public class MiscTest {
 			p.getPackets().setIFText(interId, compId, val);
 		});
 
+		Commands.add(Rights.DEVELOPER, "ifgraphic [interfaceId componentId graphicId]", "Sets the graphic of an interface.", (p, args) -> {
+			int interId = Integer.valueOf(args[0]);
+			int compId = Integer.valueOf(args[1]);
+			int graphicId = Integer.valueOf(args[2]);
+			p.getPackets().setIFGraphic(interId, compId, graphicId);
+		});
+
 		Commands.add(Rights.DEVELOPER, "imodels [interfaceId]", "Debugs an interface's models.", (p, args) -> {
 			int interId = Integer.valueOf(args[0]);
 			p.getInterfaceManager().sendInterface(interId);
@@ -1215,7 +1264,7 @@ public class MiscTest {
 			final int start = args.length > 2 ? Integer.parseInt(args[2]) : 10;
 			final int end = args.length > 3 ? Integer.parseInt(args[3]) : 20000;
 			p.getTempAttribs().setI("loopAnim", start);
-			WorldTasks.schedule(new WorldTask() {
+			WorldTasks.schedule(new Task() {
 				int anim = p.getTempAttribs().getI("loopAnim");
 
 				@Override

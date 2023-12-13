@@ -47,7 +47,7 @@ public class PumpkinSpawning {
 		if (!Halloween2007.ENABLED && !Halloween2009.ENABLED)
 			return;
 		ChunkManager.permanentlyPreloadRegions(regionsToSpawn);
-		WorldTasks.schedule(Ticks.fromSeconds(30), Ticks.fromHours(1), () -> {
+		WorldTasks.scheduleHalfHourly(() -> {
 			try {
 				spawnPumpkins();
 				World.sendWorldMessage("<col=EB6123><shad=000000>Pumpkins have spawned in various cities around the world!", false);
@@ -59,7 +59,7 @@ public class PumpkinSpawning {
 
 	public static int countPumpkins(int chunkId) {
 		pumpkinCount = 0;
-		List<GroundItem> itemSpawns = ChunkManager.getChunk(chunkId).getAllGroundItems();
+		List<GroundItem> itemSpawns = ChunkManager.getChunk(chunkId, true).getAllGroundItems();
 		if (itemSpawns != null && itemSpawns.size() > 0)
 			itemSpawns.forEach( spawn -> {
 				if (spawn.getId() == 1959)
@@ -70,16 +70,18 @@ public class PumpkinSpawning {
 
 	public static void spawnPumpkins() {
 		for (int id : World.mapRegionIdsToChunks(regionsToSpawn, 0)) {
-			Chunk r = ChunkManager.getChunk(id);
+			Chunk r = ChunkManager.getChunk(id, true);
 			int eggsNeeded = pumpkinsPerChunk-countPumpkins(id);
 			for (int i = 0; i < eggsNeeded; i++) {
 				int x = r.getBaseX()+Utils.random(8);
 				int y = r.getBaseY()+Utils.random(8);
 				Tile tile = Tile.of(x, y, 0);
-				while (!World.floorAndWallsFree(tile, 1)) {
+				int tries = 0;
+				while (!World.floorAndWallsFree(tile, 1) && tries < 5) {
 					x = r.getBaseX()+Utils.random(8);
 					y = r.getBaseY()+Utils.random(8);
 					tile = Tile.of(x, y, 0);
+					tries++;
 				}
 				World.addGroundItem(new Item(1959), Tile.of(x, y, 0));
 			}
